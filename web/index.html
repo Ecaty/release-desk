@@ -304,7 +304,7 @@ function buildTable(id, rows, extra) {
     ["minutes", "Build time", h => h.minutes != null ? `${h.minutes} min` : "—"],
     ["sizeMB", "Size", h => h.sizeMB != null ? `<span class="mono">${h.sizeMB} MB</span>` : "—"],
     ["finished", "Made", h => esc(h.finished)],
-    ["changes", "Changes", h => (h.changes || []).length ? `<ul class="changes">${h.changes.map(c => `<li>${esc(c)}</li>`).join("")}</ul>` : "—"], ...extra];
+    ["changes", "Changes", h => (h.changes || []).length ? `<ul class="changes">${h.changes.map(c => `<li>${esc(c)}</li>`).join("")}</ul><button class="copy" data-text="${esc(h.changes.map(c => "• " + c).join("\n"))}">Copy</button>` : "—"], ...extra];
   if (!rows.length) return `<p class="note">No builds yet.</p>`;
   const st = sorts[id] || {key: "finished", dir: -1};
   const val = (h, k) => k === "version" ? String(h.version).split(".").map(n => n.padStart(5, "0")).join(".") + String(h.build).padStart(8, "0")

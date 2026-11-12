@@ -8,7 +8,7 @@ FIELDS = {
     "version": {"label": "Version", "note": "Unity bundleVersion"},
     "build": {"label": "Build number", "note": "Android version code; raise it for each store upload", "number": True},
     "whatsNew": {"label": "What's new", "multiline": True, "max": 500,
-                 "note": "What players notice, not technical work. Fill from commits collects 'Release-note:' lines from commit messages since the last build. Play shows it as "What's new" (500 characters). On Steam, paste it into an update event in Steamworks (players see events, not build descriptions)."},
+                 "note": "What players notice, not technical work. Leave it empty and each build records the 'Release-note:' lines committed since the previous build; Fill from commits shows them here to edit. Play shows it as “What’s new” (500 characters). On Steam, paste it into an update event in Steamworks (players see events, not build descriptions)."},
 }
 STORES = {"steam": "Steam", "play": "Google Play"}
 BUILD_STORE = {"Steam": "steam", "GooglePlay": "play"}

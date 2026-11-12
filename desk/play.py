@@ -150,7 +150,7 @@ def status(project):
         {"title": "Release AAB", "state": "ok" if aab["exists"] else "todo", "kind": "desk",
          "detail": "Signed with the upload key (Builds tab)."},
         {"title": f"Upload to {play['track']}", "state": "ok" if any(h.get("uploaded") for h in history[:1]) else "todo", "kind": "desk",
-         "detail": f"Bundle, release notes (What's new{'' if notes_ok else ', too long'}), listing and art in one edit on the {play['track']} track."},
+         "detail": f"Bundle with the release notes recorded when it was built (What's new, or the Release-note lines committed since the previous AAB{'' if notes_ok else '; What’s new is too long'}), listing and art in one edit on the {play['track']} track."},
         {"title": "Content rating, data safety, target audience", "state": "todo", "kind": "hand",
          "detail": "Questionnaires in Play Console; needed before any testing track goes out to testers."},
     ]
@@ -192,7 +192,7 @@ def publish(project, preview=True):
         bundle = api.upload(f"/edits/{edit}/bundles", aab["path"], "application/octet-stream")
         code = str(bundle["versionCode"])
         lines.append(f"Bundle {Path(aab['path']).name}: version code {code}")
-        notes = rel["whatsNew"][:RULES["releaseNotesMax"]]
+        notes = release_notes(project, aab["path"])
         entry = {"versionCodes": [code], "status": play["status"], "name": f"{rel['version']} ({code})"}
         if notes:
             entry["releaseNotes"] = [{"language": lang, "text": notes}]
@@ -230,6 +230,20 @@ def publish(project, preview=True):
     builds.mark_uploaded(project, "play-aab", play["track"])
     lines.append(f"Committed: {play['track']} track")
     return True, "\n".join(lines)
+
+
+def release_notes(project, aab_path):
+    """The notes recorded with this AAB when it was built (What's new, or its Release-note lines), as a list Play
+    accepts: whole lines only, at most 500 characters."""
+    entry = next((h for h in builds.history(project, "play-aab") if h.get("path") == str(aab_path)), {})
+    lines = entry.get("changes") or release.changes(release.effective(project, "play")["whatsNew"])
+    text = ""
+    for line in lines:
+        candidate = (text + "\n" if text else "") + "• " + line
+        if len(candidate) > RULES["releaseNotesMax"]:
+            break
+        text = candidate
+    return text
 
 
 def _mime(name):

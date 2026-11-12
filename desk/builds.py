@@ -123,7 +123,8 @@ def build(project, kind):
     if record.exists():
         record.unlink()
     store = release.BUILD_STORE[spec["store"]]
-    notes = release.changes(release.effective(project, store)["whatsNew"])
+    # What's new as written; when empty, the Release-note lines committed since the previous build of this kind.
+    notes = release.changes(release.effective(project, store)["whatsNew"] or release.draft(project, last_commit(project, kind)))
     unity.call(project.root, f"return ReleaseDesk.Editor.DeskEntry.ApplySettings({unity.literal(release.unity_file(project, store))});")
     signing = ""
     if kind == "play-aab":
@@ -157,9 +158,9 @@ def build(project, kind):
     return True, f"{spec['label']} {data['version']} ({data['build']}) in {data['minutes']} min: {path}"
 
 
-def last_commit(project):
-    """Commit of the newest build, where the next change list starts."""
-    return next((h.get("commit", "") for h in history(project) if h.get("commit")), "")
+def last_commit(project, kind=None):
+    """Commit of the newest build (of this kind), where the next change list starts."""
+    return next((h.get("commit", "") for h in history(project, kind) if h.get("commit")), "")
 
 
 def build_all(project, kinds):
