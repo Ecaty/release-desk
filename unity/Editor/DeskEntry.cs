@@ -2,14 +2,14 @@ using System;
 using System.IO;
 using System.Linq;
 using UnityEditor;
+using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
 
 namespace ReleaseDesk.Editor
 {
     /// <summary>
-    /// Entry points Release Desk calls through the Unity CLI. Each returns a short text result and
-    /// never reads or writes secrets.
+    /// Entry points Release Desk calls through the Unity CLI. They never read or write secrets.
     /// </summary>
     public static class DeskEntry
     {
@@ -32,8 +32,11 @@ namespace ReleaseDesk.Editor
         private class BuildRecord
         {
             public string result = "";
+            public string target = "";
+            public string path = "";
             public string version = "";
             public int build;
+            public bool development;
             public string finished = "";
             public double minutes;
             public int errors;
@@ -50,51 +53,77 @@ namespace ReleaseDesk.Editor
             if (data.build > 0)
                 PlayerSettings.Android.bundleVersionCode = data.build;
             if (data.android != null && !string.IsNullOrWhiteSpace(data.android.package))
-                PlayerSettings.SetApplicationIdentifier(UnityEditor.Build.NamedBuildTarget.Android, data.android.package);
+                PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, data.android.package);
             AssetDatabase.SaveAssets();
             return $"Applied: {PlayerSettings.productName} {PlayerSettings.bundleVersion} ({PlayerSettings.Android.bundleVersionCode})";
         }
 
         /// <summary>
-        /// Builds a 64-bit Windows player into outputDirectory. The result is also written next to it as
-        /// build-result.json, because a long build can outlive the CLI call that started it.
+        /// Builds a player. target: "windows" or "android". For Windows, path is the folder; for Android, the .apk/.aab file
+        /// (.aab builds an App Bundle). The result is written to resultPath as JSON, because a long build can outlive
+        /// the CLI call that started it. The previous active platform is restored afterwards.
         /// </summary>
-        public static string BuildWindows(string outputDirectory)
+        public static string Build(string target, string path, bool development, string resultPath)
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode)
                 throw new InvalidOperationException("Stop Play mode before building.");
             var scenes = EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path).ToArray();
             if (scenes.Length == 0)
                 throw new InvalidOperationException("No enabled scenes in Build Settings.");
-            if (Directory.Exists(outputDirectory))
-                Directory.Delete(outputDirectory, true);
-            Directory.CreateDirectory(outputDirectory);
-            string exe = Path.Combine(outputDirectory, SafeName(PlayerSettings.productName) + ".exe");
-            var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
+            var previousTarget = EditorUserBuildSettings.activeBuildTarget;
+            var previousGroup = BuildPipeline.GetBuildTargetGroup(previousTarget);
+            bool bundle = path.EndsWith(".aab", StringComparison.OrdinalIgnoreCase);
+            var options = new BuildPlayerOptions { scenes = scenes, options = development ? BuildOptions.Development : BuildOptions.None };
+            switch (target)
             {
-                scenes = scenes,
-                locationPathName = exe,
-                target = BuildTarget.StandaloneWindows64,
-                targetGroup = BuildTargetGroup.Standalone,
-                options = BuildOptions.None
-            });
+                case "windows":
+                    if (Directory.Exists(path))
+                        Directory.Delete(path, true);
+                    Directory.CreateDirectory(path);
+                    options.locationPathName = Path.Combine(path, SafeName(PlayerSettings.productName) + ".exe");
+                    options.target = BuildTarget.StandaloneWindows64;
+                    options.targetGroup = BuildTargetGroup.Standalone;
+                    break;
+                case "android":
+                    Directory.CreateDirectory(Path.GetDirectoryName(path) ?? ".");
+                    EditorUserBuildSettings.buildAppBundle = bundle;
+                    options.locationPathName = path;
+                    options.target = BuildTarget.Android;
+                    options.targetGroup = BuildTargetGroup.Android;
+                    break;
+                default:
+                    throw new ArgumentException("Unknown target " + target);
+            }
+            var started = DateTime.Now;
+            BuildReport report;
+            try
+            {
+                report = BuildPipeline.BuildPlayer(options);
+            }
+            finally
+            {
+                if (EditorUserBuildSettings.activeBuildTarget != previousTarget)
+                    EditorUserBuildSettings.SwitchActiveBuildTarget(previousGroup, previousTarget);
+            }
             var summary = report.summary;
-            var result = new BuildRecord
+            var record = new BuildRecord
             {
                 result = summary.result.ToString(),
+                target = target,
+                path = path,
                 version = PlayerSettings.bundleVersion,
                 build = PlayerSettings.Android.bundleVersionCode,
+                development = development,
                 finished = DateTime.Now.ToString("yyyy-MM-dd HH:mm"),
-                minutes = Math.Round(summary.totalTime.TotalMinutes, 1),
+                minutes = Math.Round((DateTime.Now - started).TotalMinutes, 1),
                 errors = summary.totalErrors
             };
-            File.WriteAllText(Path.Combine(Path.GetDirectoryName(outputDirectory.TrimEnd('/', '\\')) ?? outputDirectory, "build-result.json"),
-                JsonUtility.ToJson(result, true));
+            Directory.CreateDirectory(Path.GetDirectoryName(resultPath) ?? ".");
+            File.WriteAllText(resultPath, JsonUtility.ToJson(record, true));
             if (summary.result != BuildResult.Succeeded)
-                throw new InvalidOperationException($"Windows build {summary.result} with {summary.totalErrors} errors.");
-            return $"Windows build {result.version} ({result.build}) in {result.minutes} min";
+                throw new InvalidOperationException($"{target} build {summary.result} with {summary.totalErrors} errors.");
+            return $"{target} build {record.version} ({record.build}) in {record.minutes} min";
         }
-
 
         private static string SafeName(string name)
         {

@@ -5,7 +5,7 @@ import re
 import subprocess
 from pathlib import Path
 
-from . import images, unity
+from . import builds, images, unity
 from .project import CONFIG_DIR
 
 RULES = json.loads((Path(__file__).resolve().parent.parent / "rules" / "steam.json").read_text(encoding="utf-8"))
@@ -13,7 +13,7 @@ STEAMCMD = CONFIG_DIR / "steamcmd" / "steamcmd.exe"
 
 
 def build_dir(project):
-    return project.root / "Build" / "Steam" / "Windows"
+    return builds.output(project, "steam-windows")
 
 
 def listing(project):
@@ -81,15 +81,8 @@ def _screenshots(project):
 
 
 def _build(project):
-    folder = build_dir(project)
-    result = folder.parent / "build-result.json"
-    info = {"folder": str(folder), "exists": folder.is_dir() and any(folder.glob("*.exe"))}
-    try:
-        info.update(json.loads(result.read_text(encoding="utf-8")))
-    except (OSError, ValueError):
-        pass
-    if info["exists"]:
-        info["sizeMB"] = round(sum(p.stat().st_size for p in folder.rglob("*") if p.is_file()) / 1048576)
+    info = builds.latest(project, "steam-windows")
+    info["folder"] = info["path"]
     return info
 
 
@@ -136,7 +129,7 @@ def status(project, config):
         {"title": "Screenshots", "state": "ok" if shots["good"] >= shots["min"] else "todo", "kind": "copy",
          "detail": f"{shots['good']} of {shots['min']} usable (1920×1080 or larger, 16:9) in Store/{shots['folder']}."},
         {"title": "Windows build", "state": "ok" if build["exists"] else "todo", "kind": "desk",
-         "detail": "Built by Unity into Build/Steam/Windows."},
+         "detail": "Built by Unity into Build/Steam/Windows (Builds tab)."},
         {"title": "Upload to beta branch", "state": "ok" if build.get("uploaded") else "todo", "kind": "desk",
          "detail": f"SteamPipe upload, set live on '{steam.get('branch', 'beta')}'. The default branch is always set live by hand in Steamworks."},
         {"title": "Review by Valve", "state": "todo", "kind": "hand", "detail": "Valve reviews the store page and the build before release."},
@@ -164,12 +157,6 @@ def summary_lines(project, config):
                  f"{'logged in' if s['steamcmd']['loggedIn'] else 'not logged in'}")
     lines.append(f"Result: {len(blocking)} steps open")
     return lines
-
-
-def build_windows(project):
-    out = build_dir(project)
-    ok, result = unity.call(project.root, f"return ReleaseDesk.Editor.DeskEntry.BuildWindows({unity.literal(out)});", timeout=600)
-    return ok, result
 
 
 def _vdf(project, preview):
@@ -216,7 +203,7 @@ def upload(project, config, preview=True):
     (project.store / "Logs" / "steamcmd.txt").write_text(output, encoding="utf-8")
     ok = "Successfully finished AppID" in output or ("Preview" in output and "ERROR" not in output.upper() and run.returncode == 0)
     if ok and not preview:
-        result = build_dir(project).parent / "build-result.json"
+        result = builds.record_path(build_dir(project))
         try:
             data = json.loads(result.read_text(encoding="utf-8"))
         except (OSError, ValueError):

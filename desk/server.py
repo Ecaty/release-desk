@@ -6,7 +6,7 @@ import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from . import steam, unity
+from . import builds, steam, unity
 from .project import Project, load_config, save_config
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -49,7 +49,7 @@ def overview():
             "stores": [{"id": "steam", "name": "Steam", "done": len(s["steps"]) - len(open_steps), "total": len(s["steps"]),
                         "next": open_steps[0]["title"] if open_steps else "Ready"},
                        {"id": "epic", "name": "Epic Games Store", "later": True},
-                       {"id": "play", "name": "Google Play", "later": True}],
+                       {"id": "play", "name": "Google Play", "builds": True}],
             "jobs": STATE["jobs"]}
 
 
@@ -107,6 +107,10 @@ class Handler(BaseHTTPRequestHandler):
             if self.path == "/api/keys":
                 config = load_config()
                 return self.send(200, {"steamcmd": steam.steamcmd_state(config), "unityCli": bool(unity.cli())})
+            if self.path == "/api/play":
+                p = project()
+                return self.send(200, {"builds": [builds.latest(p, "play-dev-apk"), builds.latest(p, "play-aab")],
+                                       "phones": builds.devices(), "package": p.unity_settings()["androidPackage"]})
             if self.path == "/api/log":
                 return self.send(200, {"text": project().latest_log()})
             if self.path == "/api/jobs":
@@ -144,8 +148,16 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(200, {"text": text})
             if self.path == "/api/unity/apply":
                 return self.send(200, run_job("Push to Unity", apply_to_unity))
-            if self.path == "/api/steam/build":
-                return self.send(200, run_job("Steam: build Windows", lambda: steam.build_windows(project())))
+            if self.path == "/api/build":
+                kind = data["kind"]
+                spec = builds.KINDS[kind]
+                return self.send(200, run_job(f"Build {spec['store']} {spec['label']}", lambda: builds.build(project(), kind)))
+            if self.path == "/api/run/windows":
+                ok, message = builds.run_windows(project())
+                return self.send(200 if ok else 400, {"ok": ok, "error": message, "message": message})
+            if self.path == "/api/play/install":
+                p = project()
+                return self.send(200, run_job("Install on phone", lambda: builds.install(p, p.unity_settings()["androidPackage"])))
             if self.path == "/api/steam/upload":
                 preview = bool(data.get("preview", True))
                 name = "Steam: upload preview" if preview else "Steam: upload"

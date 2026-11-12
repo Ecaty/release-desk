@@ -76,7 +76,7 @@ th{color:var(--muted);font-weight:500;border-top:none;font-size:12px}
     <div class="sep"></div>
     <a href="#steam">Steam <small id="nav-steam"></small></a>
     <a href="#epic">Epic Games Store <small>later</small></a>
-    <a href="#play">Google Play <small>later</small></a>
+    <a href="#play">Google Play <small>builds</small></a>
     <div class="sep"></div>
     <a href="#keys">Keys &amp; accounts</a>
     <a href="#log">Log</a>
@@ -112,7 +112,7 @@ const views = {
   },
   async overview() {
     const o = await api("/api/overview");
-    const cards = o.stores.map(s => s.later
+    const cards = o.stores.map(s => s.builds ? `<a class="box card" href="#${s.id}"><b>${esc(s.name)}</b><small>Phone builds ready · publishing next</small></a>` : s.later
       ? `<a class="box card" href="#${s.id}"><b>${esc(s.name)}</b><small>Later</small></a>`
       : `<a class="box card" href="#${s.id}"><b>${esc(s.name)}</b><div class="meter"><i style="width:${Math.round(100 * s.done / s.total)}%"></i></div><small>${s.done} of ${s.total} done · next: ${esc(s.next)}</small></a>`).join("");
     const rows = o.sync.map(r => `<tr><td>${esc(r.label)}</td><td class="mono">${esc(r.desk)}</td><td class="mono">${esc(r.unity)}</td><td>${r.same ? chip("ok", "same") : chip("warn", "differs")}</td></tr>`).join("");
@@ -150,7 +150,7 @@ const views = {
       body = `<div class="box"><table><tr><th>Build</th><th>Version</th><th>Size</th><th>Made</th><th>Branch</th></tr>
         <tr><td>Windows x64</td><td class="mono">${esc(b.version || "—")} ${b.build ? "(" + b.build + ")" : ""}</td><td class="mono">${b.exists ? b.sizeMB + " MB" : "—"}</td><td>${esc(b.finished || "—")}</td><td>${b.uploaded ? chip("ok", s.branch) : chip("hand", "not uploaded")}</td></tr></table>
         <p class="note mono">${esc(b.folder)}</p>
-        <div class="actions"><button class="btn" data-act="build-win">Build Windows</button><button class="btn" data-act="upload-preview">Upload preview (nothing sent)</button><button class="btn primary" data-act="upload">Upload to ${esc(s.branch)}</button></div>
+        <div class="actions"><button class="btn" data-act="build" data-kind="steam-windows">Build Windows</button><button class="btn" data-act="run-win" ${b.exists ? "" : "disabled"}>Run</button><button class="btn" data-act="upload-preview">Upload preview (nothing sent)</button><button class="btn primary" data-act="upload">Upload to ${esc(s.branch)}</button></div>
         <p class="note">Unity must be open on this project. Uploads use the SteamCMD login cached by your one-time terminal login; the desk never sees the password.</p></div>`;
     } else {
       body = `<div class="box"><ol class="steps">${s.steps.map(x => `<li>${mark(x.state)}<div><div class="t">${esc(x.title)}</div><div class="d">${esc(x.detail)}${x.link ? ` <a href="${esc(x.link)}" target="_blank" rel="noopener">Open ↗</a>` : ""}</div></div>${kindChip(x.kind)}</li>`).join("")}</ol></div>`;
@@ -161,7 +161,20 @@ const views = {
       <div class="tabs" role="tablist">${tabs}</div>${body}${jobsBox(jobs)}`;
   },
   async epic() { return `<div class="head"><div><h2>Epic Games Store</h2><p>Not set up yet. Builds will upload through Epic's BuildPatch Tool.</p></div></div>`; },
-  async play() { return `<div class="head"><div><h2>Google Play</h2><p>Not set up yet. Listing and builds will use the Play Developer API.</p></div></div>`; },
+  async play() {
+    const p = await api("/api/play");
+    const rows = p.builds.map(b => `<tr><td>${esc(b.label)}</td><td class="mono">${b.exists ? esc((b.version || "") + " (" + (b.build ?? "?") + ")") : "—"}</td><td class="mono">${b.exists ? b.sizeMB + " MB" : "—"}</td><td>${esc(b.finished || "—")}</td><td class="mono">${esc(b.path)}</td></tr>`).join("");
+    const phones = p.phones.devices.length ? p.phones.devices.map(d => `${esc(d.model)} ${d.state === "device" ? chip("ok", "ready") : chip("warn", d.state)}`).join(", ") : chip("hand", "no phone connected");
+    const apk = p.builds[0];
+    const jobs = await api("/api/jobs");
+    return `<div class="head"><div><h2>Google Play</h2><p>Build for the phone, test it, then publish from here. Listing and publishing through the Play Developer API come next.</p></div></div>
+      <div class="tabs" role="tablist"><button role="tab" aria-selected="true">Builds</button></div>
+      <div class="box"><table><tr><th>Build</th><th>Version</th><th>Size</th><th>Made</th><th>File</th></tr>${rows}</table>
+        <p>Phone: ${phones}</p>
+        <div class="actions"><button class="btn primary" data-act="build" data-kind="play-dev-apk">Build phone test APK</button><button class="btn" data-act="install" ${apk.exists ? "" : "disabled"}>Install on phone</button><button class="btn" disabled title="Needs the upload key (Keys & accounts, coming next)">Build release AAB</button></div>
+        <p class="note">Unity must be open on this project. An Android build switches Unity to Android and back, so the first one takes long. Connect the phone by USB with USB debugging on.</p></div>
+      ${jobsBox(jobs)}`;
+  },
   async keys() {
     const k = await api("/api/keys");
     const c = k.steamcmd;
@@ -221,7 +234,8 @@ document.addEventListener("click", async e => {
     if (act === "save-steam") { const d = {}; document.querySelectorAll("[id^=st-]").forEach(el => d[el.id.slice(3)] = el.value); await api("/api/steam/listing", d); toast("Saved to Store/steam/listing.json"); return render(); }
     if (act === "save-user") { await api("/api/keys/steam-user", {user: $("#steam-user").value}); toast("Saved"); return render(); }
     if (act === "copy-log") return copy($("#logtext").textContent);
-    const jobs = {"push-unity": ["/api/unity/apply", {}], "build-win": ["/api/steam/build", {}], "upload-preview": ["/api/steam/upload", {preview: true}], "upload": ["/api/steam/upload", {preview: false}]};
+    if (act === "run-win") { await api("/api/run/windows", {}); return toast("Started the Windows build"); }
+    const jobs = {"push-unity": ["/api/unity/apply", {}], "build": ["/api/build", {kind: t.dataset.kind}], "install": ["/api/play/install", {}], "upload-preview": ["/api/steam/upload", {preview: true}], "upload": ["/api/steam/upload", {preview: false}]};
     if (jobs[act]) { await api(...jobs[act]); toast("Started; this page updates when it finishes"); render(); pollJobs(); }
   } catch (err) { toast(err.message); }
 });
