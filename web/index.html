@@ -54,7 +54,13 @@ th{color:var(--muted);font-weight:500;border-top:none;font-size:12px}
 .meta{font-size:11px;color:var(--muted);white-space:nowrap}
 .copy{border:1px solid var(--line);background:transparent;border-radius:6px;padding:2px 8px;font-size:12px;cursor:pointer}
 .steps{list-style:none;margin:0;padding:0}
-.steps li{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.steps li{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:10px;padding:10px 0;border-top:1px solid var(--line);align-items:start}
+.steps li>.chip{justify-self:end}
+th.sort{cursor:pointer;user-select:none}th.sort:hover{color:var(--ink)}th.sort[data-dir]::after{content:" " attr(data-dir)}
+.progress{height:6px;border-radius:3px;background:var(--line);overflow:hidden;margin:8px 0 4px}
+.progress i{display:block;height:100%;width:30%;background:var(--accent);animation:slide 1.4s ease-in-out infinite}
+@keyframes slide{0%{margin-left:-30%}100%{margin-left:100%}}
+@media (prefers-reduced-motion:reduce){.progress i{animation:none;width:100%;opacity:.5}}
 .steps li:first-child{border-top:none}
 .mark{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700}
 .t{font-weight:600}.d{color:var(--muted);font-size:13px;overflow-wrap:anywhere}.d a{color:var(--accent)}
@@ -126,7 +132,7 @@ const views = {
         <div class="actions"><button class="btn" data-act="save-shared">Save</button></div></div>
       <div class="box"><h3>Synced to Unity</h3><table><tr><th>Setting</th><th>Desk</th><th>Unity</th><th></th></tr>${rows}</table>
         <p class="note">Push to Unity writes these into PlayerSettings in the open Editor.</p><div class="actions"><button class="btn" data-act="push-unity">Push to Unity</button></div></div>
-      ${jobsBox(o.jobs)}`;
+      <div id="jobs"></div>`;
   },
   async steam() {
     const s = await api("/api/steam");
@@ -147,33 +153,30 @@ const views = {
         <div class="box"><h3>Screenshots · Store/${esc(s.screenshots.folder)}</h3><p>${s.screenshots.good} of ${s.screenshots.min} usable: ${shots}</p><p class="note">${esc(s.screenshots.note)}</p></div>`;
     } else if (steamTab === "builds") {
       const b = s.build;
-      body = `<div class="box"><table><tr><th>Build</th><th>Version</th><th>Size</th><th>Made</th><th>Branch</th></tr>
-        <tr><td>Windows x64</td><td class="mono">${esc(b.version || "—")} ${b.build ? "(" + b.build + ")" : ""}</td><td class="mono">${b.exists ? b.sizeMB + " MB" : "—"}</td><td>${esc(b.finished || "—")}</td><td>${b.uploaded ? chip("ok", s.branch) : chip("hand", "not uploaded")}</td></tr></table>
+      body = `<div class="box">${buildTable("steam", b.history, [["uploaded", "Steam", h => h.uploaded ? chip("ok", h.uploaded) : h.exists ? chip("hand", "not uploaded") : chip("hand", "replaced")]])}
         <p class="note mono">${esc(b.folder)}</p>
         <div class="actions"><button class="btn" data-act="build" data-kind="steam-windows">Build Windows</button><button class="btn" data-act="run-win" ${b.exists ? "" : "disabled"}>Run</button><button class="btn" data-act="upload-preview">Upload preview (nothing sent)</button><button class="btn primary" data-act="upload">Upload to ${esc(s.branch)}</button></div>
         <p class="note">Unity must be open on this project. Uploads use the SteamCMD login cached by your one-time terminal login; the desk never sees the password.</p></div>`;
     } else {
       body = `<div class="box"><ol class="steps">${s.steps.map(x => `<li>${mark(x.state)}<div><div class="t">${esc(x.title)}</div><div class="d">${esc(x.detail)}${x.link ? ` <a href="${esc(x.link)}" target="_blank" rel="noopener">Open ↗</a>` : ""}</div></div>${kindChip(x.kind)}</li>`).join("")}</ol></div>`;
     }
-    const jobs = await api("/api/jobs");
     return `<div class="head"><div><h2>Steam</h2><p>Builds upload through SteamCMD. The store page has no public API, so copy each value into Steamworks.</p></div>
       <div class="actions"><button class="btn" data-act="refresh">Refresh</button></div></div>
-      <div class="tabs" role="tablist">${tabs}</div>${body}${jobsBox(jobs)}`;
+      <div class="tabs" role="tablist">${tabs}</div><div id="jobs"></div>${body}`;
   },
   async epic() { return `<div class="head"><div><h2>Epic Games Store</h2><p>Not set up yet. Builds will upload through Epic's BuildPatch Tool.</p></div></div>`; },
   async play() {
     const p = await api("/api/play");
-    const rows = p.builds.map(b => `<tr><td>${esc(b.label)}</td><td class="mono">${b.exists ? esc((b.version || "") + " (" + (b.build ?? "?") + ")") : "—"}</td><td class="mono">${b.exists ? b.sizeMB + " MB" : "—"}</td><td>${esc(b.finished || "—")}</td><td class="mono">${esc(b.path)}</td></tr>`).join("");
     const phones = p.phones.devices.length ? p.phones.devices.map(d => `${esc(d.model)} ${d.state === "device" ? chip("ok", "ready") : chip("warn", d.state)}`).join(", ") : chip("hand", "no phone connected");
     const apk = p.builds[0];
-    const jobs = await api("/api/jobs");
     return `<div class="head"><div><h2>Google Play</h2><p>Build for the phone, test it, then publish from here. Listing and publishing through the Play Developer API come next.</p></div></div>
       <div class="tabs" role="tablist"><button role="tab" aria-selected="true">Builds</button></div>
-      <div class="box"><table><tr><th>Build</th><th>Version</th><th>Size</th><th>Made</th><th>File</th></tr>${rows}</table>
+      <div id="jobs"></div>
+      <div class="box">${buildTable("play", p.history, [["kind", "Type", h => esc(h.kind === "play-aab" ? "Release AAB" : "Phone test APK")], ["file", "File", h => `<span class="mono">${esc(h.path.split(/[\\/]/).pop())}</span>${h.exists ? "" : " " + chip("hand", "deleted")}`]])}
         <p>Phone: ${phones}</p>
         <div class="actions"><button class="btn primary" data-act="build" data-kind="play-dev-apk">Build phone test APK</button><button class="btn" data-act="install" ${apk.exists ? "" : "disabled"}>Install on phone</button><button class="btn" disabled title="Needs the upload key (Keys & accounts, coming next)">Build release AAB</button></div>
         <p class="note">Unity must be open on this project. An Android build switches Unity to Android and back, so the first one takes long. Connect the phone by USB with USB debugging on.</p></div>
-      ${jobsBox(jobs)}`;
+`;
   },
   async keys() {
     const k = await api("/api/keys");
@@ -197,10 +200,35 @@ const views = {
   },
 };
 
+const mmss = sec => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
 function jobsBox(jobs) {
   const names = Object.keys(jobs || {});
   if (!names.length) return "";
-  return `<div class="box"><h3>Runs</h3>${names.map(n => `<div class="job"><b>${esc(n)}</b> ${chip(jobs[n].state === "done" ? "ok" : jobs[n].state === "failed" ? "bad" : "warn", jobs[n].state)} <span class="mono">${esc(jobs[n].message)}</span></div>`).join("")}</div>`;
+  return `<div class="box"><h3>Runs</h3>${names.map(n => {
+    const j = jobs[n];
+    if (j.state === "running")
+      return `<div class="job"><b>${esc(n)}</b> ${chip("warn", "running " + mmss(j.elapsed || 0))}<div class="progress"><i></i></div><span class="note">${esc(j.activity || "Working…")}</span></div>`;
+    const took = j.ended && j.started ? " · " + mmss(Math.round(j.ended - j.started)) : "";
+    return `<div class="job"><b>${esc(n)}</b> ${chip(j.state === "done" ? "ok" : "bad", j.state + took)} <span class="mono">${esc(j.message)}</span></div>`;
+  }).join("")}</div>`;
+}
+
+// Build history table, sortable by any column when there is more than one build.
+const sorts = {};
+function buildTable(id, rows, extra) {
+  const cols = [["version", "Version", h => `<span class="mono">${esc(h.version)} (${esc(h.build)})</span>`],
+    ["branch", "Branch", h => `<span class="mono">${esc(h.branch || "—")}</span> <span class="note mono">${esc(h.commit || "")}</span>`],
+    ["minutes", "Build time", h => h.minutes != null ? `${h.minutes} min` : "—"],
+    ["sizeMB", "Size", h => h.sizeMB != null ? `<span class="mono">${h.sizeMB} MB</span>` : "—"],
+    ["finished", "Made", h => esc(h.finished)], ...extra];
+  if (!rows.length) return `<p class="note">No builds yet.</p>`;
+  const st = sorts[id] || {key: "finished", dir: -1};
+  const val = (h, k) => k === "version" ? String(h.version).split(".").map(n => n.padStart(5, "0")).join(".") + String(h.build).padStart(8, "0")
+    : typeof h[k] === "number" ? h[k] : String(h[k] ?? "");
+  const sorted = [...rows].sort((a, b) => { const x = val(a, st.key), y = val(b, st.key); return (x > y ? 1 : x < y ? -1 : 0) * st.dir; });
+  const head = cols.map(([k, label]) => rows.length > 1 ? `<th class="sort" data-sort="${id}:${k}" ${st.key === k ? `data-dir="${st.dir > 0 ? "▲" : "▼"}"` : ""}>${label}</th>` : `<th>${label}</th>`).join("");
+  const body = sorted.map(h => `<tr>${cols.map(([, , f]) => `<td>${f(h)}</td>`).join("")}${h.result && h.result !== "Succeeded" ? `<td>${chip("bad", h.result)}</td>` : ""}</tr>`).join("");
+  return `<table><tr>${head}</tr>${body}</table>`;
 }
 
 async function render() {
@@ -211,22 +239,28 @@ async function render() {
   const name = start.project || view === "project" ? view : "project";
   try { $("#main").innerHTML = await (views[name] || views.overview)(); }
   catch (e) { $("#main").innerHTML = `<div class="box">${chip("bad", "error")} ${esc(e.message)}</div>`; }
+  updateJobs();
 }
 window.addEventListener("hashchange", render);
 
-let polling = null;
-function pollJobs() {
-  clearInterval(polling);
-  polling = setInterval(async () => {
-    const jobs = await api("/api/jobs");
-    if (!Object.values(jobs).some(j => j.state === "running")) { clearInterval(polling); render(); }
-  }, 3000);
+// Live progress: while any run is going, refresh the Runs box every 3 s; when it ends, redraw the page.
+let polling = null, wasRunning = false;
+async function updateJobs() {
+  const jobs = await api("/api/jobs").catch(() => ({}));
+  const box = $("#jobs");
+  if (box) box.innerHTML = jobsBox(jobs);
+  const running = Object.values(jobs).some(j => j.state === "running");
+  if (running && !polling) polling = setInterval(updateJobs, 3000);
+  if (!running && polling) { clearInterval(polling); polling = null; }
+  if (wasRunning && !running) { wasRunning = false; return render(); }
+  wasRunning = running;
 }
 
 document.addEventListener("click", async e => {
-  const t = e.target.closest("[data-act],[data-tab],[data-copyfrom],[data-text],[data-recent]");
+  const t = e.target.closest("[data-act],[data-tab],[data-copyfrom],[data-text],[data-recent],[data-sort]");
   if (!t) return;
   try {
+    if (t.dataset.sort) { const [id, key] = t.dataset.sort.split(":"); const cur = sorts[id] || {key: "finished", dir: -1}; sorts[id] = {key, dir: cur.key === key ? -cur.dir : -1}; return render(); }
     if (t.dataset.tab) { steamTab = t.dataset.tab; return render(); }
     if (t.dataset.copyfrom) return copy($("#" + t.dataset.copyfrom).value);
     if (t.dataset.text !== undefined) return copy(t.dataset.text);
@@ -240,7 +274,7 @@ document.addEventListener("click", async e => {
     if (act === "copy-log") return copy($("#logtext").textContent);
     if (act === "run-win") { await api("/api/run/windows", {}); return toast("Started the Windows build"); }
     const jobs = {"push-unity": ["/api/unity/apply", {}], "build": ["/api/build", {kind: t.dataset.kind}], "install": ["/api/play/install", {}], "upload-preview": ["/api/steam/upload", {preview: true}], "upload": ["/api/steam/upload", {preview: false}]};
-    if (jobs[act]) { await api(...jobs[act]); toast("Started; this page updates when it finishes"); render(); pollJobs(); }
+    if (jobs[act]) { await api(...jobs[act]); toast("Started; progress shows under Runs"); updateJobs(); }
   } catch (err) { toast(err.message); }
 });
 render();

@@ -59,7 +59,7 @@ def run_job(name, fn):
     with LOCK:
         if STATE["jobs"].get(name, {}).get("state") == "running":
             return {"state": "running"}
-        STATE["jobs"][name] = {"state": "running", "message": ""}
+        STATE["jobs"][name] = {"state": "running", "message": "", "started": time.time()}
 
     def work():
         started = time.time()
@@ -67,7 +67,7 @@ def run_job(name, fn):
             ok, message = fn()
         except Exception as error:  # report any failure to the page and the log
             ok, message = False, f"{type(error).__name__}: {error}"
-        STATE["jobs"][name] = {"state": "done" if ok else "failed", "message": str(message)[:1500]}
+        STATE["jobs"][name] = {"state": "done" if ok else "failed", "message": str(message)[:1500], "started": started, "ended": time.time()}
         p = STATE["project"]
         minutes = round((time.time() - started) / 60, 1)
         p.log(f"{name}: {'ok' if ok else 'failed'} ({minutes} min)", str(message).splitlines()[:12] + steam.summary_lines(p, load_config()))
@@ -113,13 +113,22 @@ class Handler(BaseHTTPRequestHandler):
             if self.path == "/api/play":
                 p = project()
                 return self.send(200, {"builds": [builds.latest(p, "play-dev-apk"), builds.latest(p, "play-aab")],
+                                       "history": builds.history(p, "play-dev-apk") + builds.history(p, "play-aab"),
                                        "phones": builds.devices(), "package": p.unity_settings()["androidPackage"]})
             if self.path == "/api/log":
                 p = project()
                 return self.send(200, {"text": p.latest_log(), "history": p.history(),
                                        "tools": {"SteamCMD": p.tool_log("steamcmd.txt"), "Unity build errors": p.tool_log("unity-build.txt", 60)}})
             if self.path == "/api/jobs":
-                return self.send(200, STATE["jobs"])
+                jobs = {k: dict(v) for k, v in STATE["jobs"].items()}
+                running = [v for v in jobs.values() if v["state"] == "running"]
+                for v in running:
+                    v["elapsed"] = round(time.time() - v["started"])
+                if running:
+                    activity = builds.unity_activity()
+                    for v in running:
+                        v["activity"] = activity
+                return self.send(200, jobs)
             self.send(404, {"error": "not found"})
         except ValueError as error:
             self.send(400, {"error": str(error)})

@@ -83,6 +83,8 @@ def _screenshots(project):
 def _build(project):
     info = builds.latest(project, "steam-windows")
     info["folder"] = info["path"]
+    info["history"] = builds.history(project, "steam-windows")
+    info["uploaded"] = any(h.get("uploaded") for h in info["history"][:1])
     return info
 
 
@@ -203,6 +205,7 @@ def upload(project, config, preview=True):
     (project.store / "Logs" / "steamcmd.txt").write_text(output, encoding="utf-8")
     ok = "Successfully finished AppID" in output or ("Preview" in output and "ERROR" not in output.upper() and run.returncode == 0)
     if ok and not preview:
+        builds.mark_uploaded(project, "steam-windows", project.read("store.json", {}).get("steam", {}).get("branch", "beta"))
         result = builds.record_path(build_dir(project))
         try:
             data = json.loads(result.read_text(encoding="utf-8"))

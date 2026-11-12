@@ -63,12 +63,63 @@ def latest(project, kind):
     return info
 
 
+def _git(project, *args):
+    try:
+        return subprocess.run(["git", "-C", str(project.root), *args], capture_output=True, text=True, timeout=10).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        return ""
+
+
+def _history_file(project):
+    return project.root / "Build" / "history.json"
+
+
+def history(project, kind=None):
+    """Every build the desk made, newest first. Only the newest of a kind still exists on disk for folder builds."""
+    try:
+        items = json.loads(_history_file(project).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        items = []
+    if not items:
+        current = latest(project, kind) if kind else None
+        if current and current.get("exists") and current.get("finished"):
+            items = [{"kind": kind, "version": current.get("version", ""), "build": current.get("build", 0), "branch": "",
+                      "commit": "", "finished": current["finished"], "minutes": current.get("minutes"), "sizeMB": current.get("sizeMB"),
+                      "result": current.get("result", ""), "path": current["path"], "uploaded": current.get("uploaded", "")}]
+    items = [i for i in items if kind is None or i.get("kind") == kind]
+    for i in items:
+        i["exists"] = Path(i.get("path", "")).exists()
+    return sorted(items, key=lambda i: i.get("finished", ""), reverse=True)
+
+
+def _add_history(project, entry):
+    items = history(project)
+    for i in items:
+        i.pop("exists", None)
+    items.insert(0, entry)
+    _history_file(project).parent.mkdir(parents=True, exist_ok=True)
+    _history_file(project).write_text(json.dumps(items[:200], indent=2), encoding="utf-8")
+
+
+def mark_uploaded(project, kind, where):
+    items = history(project)
+    for i in items:
+        i.pop("exists", None)
+        if i.get("kind") == kind:
+            i["uploaded"] = where
+            break
+    _history_file(project).write_text(json.dumps(items, indent=2), encoding="utf-8")
+
+
 def build(project, kind):
     """Runs the Unity build. A first Android build can take over an hour, longer than the CLI call, so wait for the record."""
     spec = KINDS[kind]
     path = output(project, kind)
     record = record_path(path)
     started = time.time()
+    branch, commit = _git(project, "rev-parse", "--abbrev-ref", "HEAD"), _git(project, "rev-parse", "--short", "HEAD")
+    if _git(project, "status", "--porcelain", "--untracked-files=no"):
+        commit += "+changes"
     if record.exists():
         record.unlink()
     unity.call(project.root, f"return ReleaseDesk.Editor.DeskEntry.ApplySettings({unity.literal(project.store / 'store.json')});")
@@ -86,6 +137,11 @@ def build(project, kind):
     except (OSError, ValueError):
         errors = unity_errors(project, started)
         return False, f"{message}\n{errors[-1200:]}" if errors else message
+    info = latest(project, kind)
+    _add_history(project, {"kind": kind, "version": data.get("version", ""), "build": data.get("build", 0), "branch": branch,
+                           "commit": commit, "finished": data.get("finished", ""), "minutes": data.get("minutes"),
+                           "sizeMB": info.get("sizeMB") if data.get("result") == "Succeeded" else None,
+                           "result": data.get("result", ""), "path": str(path), "uploaded": ""})
     if data.get("result") != "Succeeded":
         errors = unity_errors(project, started)
         return False, f"{spec['label']} build {data.get('result')} with {data.get('errors')} errors\n{errors[-1200:]}"
@@ -107,6 +163,17 @@ def unity_errors(project, since):
     (project.store / "Logs").mkdir(parents=True, exist_ok=True)
     (project.store / "Logs" / "unity-build.txt").write_text(text, encoding="utf-8")
     return text
+
+
+def unity_activity():
+    """What the Unity Editor says it is doing (window title), e.g. 'Compiling shader variants (busy for 12:03)'."""
+    try:
+        out = subprocess.run(["powershell", "-NoProfile", "-Command",
+                              "(Get-Process Unity -ErrorAction SilentlyContinue | Where-Object MainWindowTitle | Select-Object -First 1).MainWindowTitle"],
+                             capture_output=True, text=True, timeout=15).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    return out if "busy" in out.lower() or "..." in out else ""
 
 
 def run_windows(project):
