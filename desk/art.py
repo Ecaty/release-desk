@@ -53,3 +53,76 @@ def make_icons(project):
             raster.write_png(raster.resize(icon, size, size), out, alpha=spec.get("alpha", True))
         lines.append(f"{store}: {spec['label']} {size}×{size} → Store/{out.relative_to(project.store).as_posix()}")
     return True, "\n".join(lines)
+
+
+# Capsules: key art (rendered by Unity from a shot in Store/shots.json) plus the logo --------------------------
+
+SOURCES.update({"keyArt": "shots/art/key-art.png", "logo": "art/logo.png"})
+
+
+def _settings(project, store, spec):
+    """Rule defaults for one output, overridden by Store/art.json "outputs": {"<store>/<file>": {...}}."""
+    data = project.read("art.json", {}) or {}
+    custom = data.get("outputs", {}).get(f"{store}/{spec['file']}", {})
+    logo = {**spec.get("logo", {}), **custom.get("logo", {})}
+    return {"focus": custom.get("focus", spec.get("focus", [0.5, 0.5])), "zoom": custom.get("zoom", 1.0), "logo": logo}
+
+
+def _place_logo(canvas, logo, box):
+    """Fit the logo into box (fractions x, y = centre; w, h = max size) and composite it."""
+    w = max(1, int(canvas.width * box.get("w", 0.6)))
+    h = max(1, int(canvas.height * box.get("h", 0.5)))
+    fitted = raster.contain(logo, w, h)
+    x = int(canvas.width * box.get("x", 0.5) - fitted.width / 2)
+    y = int(canvas.height * box.get("y", 0.5) - fitted.height / 2)
+    raster.paste(canvas, fitted, x, y)
+
+
+def _save(image, out, fmt):
+    out.parent.mkdir(parents=True, exist_ok=True)
+    if fmt == "jpg":
+        raster.write_jpeg(image, out)
+    else:
+        raster.write_png(image, out)
+
+
+def make_capsules(project, only=""):
+    """Every rules entry with make = capsule (key art + logo), hero (key art only) or logo (logo alone)."""
+    src = sources(project)
+    key_path, logo_path = project.store / src["keyArt"], project.store / src["logo"]
+    wanted = [(s, spec) for make in ("capsule", "hero", "logo") for s, spec in _outputs(make)
+              if not only or f"{s}/{spec['file']}" == only]
+    if not wanted:
+        return False, "No capsule outputs in the rules" + (f" named {only}." if only else ".")
+    needs_key = any(spec["make"] != "logo" for _, spec in wanted)
+    needs_logo = any(spec["make"] != "hero" for _, spec in wanted)
+    missing = []
+    if needs_key and not key_path.is_file():
+        missing.append(f"key art Store/{src['keyArt']} (capture the key-art shot)")
+    if needs_logo and not logo_path.is_file():
+        missing.append(f"logo Store/{src['logo']} (transparent PNG)")
+    if missing:
+        return False, "Missing " + " and ".join(missing) + "."
+    key = raster.read_png(key_path) if needs_key else None
+    logo = raster.trim(raster.read_png(logo_path)) if needs_logo else None
+    lines = []
+    if logo and not logo.has_alpha():
+        lines.append(f"Note: Store/{src['logo']} has no transparency; the logo will cover the art as a rectangle.")
+    for store, spec in wanted:
+        width, height = spec["width"], spec["height"]
+        fmt = spec.get("formats", ["png"])[0]
+        out = project.store / store / "art" / f"{spec['file']}.{fmt}"
+        settings = _settings(project, store, spec)
+        if spec["make"] == "logo":
+            image = raster.contain(logo, width, height)
+            if logo.width < image.width:
+                lines.append(f"Note: the logo is {logo.width}×{logo.height}; a larger logo would keep {spec['label']} sharp.")
+        else:
+            if key.width < width or key.height < height:
+                lines.append(f"Note: key art {key.width}×{key.height} is smaller than {spec['label']} {width}×{height}; it is enlarged.")
+            image = raster.cover(key, width, height, tuple(settings["focus"]), settings["zoom"])
+            if spec["make"] == "capsule":
+                _place_logo(image, logo, settings["logo"])
+        _save(image, out, fmt)
+        lines.append(f"{store}: {spec['label']} {image.width}×{image.height} → Store/{out.relative_to(project.store).as_posix()}")
+    return True, "\n".join(lines)

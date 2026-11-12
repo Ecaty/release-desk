@@ -241,7 +241,10 @@ def cover(image, width, height, focus=(0.5, 0.5), zoom=1.0):
     by = min(max(focus[1] * image.height - bh / 2, 0), image.height - bh)
     if abs(scale - 1) < 1e-9 and bx == int(bx) and by == int(by):
         return crop(image, int(bx), int(by), width, height)
-    return resize(image, width, height, (bx, by, bw, bh))
+    # Resample only the covered source pixels (plus one for interpolation), not the whole image.
+    x0, y0 = max(0, int(bx) - 1), max(0, int(by) - 1)
+    x1, y1 = min(image.width, int(math.ceil(bx + bw)) + 1), min(image.height, int(math.ceil(by + bh)) + 1)
+    return resize(crop(image, x0, y0, x1 - x0, y1 - y0), width, height, (bx - x0, by - y0, bw, bh))
 
 
 def contain(image, width, height):

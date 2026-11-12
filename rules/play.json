@@ -6,6 +6,6 @@
   ],
   "art": [
     { "file": "icon", "label": "App icon", "width": 512, "height": 512, "required": true, "formats": ["png"], "make": "icon", "note": "32-bit PNG, up to 1 MB" },
-    { "file": "feature_graphic", "label": "Feature graphic", "width": 1024, "height": 500, "required": true, "formats": ["png", "jpg"], "note": "24-bit PNG or JPEG, no transparency" }
+    { "file": "feature_graphic", "label": "Feature graphic", "width": 1024, "height": 500, "required": true, "formats": ["png", "jpg"], "make": "capsule", "logo": { "x": 0.5, "y": 0.5, "w": 0.6, "h": 0.55 }, "note": "24-bit PNG or JPEG, no transparency" }
   ]
 }

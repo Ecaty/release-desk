@@ -179,6 +179,8 @@ class Handler(BaseHTTPRequestHandler):
             if self.path == "/api/shots/capture":
                 only = str(data.get("only", ""))
                 return self.send(200, run_job("Capture screenshots" + (f" ({only})" if only else ""), lambda: shots.capture(project(), only)))
+            if self.path == "/api/art/capsules":
+                return self.send(200, run_job("Make capsules", lambda: art.make_capsules(project())))
             if self.path == "/api/art/icons":
                 return self.send(200, run_job("Make icons", lambda: art.make_icons(project())))
             if self.path == "/api/run/windows":
