@@ -13,7 +13,7 @@ import subprocess
 import time
 from pathlib import Path
 
-from . import unity
+from . import release, unity
 
 KINDS = {
     "steam-windows": {"store": "Steam", "target": "windows", "label": "Windows", "folder": True, "development": False},
@@ -28,7 +28,7 @@ def _safe(text):
 
 def output(project, kind):
     spec = KINDS[kind]
-    shared = project.read("store.json", {}) or {}
+    shared = release.effective(project, release.BUILD_STORE[spec["store"]])
     folder = project.root / "Build" / spec["store"] / ("Windows" if spec["target"] == "windows" else "Android")
     if spec.get("folder"):
         return folder
@@ -122,7 +122,9 @@ def build(project, kind):
         commit += "+changes"
     if record.exists():
         record.unlink()
-    unity.call(project.root, f"return ReleaseDesk.Editor.DeskEntry.ApplySettings({unity.literal(project.store / 'store.json')});")
+    store = release.BUILD_STORE[spec["store"]]
+    notes = release.changes(release.effective(project, store)["whatsNew"])
+    unity.call(project.root, f"return ReleaseDesk.Editor.DeskEntry.ApplySettings({unity.literal(release.unity_file(project, store))});")
     code = (f"return ReleaseDesk.Editor.DeskEntry.Build({unity.literal(spec['target'])}, {unity.literal(path)}, "
             f"{'true' if spec['development'] else 'false'}, {unity.literal(record)});")
     ok, message = unity.call(project.root, code, timeout=600)
@@ -141,11 +143,31 @@ def build(project, kind):
     _add_history(project, {"kind": kind, "version": data.get("version", ""), "build": data.get("build", 0), "branch": branch,
                            "commit": commit, "finished": data.get("finished", ""), "minutes": data.get("minutes"),
                            "sizeMB": info.get("sizeMB") if data.get("result") == "Succeeded" else None,
-                           "result": data.get("result", ""), "path": str(path), "uploaded": ""})
+                           "result": data.get("result", ""), "path": str(path), "uploaded": "", "changes": notes})
     if data.get("result") != "Succeeded":
         errors = unity_errors(project, started)
         return False, f"{spec['label']} build {data.get('result')} with {data.get('errors')} errors\n{errors[-1200:]}"
     return True, f"{spec['label']} {data['version']} ({data['build']}) in {data['minutes']} min: {path}"
+
+
+def last_commit(project):
+    """Commit of the newest build, where the next change list starts."""
+    return next((h.get("commit", "") for h in history(project) if h.get("commit")), "")
+
+
+def build_all(project, kinds):
+    """Builds the chosen kinds one after another (Unity runs one build at a time); stops at the first failure."""
+    kinds = [k for k in kinds if k in KINDS]
+    if not kinds:
+        return False, "Choose at least one build."
+    lines = []
+    for kind in kinds:
+        ok, message = build(project, kind)
+        lines.append(message)
+        if not ok:
+            rest = ", ".join(KINDS[k]["label"] for k in kinds[len(lines):])
+            return False, "\n".join(lines + ([f"Stopped; not built: {rest}"] if rest else []))
+    return True, "\n".join(lines)
 
 
 def unity_errors(project, since):

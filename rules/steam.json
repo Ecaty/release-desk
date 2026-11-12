@@ -7,7 +7,6 @@
     "https://partner.steamgames.com/doc/sdk/uploading"
   ],
   "text": {
-    "name": { "label": "Game name", "required": true, "note": "Cannot be changed after pre-release review." },
     "shortDescription": { "label": "Short description", "required": true, "max": 300, "note": "Plain text, no line breaks. Exact limit: verify in the Steamworks editor." },
     "about": { "label": "About this game", "required": true, "multiline": true }
   },

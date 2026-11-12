@@ -77,6 +77,13 @@ th.sort{cursor:pointer;user-select:none}th.sort:hover{color:var(--ink)}th.sort[d
 .shot figcaption{padding:6px 8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12px}
 .shot figcaption .copy{margin-left:auto}
 .thumb{display:block;max-width:120px;max-height:60px;margin-bottom:4px;border-radius:4px;background:repeating-conic-gradient(var(--line) 0 25%,transparent 0 50%) 0 0/12px 12px}
+.si{display:inline-block;width:16px;height:16px;background:currentColor;-webkit-mask:var(--i) center/contain no-repeat;mask:var(--i) center/contain no-repeat;vertical-align:-3px;margin-right:7px;flex:none}
+.si.steam{--i:url(/icons/steam.svg)}.si.epic{--i:url(/icons/epicgames.svg)}.si.play{--i:url(/icons/googleplay.svg)}
+nav a span{display:flex;align-items:center}
+.ov{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--muted);white-space:nowrap}
+.in:disabled{opacity:.6}
+.pick{display:flex;flex-wrap:wrap;gap:8px 16px;margin:4px 0 8px}.pick label{display:flex;gap:6px;align-items:center}
+ul.changes{margin:0;padding-left:16px;font-size:12px;color:var(--muted)}
 .toast{position:fixed;right:16px;bottom:16px;background:var(--ink);color:var(--bg);padding:8px 12px;border-radius:8px;font-size:13px;max-width:60ch}
 @media (max-width:820px){.wrap{grid-template-columns:minmax(0,1fr)}nav{flex-direction:row;flex-wrap:wrap}nav .sep{display:none}.cards{grid-template-columns:minmax(0,1fr)}.field{grid-template-columns:minmax(0,1fr) auto}.field label{grid-column:1/-1}}
 </style>
@@ -87,9 +94,9 @@ th.sort{cursor:pointer;user-select:none}th.sort:hover{color:var(--ink)}th.sort[d
   <nav id="nav">
     <a href="#overview">Overview</a>
     <div class="sep"></div>
-    <a href="#steam">Steam <small id="nav-steam"></small></a>
-    <a href="#epic">Epic Games Store <small>later</small></a>
-    <a href="#play">Google Play <small>builds</small></a>
+    <a href="#steam"><span><i class="si steam"></i>Steam</span> <small id="nav-steam"></small></a>
+    <a href="#epic"><span><i class="si epic"></i>Epic Games Store</span> <small>later</small></a>
+    <a href="#play"><span><i class="si play"></i>Google Play</span> <small>builds</small></a>
     <div class="sep"></div>
     <a href="#keys">Keys &amp; accounts</a>
     <a href="#log">Log</a>
@@ -115,6 +122,35 @@ const chip = (state, label) => `<span class="chip ${state}">${esc(label)}</span>
 const kindChip = k => ({hand: chip("hand", "by hand"), copy: chip("hand", "copy"), desk: chip("auto", "desk")})[k] || "";
 const mark = s => s === "ok" ? `<span class="mark ok">✓</span>` : `<span class="mark hand">·</span>`;
 let steamTab = "listing";
+const storeIcon = id => `<i class="si ${id}"></i>`;
+const fieldInput = (id, f, value, disabled) => f.multiline
+  ? `<textarea id="${id}" class="in" rows="4" ${disabled ? "disabled" : ""}>${esc(value)}</textarea>`
+  : `<input id="${id}" class="in" ${f.number ? 'type="number" min="1"' : ""} value="${esc(value)}" ${disabled ? "disabled" : ""}>`;
+// Shared release on Overview; on a store page the same fields with an override box each.
+function releaseBox(r, store) {
+  const values = store ? r.stores[store].values : r.shared;
+  const rows = Object.entries(r.fields).map(([k, f]) => {
+    const own = store && r.stores[store].overrides.includes(k);
+    const note = (store && r.stores[store].notes[k]) || f.note || "";
+    const side = store ? `<label class="ov"><input type="checkbox" data-ov="${k}" ${own ? "checked" : ""}> override</label>`
+      : `<div>${f.max ? `<span class="meta">${String(values[k] ?? "").length} / ${f.max}</span>` : ""}${k === "whatsNew" ? `<br><button class="copy" data-act="draft">Fill from commits</button>` : ""}</div>`;
+    return `<div class="field"><label for="rel-${k}">${esc(f.label)}</label><div>${fieldInput("rel-" + k, f, values[k], store && !own)}${note ? `<div class="note">${esc(note)}</div>` : ""}</div>${side}</div>`;
+  }).join("");
+  return `<div class="box"><h3>${store ? "Release · unticked fields use the shared value from Overview" : "Release · shared by all stores"}</h3>${rows}
+    <div class="actions"><button class="btn primary" data-act="save-release" data-store="${store || ""}">Save</button>${store ? "" : `<button class="btn" data-act="push-unity">Push to Unity</button>`}</div></div>`;
+}
+function perStore(r) {
+  const keys = Object.keys(r.fields);
+  const rows = Object.entries(r.stores).map(([id, s]) => `<tr><td>${storeIcon(id)}${esc(s.name)}</td>${keys.map(k => `<td>${s.overrides.includes(k)
+    ? `<b>${esc(String(s.values[k]).split("\n")[0].slice(0, 40))}</b> ${chip("auto", "override")}` : `<span class="note">shared</span>`}</td>`).join("")}</tr>`).join("");
+  return `<div class="box"><h3>Per store</h3><table><tr><th>Store</th>${keys.map(k => `<th>${esc(r.fields[k].label)}</th>`).join("")}</tr>${rows}</table></div>`;
+}
+function buildAllBox(r) {
+  const picks = Object.entries(r.kinds).map(([k, label]) => `<label><input type="checkbox" data-kind-pick="${k}" ${k === "play-aab" ? "" : "checked"}>${storeIcon(r.buildStore[k])}${esc(label)}</label>`).join("");
+  return `<div class="box"><h3>Build all</h3><div class="pick">${picks}</div>
+    <p class="note">Builds one after another in the open Editor, each with its store's release values (pushed to Unity before each build), and records version, commit and What's new. Uploading stays per store.</p>
+    <div class="actions"><button class="btn primary" data-act="build-all">Build selected</button></div></div>`;
+}
 
 const views = {
   async project() {
@@ -124,25 +160,21 @@ const views = {
       ${s.recent.length ? `<h3 style="margin-top:12px">Recent</h3>${s.recent.map(p => `<div><button class="copy" data-recent="${esc(p)}">${esc(p)}</button></div>`).join("")}` : ""}</div>`;
   },
   async overview() {
-    const o = await api("/api/overview");
-    const cards = o.stores.map(s => s.builds ? `<a class="box card" href="#${s.id}"><b>${esc(s.name)}</b><small>Phone builds ready · publishing next</small></a>` : s.later
-      ? `<a class="box card" href="#${s.id}"><b>${esc(s.name)}</b><small>Later</small></a>`
-      : `<a class="box card" href="#${s.id}"><b>${esc(s.name)}</b><div class="meter"><i style="width:${Math.round(100 * s.done / s.total)}%"></i></div><small>${s.done} of ${s.total} done · next: ${esc(s.next)}</small></a>`).join("");
+    const [o, r] = await Promise.all([api("/api/overview"), api("/api/release")]);
+    const cards = o.stores.map(s => s.builds ? `<a class="box card" href="#${s.id}"><b>${storeIcon(s.id)}${esc(s.name)}</b><small>Phone builds ready · publishing next</small></a>` : s.later
+      ? `<a class="box card" href="#${s.id}"><b>${storeIcon(s.id)}${esc(s.name)}</b><small>Later</small></a>`
+      : `<a class="box card" href="#${s.id}"><b>${storeIcon(s.id)}${esc(s.name)}</b><div class="meter"><i style="width:${Math.round(100 * s.done / s.total)}%"></i></div><small>${s.done} of ${s.total} done · next: ${esc(s.next)}</small></a>`).join("");
     const rows = o.sync.map(r => `<tr><td>${esc(r.label)}</td><td class="mono">${esc(r.desk)}</td><td class="mono">${esc(r.unity)}</td><td>${r.same ? chip("ok", "same") : chip("warn", "differs")}</td></tr>`).join("");
     return `<div class="head"><div><h2>Overview</h2><p>Unity ${esc(o.editor)} · Store data ${o.hasStore ? "found" : "missing (add a Store/ folder with store.json)"}</p></div>
       <div class="actions"><button class="btn primary" data-act="refresh">Refresh</button></div></div>
       <div class="cards">${cards}</div>
-      <div class="box"><h3>Shared defaults</h3>
-        <div class="field"><label for="sh-name">Game name</label><input id="sh-name" class="in" value="${esc(o.shared.name)}"><span></span></div>
-        <div class="field"><label for="sh-version">Version</label><input id="sh-version" class="in" value="${esc(o.shared.version)}"><span></span></div>
-        <div class="field"><label for="sh-build">Build number</label><input id="sh-build" class="in" type="number" min="1" value="${esc(o.shared.build)}"><span></span></div>
-        <div class="actions"><button class="btn" data-act="save-shared">Save</button></div></div>
+      ${releaseBox(r)}${perStore(r)}${buildAllBox(r)}
       <div class="box"><h3>Synced to Unity</h3><table><tr><th>Setting</th><th>Desk</th><th>Unity</th><th></th></tr>${rows}</table>
         <p class="note">Push to Unity writes these into PlayerSettings in the open Editor.</p><div class="actions"><button class="btn" data-act="push-unity">Push to Unity</button></div></div>
       <div id="jobs"></div>`;
   },
   async steam() {
-    const s = await api("/api/steam");
+    const [s, r] = await Promise.all([api("/api/steam"), api("/api/release")]);
     const done = s.steps.filter(x => x.state === "ok").length;
     $("#nav-steam").textContent = `${done}/${s.steps.length}`;
     const tabs = ["listing", "builds", "steps"].map(t => `<button role="tab" aria-selected="${t === steamTab}" data-tab="${t}">${{listing: "Listing", builds: "Builds", steps: "Setup steps"}[t]}</button>`).join("");
@@ -154,7 +186,7 @@ const views = {
       const art = s.art.map(a => `<tr><td>${a.state !== "missing" && a.state !== "optional" && /\.(png|jpg)$/.test(a.file) ? `<img class="thumb" src="/store-file/${encodeURI(a.file)}?t=${Date.now()}" alt="">` : ""}${esc(a.label)}</td><td class="mono">${esc(a.expected)}</td><td class="mono">${esc(a.file)}</td><td>${
         a.state === "ok" ? chip("ok", "ok") : a.state === "optional" ? chip("hand", "optional") : a.state === "missing" ? chip("bad", "missing") : chip("bad", a.problem)}</td></tr>`).join("");
       const shots = s.screenshots.items.map(x => `${esc(x.file)} ${x.ok ? "" : "(" + esc(x.size) + ", not usable)"}`).join(", ") || "none yet";
-      body = `<div class="box"><h3>Text</h3>${fields}<div class="actions"><button class="btn primary" data-act="save-steam">Save</button></div></div>
+      body = `${releaseBox(r, "steam")}<div class="box"><h3>Text</h3>${fields}<div class="actions"><button class="btn primary" data-act="save-steam">Save</button></div></div>
         <div class="box"><h3>Art · Store/steam/art</h3><table><tr><th>Image</th><th>Size</th><th>File</th><th></th></tr>${art}</table>
         <p class="note">Put each image at the file name shown (PNG unless noted). Sizes from Steamworks docs, checked ${esc(s.rules.checked)}.</p>
         <div class="actions"><button class="btn" data-act="capsules">Make capsules</button><button class="btn" data-act="icons">Make icons</button></div>
@@ -175,12 +207,13 @@ const views = {
   },
   async epic() { return `<div class="head"><div><h2>Epic Games Store</h2><p>Not set up yet. Builds will upload through Epic's BuildPatch Tool.</p></div></div>`; },
   async play() {
-    const p = await api("/api/play");
+    const [p, r] = await Promise.all([api("/api/play"), api("/api/release")]);
     const phones = p.phones.devices.length ? p.phones.devices.map(d => `${esc(d.model)} ${d.state === "device" ? chip("ok", "ready") : chip("warn", d.state)}`).join(", ") : chip("hand", "no phone connected");
     const apk = p.builds[0];
     return `<div class="head"><div><h2>Google Play</h2><p>Build for the phone, test it, then publish from here. Listing and publishing through the Play Developer API come next.</p></div></div>
       <div class="tabs" role="tablist"><button role="tab" aria-selected="true">Builds</button></div>
       <div id="jobs"></div>
+      ${releaseBox(r, "play")}
       <div class="box">${buildTable("play", p.history, [["kind", "Type", h => esc(h.kind === "play-aab" ? "Release AAB" : "Phone test APK")], ["file", "File", h => `<span class="mono">${esc(h.path.split(/[\\/]/).pop())}</span>${h.exists ? "" : " " + chip("hand", "deleted")}`]])}
         <p>Phone: ${phones}</p>
         <div class="actions"><button class="btn primary" data-act="build" data-kind="play-dev-apk">Build phone test APK</button><button class="btn" data-act="install" ${apk.exists ? "" : "disabled"}>Install on phone</button><button class="btn" disabled title="Needs the upload key (Keys & accounts, coming next)">Build release AAB</button></div>
@@ -242,7 +275,8 @@ function buildTable(id, rows, extra) {
     ["branch", "Branch", h => `<span class="mono">${esc(h.branch || "—")}</span> <span class="note mono">${esc(h.commit || "")}</span>`],
     ["minutes", "Build time", h => h.minutes != null ? `${h.minutes} min` : "—"],
     ["sizeMB", "Size", h => h.sizeMB != null ? `<span class="mono">${h.sizeMB} MB</span>` : "—"],
-    ["finished", "Made", h => esc(h.finished)], ...extra];
+    ["finished", "Made", h => esc(h.finished)],
+    ["changes", "Changes", h => (h.changes || []).length ? `<ul class="changes">${h.changes.map(c => `<li>${esc(c)}</li>`).join("")}</ul>` : "—"], ...extra];
   if (!rows.length) return `<p class="note">No builds yet.</p>`;
   const st = sorts[id] || {key: "finished", dir: -1};
   const val = (h, k) => k === "version" ? String(h.version).split(".").map(n => n.padStart(5, "0")).join(".") + String(h.build).padStart(8, "0")
@@ -278,6 +312,10 @@ async function updateJobs() {
   wasRunning = running;
 }
 
+document.addEventListener("change", e => {
+  const ov = e.target.closest("[data-ov]");
+  if (ov) { const input = $("#rel-" + ov.dataset.ov); input.disabled = !ov.checked; if (ov.checked) input.focus(); }
+});
 document.addEventListener("click", async e => {
   const t = e.target.closest("[data-act],[data-tab],[data-copyfrom],[data-text],[data-recent],[data-sort]");
   if (!t) return;
@@ -290,7 +328,14 @@ document.addEventListener("click", async e => {
     const act = t.dataset.act;
     if (act === "open") { await api("/api/open", {path: $("#path").value}); location.hash = "#overview"; return render(); }
     if (act === "refresh") { await api("/api/refresh", {}); toast("Refreshed; summary written to the log"); return render(); }
-    if (act === "save-shared") { await api("/api/shared", {name: $("#sh-name").value, version: $("#sh-version").value, build: $("#sh-build").value}); toast("Saved to Store/store.json"); return render(); }
+    if (act === "save-release") {
+      const values = {}, override = {};
+      document.querySelectorAll("[id^=rel-]").forEach(el => values[el.id.slice(4)] = el.value);
+      document.querySelectorAll("[data-ov]").forEach(el => override[el.dataset.ov] = el.checked);
+      await api("/api/release", {store: t.dataset.store, values, override}); toast("Saved to Store/store.json"); return render();
+    }
+    if (act === "draft") { const d = await api("/api/release/draft", {}); $("#rel-whatsNew").value = d.text || ""; return toast(d.text ? "Draft from commits; shorten it, then Save" : "No commits found"); }
+    if (act === "build-all") { const kinds = [...document.querySelectorAll("[data-kind-pick]:checked")].map(el => el.dataset.kindPick); await api("/api/build/all", {kinds}); toast("Started; progress shows under Runs"); return updateJobs(); }
     if (act === "save-steam") { const d = {}; document.querySelectorAll("[id^=st-]").forEach(el => d[el.id.slice(3)] = el.value); await api("/api/steam/listing", d); toast("Saved to Store/steam/listing.json"); return render(); }
     if (act === "save-user") { await api("/api/keys/steam-user", {user: $("#steam-user").value}); toast("Saved"); return render(); }
     if (act === "copy-log") return copy($("#logtext").textContent);

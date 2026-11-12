@@ -5,7 +5,7 @@ import re
 import subprocess
 from pathlib import Path
 
-from . import builds, images, unity
+from . import builds, images, release, unity
 from .project import CONFIG_DIR
 
 RULES = json.loads((Path(__file__).resolve().parent.parent / "rules" / "steam.json").read_text(encoding="utf-8"))
@@ -17,10 +17,7 @@ def build_dir(project):
 
 
 def listing(project):
-    shared = project.read("store.json", {}) or {}
-    data = project.read("steam/listing.json", {}) or {}
-    data.setdefault("name", shared.get("name", ""))
-    return data
+    return project.read("steam/listing.json", {}) or {}
 
 
 def save_listing(project, fields):
@@ -169,7 +166,8 @@ def _vdf(project, preview):
         raise ValueError("Set steam.appId and steam.depots.windows in Store/store.json first.")
     scripts = project.root / "Build" / "Steam" / "scripts"
     scripts.mkdir(parents=True, exist_ok=True)
-    desc = f"{shared.get('version', '')} ({shared.get('build', '')}) game {project.git_commit(project.root)} store {project.git_commit(project.store)}"
+    rel = release.effective(project, "steam")
+    desc = f"{rel['version']} ({rel['build']}) game {project.git_commit(project.root)} store {project.git_commit(project.store)}"
 
     def q(text):
         return '"' + str(text).replace("\\", "\\\\").replace('"', "'") + '"'

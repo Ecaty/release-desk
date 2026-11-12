@@ -8,7 +8,7 @@ import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from . import art, builds, shots, steam, unity
+from . import art, builds, release, shots, steam, unity
 from .project import Project, load_config, save_config
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -25,6 +25,7 @@ def project():
 
 def open_project(path):
     STATE["project"] = Project(path)
+    release.migrate(STATE["project"])
     config = load_config()
     recent = [p for p in config.get("recent", []) if p != str(STATE["project"].root)]
     config["recent"] = [str(STATE["project"].root)] + recent[:5]
@@ -109,6 +110,12 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(200, target.read_bytes(), "image/png" if target.suffix.lower() == ".png" else "image/jpeg")
             if self.path.split("?")[0] in ("/", "/index.html"):
                 return self.send(200, (ROOT / "web" / "index.html").read_bytes(), "text/html; charset=utf-8")
+            if self.path.startswith("/icons/") and self.path.endswith(".svg"):
+                icon = (ROOT / "web" / "icons" / Path(self.path).name)
+                return self.send(200, icon.read_bytes(), "image/svg+xml") if icon.is_file() else self.send(404, {"error": "not found"})
+            if self.path == "/api/release":
+                return self.send(200, {**release.status(project()), "kinds": {k: v["label"] for k, v in builds.KINDS.items()},
+                                       "buildStore": {k: release.BUILD_STORE[v["store"]] for k, v in builds.KINDS.items()}})
             if self.path == "/api/start":
                 return self.send(200, {"project": str(STATE["project"].root) if STATE["project"] else "", "recent": load_config().get("recent", [])})
             if self.path == "/api/overview":
@@ -153,15 +160,14 @@ class Handler(BaseHTTPRequestHandler):
             if self.path == "/api/steam/listing":
                 steam.save_listing(project(), data)
                 return self.send(200, {"ok": True})
-            if self.path == "/api/shared":
-                shared = project().read("store.json", {}) or {}
-                for key in ("name", "version"):
-                    if key in data:
-                        shared[key] = str(data[key]).strip()
-                if "build" in data:
-                    shared["build"] = int(data["build"])
-                project().write("store.json", shared)
+            if self.path == "/api/release":
+                release.save(project(), data.get("values", {}), data.get("store") or None, data.get("override"))
                 return self.send(200, {"ok": True})
+            if self.path == "/api/release/draft":
+                return self.send(200, {"text": release.draft(project(), builds.last_commit(project()))})
+            if self.path == "/api/build/all":
+                kinds = [k for k in data.get("kinds", []) if k in builds.KINDS]
+                return self.send(200, run_job("Build all", lambda: builds.build_all(project(), kinds)))
             if self.path == "/api/keys/steam-user":
                 config = load_config()
                 config["steamUser"] = str(data.get("user", "")).strip()
