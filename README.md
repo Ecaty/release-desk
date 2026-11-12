@@ -6,34 +6,38 @@ Status: design and clickable mockup (`prototypes/dashboard.html`). Nothing is im
 
 ## What it does
 
-- **One listing, many stores.** Title, descriptions, icon, screenshots and version live as files in the project's `Store/` folder (versioned with the game). Editing them in the desk updates Unity (Product Name, version, icon, Android package) through the Unity CLI.
-- **Automates what the stores allow.** For each store a Set up / Refresh button runs every step it can and lists the rest as short manual steps with links.
+- **One page per store.** Each store page has its own Listing (text and art in that store's sizes), Builds and Setup steps, so a release focuses on one store at a time. The game name is the shared default each page starts from.
+- **Unity stays in sync.** Product Name, version, icon and Android package are pushed into the Unity project through the Unity CLI.
+- **Automates what the stores allow.** Set up / Refresh runs every step it can and lists the rest as short manual steps with links.
 - **Copy-paste for the rest.** Where a store has no API for its page, each field has a Copy button (text or file path).
-- **Log for humans and agents.** Every run writes a short summary to `Store/Logs/latest.txt` (ignored by Git): what passed, what is missing, what blocks a release.
+- **Log for humans and agents.** Every run writes a short summary to the project's `Logs/latest.txt`: what passed, what is missing, what blocks a release.
 
 ## What each store allows (to verify when implementing)
 
 | Store | Builds | Listing text and art | Notes |
 |---|---|---|---|
-| Google Play | Play Developer API (AAB to a track) | Play Developer API | First target. New personal accounts must run a closed test before production. |
+| Google Play | Play Developer API (AAB to a track) | Play Developer API | New personal accounts must run a closed test before production. |
 | Steam | SteamCMD with an app build script | Steamworks site only (no public API) | Build-only Steam account for uploads. Valve reviews page and build. |
 | Epic Games Store | BuildPatch Tool | Epic Developer Portal only | Needs an approved developer organization. |
 
 Store rules (field limits, image sizes, required assets) live in one rules file per store with the source URL and the date they were last checked. A refresh warns when a rules file is older than 60 days.
 
-## Project data (`Store/` in each game repo)
+## Repositories
+
+- **release-desk (this repo, public):** the desk's code and the Unity package. No game data.
+- **Store data (one private repo per game):** listing text, art, screenshots, capture list. Private because unreleased text and art should not sit in a public game repo.
+- **The game's Unity project:** references the desk's Unity package by Git URL (`.../release-desk.git?path=/unity`), which adds the Editor entry points the desk calls (apply PlayerSettings, capture screenshots, build). The game repo holds no store data.
+- **Linking:** a local, ignored `projects.json` in the desk maps each game to its Unity project path and store-data path. Store-data repos are not submodules of this public repo, so public clones never point at private repos.
+- **Traceability:** each upload records the game's commit and the store-data commit in the log.
 
 ```
-Store/
-  store.json        name, descriptions, version, package/app ids per store (no secrets)
-  shots.json        screenshot capture list: scene, camera, world, sizes
-  icon.png          source icon
-  art/              feature graphic, capsules, etc. (Git LFS)
-  shots/            captured screenshots (Git LFS)
-  Logs/latest.txt   last run summary (ignored)
+<game>-store/            private store-data repo
+  store.json             shared defaults: name, version, package/app ids (no secrets)
+  shots.json             screenshot capture list: scene, camera, world, sizes
+  steam/ epic/ play/     per-store text (listing.json) and art (Git LFS)
+  shots/                 captured screenshots (Git LFS)
+  Logs/latest.txt        last run summary (ignored)
 ```
-
-Store data stays in the game repo, not a separate submodule, so a listing change and the build it describes land in the same commit.
 
 ## Secrets
 
@@ -50,4 +54,5 @@ The desk never shows or stores secret values; it only checks that each one exist
 - Local web app on `127.0.0.1`, started from a script; no hosted server.
 - Unity side: a small Editor entry point in the game project (apply PlayerSettings, capture screenshots, build) called through the Unity CLI.
 - Store adapters, one per store, each with `check` (read-only), `refresh` (apply) and its rules file.
-- Order: Google Play first, end to end; then Steam builds; then Epic builds.
+- Store pages in the desk: Steam, Epic Games Store, Google Play.
+- Implementation order: Google Play first end to end (fully automatable, matches the Android test phone), then Steam builds, then Epic builds.

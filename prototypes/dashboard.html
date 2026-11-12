@@ -84,6 +84,11 @@ td.mono,.mono{font-family:var(--f-mono);font-size:12px}
 .log{font-family:var(--f-mono);font-size:12px;line-height:1.6;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;max-height:280px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}
 .log .e{color:var(--bad)}.log .w{color:var(--warn)}.log .o{color:var(--ok)}
 .note{font-size:12px;color:var(--muted)}
+.in{width:100%;border:1px solid var(--line);border-radius:6px;padding:5px 8px;background:var(--bg)}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.tabs button{border:none;background:transparent;padding:8px 12px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent);font-weight:600}
+.tabpane{display:flex;flex-direction:column;gap:16px}
 .toast{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:8px 12px;border-radius:8px;font-size:13px}
 @media (max-width:820px){.wrap{grid-template-columns:minmax(0,1fr)}nav.rail{flex-direction:row;flex-wrap:wrap}nav.rail .sep{display:none}nav.rail a{flex:1 1 auto}.storecards,.grid2{grid-template-columns:minmax(0,1fr)}.field{grid-template-columns:minmax(0,1fr) auto}.field label{grid-column:1/-1}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -100,12 +105,10 @@ td.mono,.mono{font-family:var(--f-mono);font-size:12px}
 
   <nav class="rail" aria-label="Sections">
     <a href="#overview" data-v="overview">Overview <span class="dot warn"></span></a>
-    <a href="#listing" data-v="listing">Store listing <span class="dot warn"></span></a>
-    <a href="#builds" data-v="builds">Builds <span class="dot ok"></span></a>
     <div class="sep"></div>
-    <a href="#play" data-v="play">Google Play <span class="dot warn"></span></a>
     <a href="#steam" data-v="steam">Steam <span class="dot idle"></span></a>
     <a href="#epic" data-v="epic">Epic Games Store <span class="dot idle"></span></a>
+    <a href="#play" data-v="play">Google Play <span class="dot warn"></span></a>
     <div class="sep"></div>
     <a href="#secrets" data-v="secrets">Keys &amp; accounts <span class="dot bad"></span></a>
     <a href="#log" data-v="log">Log <span class="dot warn"></span></a>
@@ -117,16 +120,16 @@ td.mono,.mono{font-family:var(--f-mono);font-size:12px}
       <div class="head"><div><h2>What's missing before a release</h2><p>One place for every store. Edit the listing once; Unity and the stores that have an API are updated from it. The rest you copy from here.</p></div>
         <div class="actions"><button class="btn primary" data-run="all">Refresh all</button></div></div>
       <div class="storecards">
-        <a class="box storecard" href="#play"><b>Google Play</b><div class="chips"><span class="chip auto">API: listing + builds</span></div><div class="meter"><i style="width:62%"></i></div><small>5 of 8 ready · needs app signing key, testers</small></a>
-        <a class="box storecard" href="#steam"><b>Steam</b><div class="chips"><span class="chip auto">API: builds</span><span class="chip hand">page by hand</span></div><div class="meter"><i style="width:12%"></i></div><small>1 of 8 ready · no Steamworks account yet</small></a>
+        <a class="box storecard" href="#steam"><b>Steam</b><div class="chips"><span class="chip auto">API: builds</span><span class="chip hand">page by hand</span></div><div class="meter"><i style="width:12%"></i></div><small>1 of 9 ready · no Steamworks account yet</small></a>
         <a class="box storecard" href="#epic"><b>Epic Games Store</b><div class="chips"><span class="chip auto">API: builds</span><span class="chip hand">page by hand</span></div><div class="meter"><i style="width:0%"></i></div><small>Not started · needs Epic developer approval</small></a>
+        <a class="box storecard" href="#play"><b>Google Play</b><div class="chips"><span class="chip auto">API: listing + builds</span></div><div class="meter"><i style="width:62%"></i></div><small>6 of 10 ready · needs upload key, testers</small></a>
       </div>
       <div class="grid2">
         <div class="box"><h3>Needs you</h3>
           <ul class="steps">
-            <li><span class="mark bad">!</span><div><div class="t">Pick the final game name</div><div class="d">Title is used by every store and by Unity (Product Name).</div></div><a class="btn" href="#listing">Edit</a></li>
+            <li><span class="mark bad">!</span><div><div class="t">Pick the final game name</div><div class="d">Unity uses it as Product Name; each store page starts from it.</div></div><a class="btn" href="#steam">Edit</a></li>
             <li><span class="mark bad">!</span><div><div class="t">Create the Android upload key</div><div class="d">Run “Create key” in Keys &amp; accounts; it stays outside the repo.</div></div><a class="btn" href="#secrets">Open</a></li>
-            <li><span class="mark warn">2</span><div><div class="t">2 screenshots missing for phones</div><div class="d">Google Play needs at least 2 phone screenshots. Capture them from Unity.</div></div><a class="btn" href="#listing">Capture</a></li>
+            <li><span class="mark warn">2</span><div><div class="t">2 screenshots missing for phones</div><div class="d">Google Play needs at least 2 phone screenshots. Capture them from Unity.</div></div><a class="btn" href="#play">Open</a></li>
           </ul></div>
         <div class="box"><h3>Synced to Unity</h3>
           <table><tr><th>Setting</th><th>Desk</th><th>Unity</th><th></th></tr>
@@ -140,84 +143,104 @@ td.mono,.mono{font-family:var(--f-mono);font-size:12px}
       </div>
     </section>
 
-    <!-- LISTING -->
-    <section class="pane" id="v-listing" hidden>
-      <div class="head"><div><h2>Store listing</h2><p>Shared text and art. Saved as files in <span class="mono">Store/</span> in the project repo, so changes are versioned with the game.</p></div>
-        <div class="actions"><button class="btn" data-run="shots">Capture screenshots in Unity</button><button class="btn primary" data-run="save">Save</button></div></div>
+    <!-- STEAM -->
+    <section class="pane" id="v-steam" hidden>
+      <div class="head"><div><h2>Steam</h2><p>Builds upload through SteamCMD. The store page has no public API, so copy each value into Steamworks.</p></div>
+        <div class="actions"><button class="btn" data-run="shots">Capture screenshots in Unity</button><button class="btn primary" data-run="steam">Set up / refresh</button></div></div>
+      <div class="tabs" role="tablist"><button role="tab" aria-selected="true" data-tab="steam-listing">Listing</button><button role="tab" aria-selected="false" data-tab="steam-builds">Builds</button><button role="tab" aria-selected="false" data-tab="steam-steps">Setup steps</button></div>
+      <div class="tabpane" id="steam-listing">
       <div class="box"><h3>Text</h3>
-        <div class="field"><label for="f-title">Title</label><div class="val"><input id="f-title" value="Ecaty" style="width:100%;border:1px solid var(--line);border-radius:6px;padding:5px 8px;background:var(--bg)"></div><div><span class="meta">5 / 30 Play</span> <button class="copy" data-copy="#f-title">Copy</button></div></div>
-        <div class="field"><label for="f-short">Short description</label><div class="val"><input id="f-short" value="Build cozy little worlds and bring them to life." style="width:100%;border:1px solid var(--line);border-radius:6px;padding:5px 8px;background:var(--bg)"></div><div><span class="meta">49 / 80 Play</span> <button class="copy" data-copy="#f-short">Copy</button></div></div>
-        <div class="field"><label for="f-long">Full description</label><div class="val"><textarea id="f-long" rows="4" style="width:100%;border:1px solid var(--line);border-radius:6px;padding:6px 8px;background:var(--bg)">Shape objects from clay, give them simple behaviors, change the weather and time of day, and keep every world on your own crystal tree. (Example text.)</textarea></div><div><span class="meta">160 / 4000</span> <button class="copy" data-copy="#f-long">Copy</button></div></div>
-        <div class="field"><label>Languages</label><div class="val">English <span class="note">(translations later)</span></div><div></div></div>
+        <div class="field"><label for="s-title">Game name</label><div class="val"><input id="s-title" class="in" value="Ecaty"></div><div><span class="meta">from Overview</span> <button class="copy" data-copy="#s-title">Copy</button></div></div>
+        <div class="field"><label for="s-short">Short description</label><div class="val"><input id="s-short" class="in" value="Build cozy little worlds and bring them to life."></div><div><span class="meta">49 / 300</span> <button class="copy" data-copy="#s-short">Copy</button></div></div>
+        <div class="field"><label for="s-about">About this game</label><div class="val"><textarea id="s-about" rows="3" class="in">Shape objects from clay, give them simple behaviors, change the weather and time of day, and keep every world on your own crystal tree. (Example text.)</textarea></div><div><span class="meta">160 chars</span> <button class="copy" data-copy="#s-about">Copy</button></div></div>
       </div>
-      <div class="box"><h3>Art</h3>
+      <div class="box"><h3>Art <span class="note" style="text-transform:none;letter-spacing:0">· files in Store/steam/</span></h3>
         <div class="assets">
-          <div class="asset"><div class="ph sq">512×512</div><div class="cap"><span>Icon</span><span class="chip ok">ok</span></div></div>
-          <div class="asset"><div class="ph">1024×500</div><div class="cap"><span>Play feature graphic</span><span class="chip bad">missing</span></div></div>
-          <div class="asset"><div class="ph">920×430</div><div class="cap"><span>Steam header capsule</span><span class="chip bad">missing</span></div></div>
-          <div class="asset"><div class="ph tall">phone</div><div class="cap"><span>Phone shot 1</span><span class="chip ok">ok</span></div></div>
-          <div class="asset"><div class="ph tall">phone</div><div class="cap"><span>Phone shot 2</span><span class="chip warn">capture</span></div></div>
-          <div class="asset"><div class="ph">1920×1080</div><div class="cap"><span>Desktop shot 1</span><span class="chip ok">ok</span></div></div>
+          <div class="asset"><div class="ph ">920×430</div><div class="cap"><span>Header capsule</span><span class="chip bad">missing</span></div></div>
+          <div class="asset"><div class="ph ">462×174</div><div class="cap"><span>Small capsule</span><span class="chip bad">missing</span></div></div>
+          <div class="asset"><div class="ph ">1232×706</div><div class="cap"><span>Main capsule</span><span class="chip bad">missing</span></div></div>
+          <div class="asset"><div class="ph tall">748×896</div><div class="cap"><span>Vertical capsule</span><span class="chip bad">missing</span></div></div>
+          <div class="asset"><div class="ph ">1920×1080</div><div class="cap"><span>Screenshot 1</span><span class="chip ok">ok</span></div></div>
+          <div class="asset"><div class="ph ">1920×1080</div><div class="cap"><span>Screenshots 2–5</span><span class="chip warn">capture</span></div></div>
         </div>
-        <p class="note">Screenshots come from a capture list in <span class="mono">Store/shots.json</span> (scene, camera, world). Sizes per store are checked against the current store rules on each refresh.</p>
+        <div class="field"><label>Art folder</label><div class="val mono">A:\Projects\Ecaty\Store\steam</div><button class="copy" data-text="A:\Projects\Ecaty\Store\steam">Copy path</button></div>
+      </div></div>
+      <div class="tabpane" id="steam-builds" hidden><div class="box"><table>
+        <tr><th>Build</th><th>Version</th><th>Size</th><th>Made</th><th>Branch</th></tr>
+        <tr><td>Windows x64</td><td class="mono">—</td><td class="mono">—</td><td>—</td><td><span class="chip hand">not uploaded</span></td></tr>
+      </table><div class="actions" style="margin-top:10px"><button class="btn" data-run="buildwin">Build Windows</button><button class="btn" data-run="steamup">Upload to beta branch</button></div></div></div>
+      <div class="tabpane" id="steam-steps" hidden><div class="box"><ol class="steps">
+        <li><span class="mark bad">!</span><div><div class="t">Steamworks account and app fee</div><div class="d">Done by you. <a href="https://partner.steamgames.com/" target="_blank" rel="noopener">Steamworks ↗</a></div></div><span class="chip hand">by hand</span></li>
+        <li><span class="mark idle">·</span><div><div class="t">Build account for uploads</div><div class="d">A separate Steam account with build rights only; its login stays in Windows Credential Manager.</div></div><span class="chip hand">by hand, once</span></li>
+        <li><span class="mark idle">·</span><div><div class="t">Store page</div><div class="d">Paste the Listing tab into Steamworks.</div></div><span class="chip hand">copy</span></li>
+        <li><span class="mark idle">·</span><div><div class="t">Upload Windows build to a beta branch</div><div class="d">SteamCMD with a generated app build script.</div></div><span class="chip auto">desk</span></li>
+        <li><span class="mark idle">·</span><div><div class="t">Review</div><div class="d">Valve reviews the page and the build before release.</div></div><span class="chip hand">wait</span></li>
+      </ol></div></div>
+    </section>
+    <!-- EPIC -->
+    <section class="pane" id="v-epic" hidden>
+      <div class="head"><div><h2>Epic Games Store</h2><p>Builds upload through Epic's BuildPatch Tool. The store page is edited in the Epic Developer Portal.</p></div>
+        <div class="actions"><button class="btn" data-run="shots">Capture screenshots in Unity</button><button class="btn primary" data-run="epic">Set up / refresh</button></div></div>
+      <div class="tabs" role="tablist"><button role="tab" aria-selected="true" data-tab="epic-listing">Listing</button><button role="tab" aria-selected="false" data-tab="epic-builds">Builds</button><button role="tab" aria-selected="false" data-tab="epic-steps">Setup steps</button></div>
+      <div class="tabpane" id="epic-listing">
+      <div class="box"><h3>Text</h3>
+        <div class="field"><label for="e-title">Title</label><div class="val"><input id="e-title" class="in" value="Ecaty"></div><div><span class="meta">from Overview</span> <button class="copy" data-copy="#e-title">Copy</button></div></div>
+        <div class="field"><label for="e-short">Short description</label><div class="val"><input id="e-short" class="in" value="Build cozy little worlds and bring them to life."></div><div><span class="meta">49</span> <button class="copy" data-copy="#e-short">Copy</button></div></div>
+        <div class="field"><label for="e-long">Full description</label><div class="val"><textarea id="e-long" rows="3" class="in">Shape objects from clay, give them simple behaviors, change the weather and time of day, and keep every world on your own crystal tree. (Example text.)</textarea></div><div><span class="meta">160 chars</span> <button class="copy" data-copy="#e-long">Copy</button></div></div>
       </div>
+      <div class="box"><h3>Art <span class="note" style="text-transform:none;letter-spacing:0">· files in Store/epic/</span></h3>
+        <div class="assets">
+          <div class="asset"><div class="ph ">landscape</div><div class="cap"><span>Offer image (wide)</span><span class="chip bad">missing</span></div></div>
+          <div class="asset"><div class="ph tall">portrait</div><div class="cap"><span>Offer image (tall)</span><span class="chip bad">missing</span></div></div>
+          <div class="asset"><div class="ph sq">logo</div><div class="cap"><span>Logo</span><span class="chip bad">missing</span></div></div>
+          <div class="asset"><div class="ph ">1920×1080</div><div class="cap"><span>Screenshots</span><span class="chip warn">capture</span></div></div>
+        </div>
+        <p class="note">Exact Epic sizes come from its rules file when this store is set up.</p></div></div>
+      <div class="tabpane" id="epic-builds" hidden><div class="box"><table>
+        <tr><th>Build</th><th>Version</th><th>Size</th><th>Made</th><th>Label</th></tr>
+        <tr><td>Windows x64</td><td class="mono">—</td><td class="mono">—</td><td>—</td><td><span class="chip hand">not uploaded</span></td></tr>
+      </table></div></div>
+      <div class="tabpane" id="epic-steps" hidden><div class="box"><ol class="steps">
+        <li><span class="mark idle">·</span><div><div class="t">Developer Portal organization</div><div class="d">Apply and accept the distribution agreement. <a href="https://dev.epicgames.com/portal" target="_blank" rel="noopener">Epic Developer Portal ↗</a></div></div><span class="chip hand">by hand</span></li>
+        <li><span class="mark idle">·</span><div><div class="t">Build credentials</div><div class="d">Client ID and secret for BuildPatch Tool, stored outside the repo.</div></div><span class="chip hand">by hand, once</span></li>
+        <li><span class="mark idle">·</span><div><div class="t">Store page</div><div class="d">Paste the Listing tab into the Developer Portal.</div></div><span class="chip hand">copy</span></li>
+        <li><span class="mark idle">·</span><div><div class="t">Upload Windows build</div><div class="d">BuildPatch Tool to a test label.</div></div><span class="chip auto">desk</span></li>
+      </ol></div></div>
     </section>
-
-    <!-- BUILDS -->
-    <section class="pane" id="v-builds" hidden>
-      <div class="head"><div><h2>Builds</h2><p>Made by the Unity project's build menu; the desk only lists and uploads them.</p></div>
-        <div class="actions"><button class="btn primary" data-run="build">Build Android</button><button class="btn" data-run="buildwin">Build Windows</button></div></div>
-      <div class="box"><table>
-        <tr><th>Build</th><th>Version</th><th>Size</th><th>Made</th><th>Uploaded to</th></tr>
-        <tr><td>Android dev APK</td><td class="mono">0.1.0 (11)</td><td class="mono">200 MB</td><td>12 Nov</td><td><span class="chip hand">none</span></td></tr>
-        <tr><td>Android release AAB</td><td class="mono">—</td><td class="mono">—</td><td>—</td><td><span class="chip warn">needs signing key</span></td></tr>
-        <tr><td>Windows x64</td><td class="mono">—</td><td class="mono">—</td><td>—</td><td><span class="chip hand">none</span></td></tr>
-      </table><p class="note">Play limits an AAB download to 200 MB before asset packs; the current APK is at that edge.</p></div>
-    </section>
-
     <!-- PLAY -->
     <section class="pane" id="v-play" hidden>
       <div class="head"><div><h2>Google Play</h2><p>Fully automatable through the Play Developer API: listing text, art, builds and test tracks.</p></div>
-        <div class="actions"><button class="btn" data-run="play-check">Check</button><button class="btn primary" data-run="play">Set up / refresh</button></div></div>
-      <div class="box"><h3>Steps</h3><ol class="steps">
+        <div class="actions"><button class="btn" data-run="shots">Capture screenshots in Unity</button><button class="btn primary" data-run="play">Set up / refresh</button></div></div>
+      <div class="tabs" role="tablist"><button role="tab" aria-selected="true" data-tab="play-listing">Listing</button><button role="tab" aria-selected="false" data-tab="play-builds">Builds</button><button role="tab" aria-selected="false" data-tab="play-steps">Setup steps</button></div>
+      <div class="tabpane" id="play-listing">
+      <div class="box"><h3>Text <span class="note" style="text-transform:none;letter-spacing:0">· pushed by the API</span></h3>
+        <div class="field"><label for="p-title">App name</label><div class="val"><input id="p-title" class="in" value="Ecaty"></div><div><span class="meta">5 / 30</span> <button class="copy" data-copy="#p-title">Copy</button></div></div>
+        <div class="field"><label for="p-short">Short description</label><div class="val"><input id="p-short" class="in" value="Build cozy little worlds and bring them to life."></div><div><span class="meta">49 / 80</span> <button class="copy" data-copy="#p-short">Copy</button></div></div>
+        <div class="field"><label for="p-long">Full description</label><div class="val"><textarea id="p-long" rows="3" class="in">Shape objects from clay, give them simple behaviors, change the weather and time of day, and keep every world on your own crystal tree. (Example text.)</textarea></div><div><span class="meta">160 / 4000</span> <button class="copy" data-copy="#p-long">Copy</button></div></div>
+      </div>
+      <div class="box"><h3>Art <span class="note" style="text-transform:none;letter-spacing:0">· files in Store/play/</span></h3>
+        <div class="assets">
+          <div class="asset"><div class="ph sq">512×512</div><div class="cap"><span>App icon</span><span class="chip ok">ok</span></div></div>
+          <div class="asset"><div class="ph ">1024×500</div><div class="cap"><span>Feature graphic</span><span class="chip bad">missing</span></div></div>
+          <div class="asset"><div class="ph tall">phone</div><div class="cap"><span>Phone shot 1</span><span class="chip ok">ok</span></div></div>
+          <div class="asset"><div class="ph tall">phone</div><div class="cap"><span>Phone shot 2</span><span class="chip warn">capture</span></div></div>
+        </div></div></div>
+      <div class="tabpane" id="play-builds" hidden><div class="box"><table>
+        <tr><th>Build</th><th>Version</th><th>Size</th><th>Made</th><th>Track</th></tr>
+        <tr><td>Dev APK (phone testing)</td><td class="mono">0.1.0 (11)</td><td class="mono">200 MB</td><td>12 Nov</td><td><span class="chip hand">local only</span></td></tr>
+        <tr><td>Release AAB</td><td class="mono">—</td><td class="mono">—</td><td>—</td><td><span class="chip warn">needs upload key</span></td></tr>
+      </table><div class="actions" style="margin-top:10px"><button class="btn" data-run="build">Build Android</button><button class="btn" data-run="playup">Upload to internal track</button></div>
+      <p class="note">Play limits the base download size; larger content goes into asset packs.</p></div></div>
+      <div class="tabpane" id="play-steps" hidden><div class="box"><ol class="steps">
         <li><span class="mark ok">✓</span><div><div class="t">Developer account</div><div class="d">One-time fee and identity check, done by you.</div></div><span class="chip hand">by hand</span></li>
         <li><span class="mark ok">✓</span><div><div class="t">App created in Play Console</div><div class="d">Package name must match Unity.</div></div><span class="chip hand">by hand</span></li>
         <li><span class="mark bad">!</span><div><div class="t">Service account for the API</div><div class="d">Create it in Google Cloud, grant it access in Play Console, save the JSON key outside the repo and point <span class="mono">PLAY_SERVICE_ACCOUNT_JSON</span> at it. <a href="https://play.google.com/console" target="_blank" rel="noopener">Play Console ↗</a></div></div><span class="chip hand">by hand, once</span></li>
         <li><span class="mark bad">!</span><div><div class="t">Upload key</div><div class="d">Created locally by the desk; Play App Signing keeps the release key.</div></div><span class="chip auto">desk</span></li>
-        <li><span class="mark ok">✓</span><div><div class="t">Listing text</div><div class="d">Pushed from Store listing.</div></div><span class="chip auto">API</span></li>
+        <li><span class="mark ok">✓</span><div><div class="t">Listing text</div><div class="d">Pushed from the Listing tab.</div></div><span class="chip auto">API</span></li>
         <li><span class="mark warn">2</span><div><div class="t">Art</div><div class="d">Feature graphic and 1 phone screenshot missing.</div></div><span class="chip auto">API</span></li>
         <li><span class="mark idle">·</span><div><div class="t">Internal test release</div><div class="d">Uploads the release AAB to the internal track.</div></div><span class="chip auto">API</span></li>
         <li><span class="mark idle">·</span><div><div class="t">Closed test before production</div><div class="d">New personal accounts must run a closed test with enough testers for a fixed period before production access. The desk tracks the count and days.</div></div><span class="chip hand">testers</span></li>
-      </ol></div>
-    </section>
-
-    <!-- STEAM -->
-    <section class="pane" id="v-steam" hidden>
-      <div class="head"><div><h2>Steam</h2><p>Builds upload through SteamCMD. The store page has no public API, so copy each value into Steamworks.</p></div>
-        <div class="actions"><button class="btn primary" data-run="steam">Set up / refresh</button></div></div>
-      <div class="box"><h3>Copy into Steamworks</h3>
-        <div class="field"><label>Game name</label><div class="val">Ecaty</div><button class="copy" data-text="Ecaty">Copy</button></div>
-        <div class="field"><label>Short description</label><div class="val">Build cozy little worlds and bring them to life.</div><button class="copy" data-text="Build cozy little worlds and bring them to life.">Copy</button></div>
-        <div class="field"><label>Header capsule</label><div class="val mono">A:\Projects\Ecaty\Store\steam\header_920x430.png</div><button class="copy" data-text="A:\Projects\Ecaty\Store\steam\header_920x430.png">Copy path</button></div>
-        <div class="field"><label>Screenshots folder</label><div class="val mono">A:\Projects\Ecaty\Store\shots\desktop</div><button class="copy" data-text="A:\Projects\Ecaty\Store\shots\desktop">Copy path</button></div>
-      </div>
-      <div class="box"><h3>Steps</h3><ol class="steps">
-        <li><span class="mark bad">!</span><div><div class="t">Steamworks account and app fee</div><div class="d">Done by you. <a href="https://partner.steamgames.com/" target="_blank" rel="noopener">Steamworks ↗</a></div></div><span class="chip hand">by hand</span></li>
-        <li><span class="mark idle">·</span><div><div class="t">Build account for uploads</div><div class="d">A separate Steam account with build rights only; its login stays in Windows Credential Manager.</div></div><span class="chip hand">by hand, once</span></li>
-        <li><span class="mark idle">·</span><div><div class="t">Upload Windows build to a beta branch</div><div class="d">SteamCMD with a generated app build script.</div></div><span class="chip auto">desk</span></li>
-        <li><span class="mark idle">·</span><div><div class="t">Store page review</div><div class="d">Valve reviews the page and the build before release.</div></div><span class="chip hand">by hand</span></li>
-      </ol></div>
-    </section>
-
-    <!-- EPIC -->
-    <section class="pane" id="v-epic" hidden>
-      <div class="head"><div><h2>Epic Games Store</h2><p>Builds upload through Epic's BuildPatch Tool. Store page and offers are edited in the Epic Developer Portal.</p></div>
-        <div class="actions"><button class="btn primary" data-run="epic">Set up / refresh</button></div></div>
-      <div class="box"><ol class="steps">
-        <li><span class="mark idle">·</span><div><div class="t">Developer Portal organization</div><div class="d">Apply and accept the distribution agreement. <a href="https://dev.epicgames.com/portal" target="_blank" rel="noopener">Epic Developer Portal ↗</a></div></div><span class="chip hand">by hand</span></li>
-        <li><span class="mark idle">·</span><div><div class="t">Build credentials</div><div class="d">Client ID and secret for BuildPatch Tool, stored outside the repo.</div></div><span class="chip hand">by hand, once</span></li>
-        <li><span class="mark idle">·</span><div><div class="t">Upload Windows build</div><div class="d">BuildPatch Tool to a test label.</div></div><span class="chip auto">desk</span></li>
-      </ol><p class="note">Later: same pattern as Steam, with copy buttons for each field.</p></div>
+      </ol></div></div>
     </section>
 
     <!-- SECRETS -->
@@ -253,7 +276,7 @@ td.mono,.mono{font-family:var(--f-mono);font-size:12px}
 
 <script>
 (function(){
-  var views=["overview","listing","builds","play","steam","epic","secrets","log"];
+  var views=["overview","steam","epic","play","secrets","log"];
   function show(){var v=(location.hash||"#overview").slice(1);if(views.indexOf(v)<0)v="overview";
     views.forEach(function(n){document.getElementById("v-"+n).hidden=n!==v});
     document.querySelectorAll("nav.rail a").forEach(function(a){a.getAttribute("data-v")===v?a.setAttribute("aria-current","page"):a.removeAttribute("aria-current")});}
@@ -262,11 +285,12 @@ td.mono,.mono{font-family:var(--f-mono);font-size:12px}
   function toast(m){t.textContent=m;t.hidden=false;clearTimeout(timer);timer=setTimeout(function(){t.hidden=true},1800)}
   function copy(text){try{navigator.clipboard.writeText(text).then(function(){toast("Copied")},function(){toast("Select and copy manually")})}catch(e){toast("Select and copy manually")}}
   document.addEventListener("click",function(e){
+    var tb=e.target.closest("[data-tab]");if(tb){tb.parentNode.querySelectorAll("[data-tab]").forEach(function(x){var on=x===tb;x.setAttribute("aria-selected",on);document.getElementById(x.getAttribute("data-tab")).hidden=!on});return}
     var b=e.target.closest("[data-copy],[data-text],[data-run],[data-copy-log]");if(!b)return;
     if(b.hasAttribute("data-copy")){var el=document.querySelector(b.getAttribute("data-copy"));copy(el.value)}
     else if(b.hasAttribute("data-text")){copy(b.getAttribute("data-text"))}
     else if(b.hasAttribute("data-copy-log")){copy(document.getElementById("logbox").innerText)}
-    else{var labels={all:"Refreshing all stores… (mockup)",unity:"Pushed to Unity (mockup)",shots:"Unity is capturing screenshots… (mockup)",save:"Saved to Store/ (mockup)",build:"Unity build started (mockup)",buildwin:"Unity build started (mockup)",play:"Play refresh started (mockup)","play-check":"Checked (mockup)",steam:"Steam refresh started (mockup)",epic:"Epic refresh started (mockup)",keys:"Checked (mockup)",mkkey:"Key creation runs locally (mockup)"};
+    else{var labels={all:"Refreshing all stores… (mockup)",unity:"Pushed to Unity (mockup)",shots:"Unity is capturing screenshots… (mockup)",save:"Saved to Store/ (mockup)",build:"Unity build started (mockup)",buildwin:"Unity build started (mockup)",play:"Play refresh started (mockup)","play-check":"Checked (mockup)",steam:"Steam refresh started (mockup)",epic:"Epic refresh started (mockup)",keys:"Checked (mockup)",steamup:"Upload started (mockup)",playup:"Upload started (mockup)",mkkey:"Key creation runs locally (mockup)"};
       toast(labels[b.getAttribute("data-run")]||"Done (mockup)")}
   });
 })();
