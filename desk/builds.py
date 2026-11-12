@@ -150,7 +150,10 @@ def build(project, kind):
 
 def unity_errors(project, since):
     """Errors and exceptions from the Unity Editor log written after `since`, saved to Store/Logs/unity-build.txt."""
-    log = Path(os.environ.get("LOCALAPPDATA", "")) / "Unity" / "Editor" / "Editor.log"
+    # Projects can redirect the Editor log into <project>/Logs/Editor.log; prefer that when it exists.
+    log = project.root / "Logs" / "Editor.log"
+    if not log.is_file():
+        log = Path(os.environ.get("LOCALAPPDATA", "")) / "Unity" / "Editor" / "Editor.log"
     try:
         if log.stat().st_mtime < since:
             return ""

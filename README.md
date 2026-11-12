@@ -2,7 +2,7 @@
 
 A local dashboard that keeps everything a game needs for its stores in one place: the listing text and art, builds, per-store setup steps, key status and a run log. It is reusable across projects; each project keeps its own data in a `Store/` folder.
 
-Status: Steam works end to end up to the upload (listing, art and screenshot checks, Unity settings sync, Windows build, SteamPipe upload with preview). Epic and Google Play are next. Design mockup: `prototypes/dashboard.html`.
+Status: Steam works end to end up to the upload (plus screenshot capture) (listing, art and screenshot checks, Unity settings sync, Windows build, SteamPipe upload with preview). Epic and Google Play are next. Design mockup: `prototypes/dashboard.html`.
 
 ## Use
 
@@ -10,7 +10,11 @@ Status: Steam works end to end up to the upload (listing, art and screenshot che
    `"com.release-desk.unity": "https://github.com/Ecaty/release-desk.git?path=/unity"`
 2. Add the game's private store data as a `Store/` folder (or submodule) in the project root with a `store.json`.
 3. Run `Start-Desk.cmd [path-to-unity-project]` (Python 3.10+, no packages needed) and open http://127.0.0.1:27760/.
-4. Keep the Unity Editor open on the project for Push to Unity and builds.
+4. Keep the Unity Editor open on the project for Push to Unity, builds and screenshots.
+
+## Screenshots
+
+`Store/shots.json` lists shots (`name`, `stores`, `width`, `height`, `wait`, `setup`). The desk asks Unity to enter Play mode; for each shot it calls the game's `IShotStage.Prepare(shot)` (the game decides what `setup` means, for example Flecs Script), renders that camera off-screen at the exact size (no UI) and writes `Store/shots/<store>/<name>.png`. The game implements `ReleaseDesk.Editor.IShotStage` once.
 
 ## What it does
 

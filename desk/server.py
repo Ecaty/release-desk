@@ -2,6 +2,7 @@
 import json
 import sys
 import threading
+import urllib.parse
 import time
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -99,7 +100,14 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         try:
-            if self.path in ("/", "/index.html"):
+            if self.path.startswith("/store-file/"):
+                p = project()
+                rel = urllib.parse.unquote(self.path[len("/store-file/"):].split("?")[0])
+                target = (p.store / rel).resolve()
+                if p.store.resolve() not in target.parents or target.suffix.lower() not in (".png", ".jpg") or not target.is_file():
+                    return self.send(404, {"error": "not found"})
+                return self.send(200, target.read_bytes(), "image/png" if target.suffix.lower() == ".png" else "image/jpeg")
+            if self.path.split("?")[0] in ("/", "/index.html"):
                 return self.send(200, (ROOT / "web" / "index.html").read_bytes(), "text/html; charset=utf-8")
             if self.path == "/api/start":
                 return self.send(200, {"project": str(STATE["project"].root) if STATE["project"] else "", "recent": load_config().get("recent", [])})
@@ -194,7 +202,15 @@ def main():
             open_project(path)
         except ValueError as error:
             print(error)
-    server = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
+    # Windows lets several processes share a port when address reuse is on; a second desk must fail instead.
+    ThreadingHTTPServer.allow_reuse_address = False
+    try:
+        server = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
+    except OSError:
+        print(f"Release Desk is already running: http://127.0.0.1:{PORT}/")
+        if "--no-browser" not in sys.argv:
+            webbrowser.open(f"http://127.0.0.1:{PORT}/")
+        return
     url = f"http://127.0.0.1:{PORT}/"
     print(f"Release Desk: {url}")
     if "--no-browser" not in sys.argv:

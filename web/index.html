@@ -70,6 +70,12 @@ th.sort{cursor:pointer;user-select:none}th.sort:hover{color:var(--ink)}th.sort[d
 .log{font-family:var(--f-mono);font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;max-height:420px;overflow:auto;margin:0}
 .note{font-size:12px;color:var(--muted)}
 .job{font-size:13px}
+.shots{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin:8px 0}
+.shot{margin:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--bg)}
+.shot img,.noshot{display:block;width:100%;aspect-ratio:16/9;object-fit:cover}
+.noshot{display:grid;place-items:center;color:var(--muted);font-size:12px}
+.shot figcaption{padding:6px 8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12px}
+.shot figcaption .copy{margin-left:auto}
 .toast{position:fixed;right:16px;bottom:16px;background:var(--ink);color:var(--bg);padding:8px 12px;border-radius:8px;font-size:13px;max-width:60ch}
 @media (max-width:820px){.wrap{grid-template-columns:minmax(0,1fr)}nav{flex-direction:row;flex-wrap:wrap}nav .sep{display:none}.cards{grid-template-columns:minmax(0,1fr)}.field{grid-template-columns:minmax(0,1fr) auto}.field label{grid-column:1/-1}}
 </style>
@@ -150,7 +156,7 @@ const views = {
       body = `<div class="box"><h3>Text</h3>${fields}<div class="actions"><button class="btn primary" data-act="save-steam">Save</button></div></div>
         <div class="box"><h3>Art · Store/steam/art</h3><table><tr><th>Image</th><th>Size</th><th>File</th><th></th></tr>${art}</table>
         <p class="note">Put each image at the file name shown (PNG unless noted). Sizes from Steamworks docs, checked ${esc(s.rules.checked)}.</p></div>
-        <div class="box"><h3>Screenshots · Store/${esc(s.screenshots.folder)}</h3><p>${s.screenshots.good} of ${s.screenshots.min} usable: ${shots}</p><p class="note">${esc(s.screenshots.note)}</p></div>`;
+        ${await shotsBox("steam", s.screenshots)}`;
     } else if (steamTab === "builds") {
       const b = s.build;
       body = `<div class="box">${buildTable("steam", b.history, [["uploaded", "Steam", h => h.uploaded ? chip("ok", h.uploaded) : h.exists ? chip("hand", "not uploaded") : chip("hand", "replaced")]])}
@@ -200,6 +206,19 @@ const views = {
   },
 };
 
+async function shotsBox(store, summary) {
+  const list = (await api("/api/shots")).shots.filter(x => (x.stores || []).includes(store));
+  const cards = list.map(x => {
+    const f = x.files.find(f => f.store === store);
+    return `<figure class="shot">${f ? `<img src="/store-file/${encodeURI(f.file)}?t=${encodeURIComponent(f.made)}" alt="${esc(x.name)}" loading="lazy">` : `<div class="noshot">not captured</div>`}
+      <figcaption><span class="mono">${esc(x.name)}</span> <span class="note">${x.width}×${x.height}${f ? " · " + esc(f.made) : ""}</span>
+      <button class="copy" data-act="capture" data-only="${esc(x.name)}">Capture</button></figcaption></figure>`;
+  }).join("");
+  return `<div class="box"><h3>Screenshots · Store/shots/${esc(store)}</h3>
+    <p>${summary.good} of ${summary.min} usable. Each shot is set up by its Flecs Script in Store/shots.json; Unity plays, renders the exact size without UI, and returns to edit mode.</p>
+    <div class="shots">${cards || `<p class="note">No shots for this store in Store/shots.json.</p>`}</div>
+    <div class="actions"><button class="btn primary" data-act="capture">Capture all</button></div><p class="note">${esc(summary.note)}</p></div>`;
+}
 const mmss = sec => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
 function jobsBox(jobs) {
   const names = Object.keys(jobs || {});
@@ -273,7 +292,7 @@ document.addEventListener("click", async e => {
     if (act === "save-user") { await api("/api/keys/steam-user", {user: $("#steam-user").value}); toast("Saved"); return render(); }
     if (act === "copy-log") return copy($("#logtext").textContent);
     if (act === "run-win") { await api("/api/run/windows", {}); return toast("Started the Windows build"); }
-    const jobs = {"push-unity": ["/api/unity/apply", {}], "build": ["/api/build", {kind: t.dataset.kind}], "install": ["/api/play/install", {}], "upload-preview": ["/api/steam/upload", {preview: true}], "upload": ["/api/steam/upload", {preview: false}]};
+    const jobs = {"push-unity": ["/api/unity/apply", {}], "build": ["/api/build", {kind: t.dataset.kind}], "install": ["/api/play/install", {}], "capture": ["/api/shots/capture", {only: t.dataset.only || ""}], "upload-preview": ["/api/steam/upload", {preview: true}], "upload": ["/api/steam/upload", {preview: false}]};
     if (jobs[act]) { await api(...jobs[act]); toast("Started; progress shows under Runs"); updateJobs(); }
   } catch (err) { toast(err.message); }
 });
