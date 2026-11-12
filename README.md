@@ -25,7 +25,7 @@ Status: Steam works end to end up to the upload (listing, art, icons and capsule
 
 ## Release
 
-One release is shared by every store: game name, version, build number and What's new (a short change list) in `Store/store.json`, edited on Overview. Each store page shows the same fields with an **override** box; a ticked field keeps that store's own value in `"overrides": {"<store>": {...}}`, an unticked one uses the shared value. **Fill from commits** drafts What's new from commit subjects since the last build. Before each build the desk pushes that store's values to Unity, and the build history keeps the change list. **Build all** (Overview) builds the chosen kinds one after another. Store marks in the page are from Simple Icons (CC0, `web/icons/`); the trademarks belong to their owners.
+One release is shared by every store: game name, version, build number and What's new (a short change list) in `Store/store.json`, edited on Overview. Each store page shows the same fields with an **override** box; a ticked field keeps that store's own value in `"overrides": {"<store>": {...}}`, an unticked one uses the shared value. **Fill from commits** collects player-facing notes since the last build: commits that change something players or a store would notice end their message with a Git trailer such as `Release-note: New aquarium world with schooling fish` (one line per note); technical commits have none and never show up. Before each build the desk pushes that store's values to Unity, and the build history keeps the change list. **Build all** (Overview) builds the chosen kinds one after another. Store marks in the page are from Simple Icons (CC0, `web/icons/`); the trademarks belong to their owners.
 
 ## Capsules
 

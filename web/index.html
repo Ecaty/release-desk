@@ -375,7 +375,7 @@ document.addEventListener("click", async e => {
       document.querySelectorAll("[data-ov]").forEach(el => override[el.dataset.ov] = el.checked);
       await api("/api/release", {store: t.dataset.store, values, override}); toast("Saved to Store/store.json"); return render();
     }
-    if (act === "draft") { const d = await api("/api/release/draft", {}); $("#rel-whatsNew").value = d.text || ""; $("#rel-whatsNew").dispatchEvent(new Event("input", {bubbles: true})); return toast(d.text ? "Draft from commits; shorten it, then Save" : "No commits found"); }
+    if (act === "draft") { const d = await api("/api/release/draft", {}); $("#rel-whatsNew").value = d.text || ""; $("#rel-whatsNew").dispatchEvent(new Event("input", {bubbles: true})); return toast(d.text ? "Release notes from commits; edit, then Save" : "No Release-note lines in commits since the last build"); }
     if (act === "build-all") { const kinds = [...document.querySelectorAll("[data-kind-pick]:checked")].map(el => el.dataset.kindPick); await api("/api/build/all", {kinds}); toast("Started; progress shows under Runs"); return updateJobs(); }
     if (act === "save-steam") { const d = {}; document.querySelectorAll("[id^=st-]").forEach(el => d[el.id.slice(3)] = el.value); await api("/api/steam/listing", d); toast("Saved to Store/steam/listing.json"); return render(); }
     if (act === "save-play") { const d = {}; document.querySelectorAll("[id^=pl-]").forEach(el => { if (!el.id.startsWith("pl-ro-")) d[el.id.slice(3)] = el.value; }); await api("/api/play/listing", d); toast("Saved to Store/play/listing.json"); return render(); }

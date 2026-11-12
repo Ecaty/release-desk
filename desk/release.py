@@ -8,7 +8,7 @@ FIELDS = {
     "version": {"label": "Version", "note": "Unity bundleVersion"},
     "build": {"label": "Build number", "note": "Android version code; raise it for each store upload", "number": True},
     "whatsNew": {"label": "What's new", "multiline": True, "max": 500,
-                 "note": "Short change list. Play shows it as release notes (500 characters); Steam uses it in the build description."},
+                 "note": "What players notice, not technical work. Fill from commits collects 'Release-note:' lines from commit messages since the last build. Play shows it as release notes (500 characters); Steam uses it in the build description."},
 }
 STORES = {"steam": "Steam", "play": "Google Play"}
 BUILD_STORE = {"Steam": "steam", "GooglePlay": "play"}
@@ -85,19 +85,28 @@ def changes(text):
     return [l.strip().lstrip("-•* ").strip() for l in str(text or "").splitlines() if l.strip().lstrip("-•* ").strip()]
 
 
+NOTE_TRAILER = "Release-note"
+
+
 def draft(project, since=""):
-    """Commit subjects since `since` (the last build's commit) as a draft change list to shorten by hand."""
+    """Player-facing notes since `since` (the last build's commit), oldest first. Only commits that carry a
+    'Release-note: <what players or stores notice>' trailer count; technical commits never show up."""
     since = since.split("+")[0]
-    args = ["git", "-C", str(project.root), "log", "--no-merges", "--format=%s"]
-    args += [f"{since}..HEAD"] if since else ["-15"]
+    args = ["git", "-C", str(project.root), "log", "--reverse",
+            f"--format=%(trailers:key={NOTE_TRAILER},valueonly,separator=%x0A)"]
+    args += [f"{since}..HEAD"] if since else ["-300"]
     try:
         run = subprocess.run(args, capture_output=True, text=True, timeout=15, encoding="utf-8", errors="replace")
     except (OSError, subprocess.SubprocessError):
         return ""
     if run.returncode and since:
         return draft(project)
-    lines = [l.strip() for l in run.stdout.splitlines() if l.strip()][:15]
-    return "\n".join("- " + l for l in lines)
+    notes = []
+    for line in run.stdout.splitlines():
+        line = line.strip()
+        if line and line not in notes:
+            notes.append(line)
+    return "\n".join("- " + n for n in notes)
 
 
 def migrate(project):
