@@ -155,7 +155,8 @@ const views = {
       const shots = s.screenshots.items.map(x => `${esc(x.file)} ${x.ok ? "" : "(" + esc(x.size) + ", not usable)"}`).join(", ") || "none yet";
       body = `<div class="box"><h3>Text</h3>${fields}<div class="actions"><button class="btn primary" data-act="save-steam">Save</button></div></div>
         <div class="box"><h3>Art · Store/steam/art</h3><table><tr><th>Image</th><th>Size</th><th>File</th><th></th></tr>${art}</table>
-        <p class="note">Put each image at the file name shown (PNG unless noted). Sizes from Steamworks docs, checked ${esc(s.rules.checked)}.</p></div>
+        <p class="note">Put each image at the file name shown (PNG unless noted). Sizes from Steamworks docs, checked ${esc(s.rules.checked)}.</p>
+        <div class="actions"><button class="btn" data-act="icons">Make icons</button></div><p class="note">Make icons resizes Store/art/icon.png (square, 1024×1024) to every store icon size.</p></div>
         ${await shotsBox("steam", s.screenshots)}`;
     } else if (steamTab === "builds") {
       const b = s.build;
@@ -292,7 +293,7 @@ document.addEventListener("click", async e => {
     if (act === "save-user") { await api("/api/keys/steam-user", {user: $("#steam-user").value}); toast("Saved"); return render(); }
     if (act === "copy-log") return copy($("#logtext").textContent);
     if (act === "run-win") { await api("/api/run/windows", {}); return toast("Started the Windows build"); }
-    const jobs = {"push-unity": ["/api/unity/apply", {}], "build": ["/api/build", {kind: t.dataset.kind}], "install": ["/api/play/install", {}], "capture": ["/api/shots/capture", {only: t.dataset.only || ""}], "upload-preview": ["/api/steam/upload", {preview: true}], "upload": ["/api/steam/upload", {preview: false}]};
+    const jobs = {"push-unity": ["/api/unity/apply", {}], "build": ["/api/build", {kind: t.dataset.kind}], "install": ["/api/play/install", {}], "capture": ["/api/shots/capture", {only: t.dataset.only || ""}], "icons": ["/api/art/icons", {}], "upload-preview": ["/api/steam/upload", {preview: true}], "upload": ["/api/steam/upload", {preview: false}]};
     if (jobs[act]) { await api(...jobs[act]); toast("Started; progress shows under Runs"); updateJobs(); }
   } catch (err) { toast(err.message); }
 });

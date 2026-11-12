@@ -1,0 +1,11 @@
+{
+  "store": "play",
+  "checked": "2026-11-12",
+  "sources": [
+    "https://support.google.com/googleplay/android-developer/answer/9866151"
+  ],
+  "art": [
+    { "file": "icon", "label": "App icon", "width": 512, "height": 512, "required": true, "formats": ["png"], "make": "icon", "note": "32-bit PNG, up to 1 MB" },
+    { "file": "feature_graphic", "label": "Feature graphic", "width": 1024, "height": 500, "required": true, "formats": ["png", "jpg"], "note": "24-bit PNG or JPEG, no transparency" }
+  ]
+}

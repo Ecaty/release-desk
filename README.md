@@ -16,6 +16,10 @@ Status: Steam works end to end up to the upload (plus screenshot capture) (listi
 
 `Store/shots.json` lists shots (`name`, `stores`, `width`, `height`, `wait`, `setup`). The desk asks Unity to enter Play mode; for each shot it calls the game's `IShotStage.Prepare(shot)` (the game decides what `setup` means, for example Flecs Script), renders that camera off-screen at the exact size (no UI) and writes `Store/shots/<store>/<name>.png`. The game implements `ReleaseDesk.Editor.IShotStage` once.
 
+## Icons
+
+Put one square icon at `Store/art/icon.png` (1024×1024 PNG, transparent background allowed). **Make icons** (Steam > Listing > Art) writes every store size from it with the desk's own image code (no packages): Steam shortcut icon `steam/art/shortcut_icon.ico` (256, 48, 32, 16), Steam app icon `steam/art/app_icon.jpg` (184), Google Play `play/art/icon.png` (512). Which outputs exist comes from `"make": "icon"` entries in `rules/<store>.json`.
+
 ## What it does
 
 - **One page per store.** Each store page has its own Listing (text and art in that store's sizes), Builds and Setup steps, so a release focuses on one store at a time. The game name is the shared default each page starts from.

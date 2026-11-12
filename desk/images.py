@@ -23,8 +23,11 @@ def size(path):
                     length = struct.unpack(">H", f.read(2))[0]
                     f.seek(length - 2, 1)
             if head[:4] == b"\x00\x00\x01\x00":
-                w, h = head[6] or 256, head[7] or 256
-                return w, h, "ico"
+                count = struct.unpack("<H", head[4:6])[0]
+                f.seek(6)
+                entries = [f.read(16) for _ in range(count)]
+                w, h = max(((e[0] or 256, e[1] or 256) for e in entries if len(e) == 16), default=(0, 0))
+                return (w, h, "ico") if w else None
     except OSError:
         return None
     return None

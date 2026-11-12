@@ -21,8 +21,8 @@
     { "file": "library_header", "label": "Library header", "width": 920, "height": 430, "required": true },
     { "file": "library_hero", "label": "Library hero", "width": 3840, "height": 1240, "required": true, "formats": ["png"] },
     { "file": "library_logo", "label": "Library logo", "width": 1280, "height": 720, "required": true, "formats": ["png"], "fit": "either", "note": "1280 wide and/or 720 tall, transparent PNG" },
-    { "file": "shortcut_icon", "label": "Shortcut icon", "width": 256, "height": 256, "required": true, "formats": ["png", "ico"] },
-    { "file": "app_icon", "label": "App icon", "width": 184, "height": 184, "required": true, "formats": ["jpg"] }
+    { "file": "shortcut_icon", "label": "Shortcut icon", "width": 256, "height": 256, "required": true, "formats": ["ico", "png"], "make": "icon" },
+    { "file": "app_icon", "label": "App icon", "width": 184, "height": 184, "required": true, "formats": ["jpg"], "make": "icon" }
   ],
   "screenshots": { "folder": "shots/steam", "minWidth": 1920, "minHeight": 1080, "aspect": 1.7778, "min": 5, "note": "Minimum count 5: verify in Steamworks." },
   "steamcmd": "https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip"
