@@ -2,6 +2,7 @@
 import json
 import sys
 import threading
+import time
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -61,13 +62,15 @@ def run_job(name, fn):
         STATE["jobs"][name] = {"state": "running", "message": ""}
 
     def work():
+        started = time.time()
         try:
             ok, message = fn()
         except Exception as error:  # report any failure to the page and the log
             ok, message = False, f"{type(error).__name__}: {error}"
         STATE["jobs"][name] = {"state": "done" if ok else "failed", "message": str(message)[:1500]}
         p = STATE["project"]
-        p.log(f"{name}: {'ok' if ok else 'failed'}", str(message).splitlines()[:12] + steam.summary_lines(p, load_config()))
+        minutes = round((time.time() - started) / 60, 1)
+        p.log(f"{name}: {'ok' if ok else 'failed'} ({minutes} min)", str(message).splitlines()[:12] + steam.summary_lines(p, load_config()))
 
     threading.Thread(target=work, daemon=True).start()
     return STATE["jobs"][name]
@@ -112,7 +115,9 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(200, {"builds": [builds.latest(p, "play-dev-apk"), builds.latest(p, "play-aab")],
                                        "phones": builds.devices(), "package": p.unity_settings()["androidPackage"]})
             if self.path == "/api/log":
-                return self.send(200, {"text": project().latest_log()})
+                p = project()
+                return self.send(200, {"text": p.latest_log(), "history": p.history(),
+                                       "tools": {"SteamCMD": p.tool_log("steamcmd.txt"), "Unity build errors": p.tool_log("unity-build.txt", 60)}})
             if self.path == "/api/jobs":
                 return self.send(200, STATE["jobs"])
             self.send(404, {"error": "not found"})

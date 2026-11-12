@@ -188,8 +188,12 @@ const views = {
   },
   async log() {
     const l = await api("/api/log");
-    return `<div class="head"><div><h2>Log</h2><p>Last run summary from Store/Logs/latest.txt.</p></div><div class="actions"><button class="btn" data-act="copy-log">Copy log</button></div></div>
-      <pre class="log" id="logtext">${esc(l.text || "No runs yet.")}</pre>`;
+    const tools = Object.entries(l.tools).filter(([, t]) => t).map(([n, t]) => `<div class="box"><h3>${esc(n)}</h3><pre class="log">${esc(t)}</pre></div>`).join("");
+    const history = l.history.slice(1).map(h => `<pre class="log" style="margin-bottom:8px">${esc(h)}</pre>`).join("") || `<p class="note">No earlier runs.</p>`;
+    return `<div class="head"><div><h2>Log</h2><p>Files in Store/Logs: latest.txt is the summary to read first; history.txt keeps every run.</p></div><div class="actions"><button class="btn" data-act="copy-log">Copy latest</button></div></div>
+      <div class="box"><h3>Latest run</h3><pre class="log" id="logtext">${esc(l.text || "No runs yet.")}</pre></div>
+      ${tools}
+      <div class="box"><h3>Earlier runs</h3>${history}</div>`;
   },
 };
 

@@ -85,6 +85,22 @@ class Project:
             f.write(body + "\n")
         return body
 
+    def history(self, limit=30):
+        """Earlier runs, newest first."""
+        try:
+            text = (self.store / "Logs" / "history.txt").read_text(encoding="utf-8")
+        except OSError:
+            return []
+        return [b.strip() for b in text.split("\n\n") if b.strip()][::-1][:limit]
+
+    def tool_log(self, name, keep=40):
+        """Tail of a tool's own log in Store/Logs, keeping only lines that matter."""
+        try:
+            lines = (self.store / "Logs" / name).read_text(encoding="utf-8", errors="replace").splitlines()
+        except OSError:
+            return ""
+        return "\n".join(lines[-keep:])
+
     def latest_log(self):
         try:
             return (self.store / "Logs" / "latest.txt").read_text(encoding="utf-8")

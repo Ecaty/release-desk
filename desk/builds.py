@@ -68,6 +68,7 @@ def build(project, kind):
     spec = KINDS[kind]
     path = output(project, kind)
     record = record_path(path)
+    started = time.time()
     if record.exists():
         record.unlink()
     unity.call(project.root, f"return ReleaseDesk.Editor.DeskEntry.ApplySettings({unity.literal(project.store / 'store.json')});")
@@ -83,10 +84,29 @@ def build(project, kind):
     try:
         data = json.loads(record.read_text(encoding="utf-8"))
     except (OSError, ValueError):
-        return False, message
+        errors = unity_errors(project, started)
+        return False, f"{message}\n{errors[-1200:]}" if errors else message
     if data.get("result") != "Succeeded":
-        return False, f"{spec['label']} build {data.get('result')} with {data.get('errors')} errors"
+        errors = unity_errors(project, started)
+        return False, f"{spec['label']} build {data.get('result')} with {data.get('errors')} errors\n{errors[-1200:]}"
     return True, f"{spec['label']} {data['version']} ({data['build']}) in {data['minutes']} min: {path}"
+
+
+def unity_errors(project, since):
+    """Errors and exceptions from the Unity Editor log written after `since`, saved to Store/Logs/unity-build.txt."""
+    log = Path(os.environ.get("LOCALAPPDATA", "")) / "Unity" / "Editor" / "Editor.log"
+    try:
+        if log.stat().st_mtime < since:
+            return ""
+        lines = log.read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError:
+        return ""
+    keep = [l for l in lines[-20000:] if re.search(r"error|exception|failed|Build Finished|Build completed", l, re.I)
+            and "Licensing" not in l][-60:]
+    text = "\n".join(keep)
+    (project.store / "Logs").mkdir(parents=True, exist_ok=True)
+    (project.store / "Logs" / "unity-build.txt").write_text(text, encoding="utf-8")
+    return text
 
 
 def run_windows(project):

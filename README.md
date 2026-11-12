@@ -35,7 +35,8 @@ Store rules (field limits, image sizes, required assets) live in one rules file 
 - **release-desk (this repo, public):** the desk's code and the Unity package. No game data.
 - **Store data (one private repo per game):** listing text, art, screenshots, capture list. Private because unreleased text and art should not sit in a public game repo.
 - **The game's Unity project:** references the desk's Unity package by Git URL (`.../release-desk.git?path=/unity`), which adds the Editor entry points the desk calls (apply PlayerSettings, capture screenshots, build). The game repo holds no store data.
-- **Linking:** the desk takes only the Unity project folder and finds `Store/` inside it. In this setup `Store/` is a private submodule of the game repo; public clones of the game simply skip it. Recent projects are remembered in `%APPDATA%elease-desk\config.json`.
+- **Linking:** the desk takes only the Unity project folder and finds `Store/` inside it. In this setup `Store/` is a private submodule of the game repo; public clones of the game simply skip it. Recent projects are remembered in `%APPDATA%
+elease-desk\config.json`.
 - **Traceability:** each upload records the game's commit and the store-data commit in the log.
 
 ```
@@ -67,5 +68,5 @@ The desk never shows or stores secret values; it only checks that each one exist
 
 ## Later
 
-- **Branch builds:** a Refresh that lists the game's branches (a small branch view) with a Build button per branch. Building a branch other than the checked-out one needs its own working copy (a Git worktree with its own Unity Library) or a separate build machine.
+- **Branch builds:** a Refresh that lists the game's branches (a small branch view) with a Build button per branch. The branch is checked out in place in the game project: the desk refuses when there are uncommitted changes or unsaved scenes, waits for Unity to reimport, builds, and switches back to the previous branch afterwards.
 - **Build machine:** if the main PC should stay free during builds, a GitHub Actions self-hosted runner on a second machine can build a chosen branch; the desk would start the run and collect the result. Only manual runs and the owner's pushes may trigger it (the game repo is public).
