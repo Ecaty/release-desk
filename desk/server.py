@@ -8,7 +8,7 @@ import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from . import art, builds, release, shots, steam, unity
+from . import art, builds, play, release, shots, steam, unity
 from .project import Project, load_config, save_config
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -48,11 +48,14 @@ def overview():
     config = load_config()
     s = steam.status(p, config)
     open_steps = [x for x in s["steps"] if x["state"] != "ok"]
+    g = play.status(p)
+    play_open = [x for x in g["steps"] if x["state"] != "ok"]
     return {"project": str(p.root), "editor": unity_settings["editor"], "hasStore": p.has_store(), "shared": shared, "sync": sync,
             "stores": [{"id": "steam", "name": "Steam", "done": len(s["steps"]) - len(open_steps), "total": len(s["steps"]),
                         "next": open_steps[0]["title"] if open_steps else "Ready"},
                        {"id": "epic", "name": "Epic Games Store", "later": True},
-                       {"id": "play", "name": "Google Play", "builds": True}],
+                       {"id": "play", "name": "Google Play", "done": len(g["steps"]) - len(play_open), "total": len(g["steps"]),
+                        "next": play_open[0]["title"] if play_open else "Ready"}],
             "jobs": STATE["jobs"]}
 
 
@@ -72,7 +75,8 @@ def run_job(name, fn):
         STATE["jobs"][name] = {"state": "done" if ok else "failed", "message": str(message)[:1500], "started": started, "ended": time.time()}
         p = STATE["project"]
         minutes = round((time.time() - started) / 60, 1)
-        p.log(f"{name}: {'ok' if ok else 'failed'} ({minutes} min)", str(message).splitlines()[:12] + steam.summary_lines(p, load_config()))
+        p.log(f"{name}: {'ok' if ok else 'failed'} ({minutes} min)", str(message).splitlines()[:12]
+              + (play.summary_lines(p) if "Play" in name or "AAB" in name else steam.summary_lines(p, load_config())))
 
     threading.Thread(target=work, daemon=True).start()
     return STATE["jobs"][name]
@@ -124,12 +128,13 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(200, steam.status(project(), load_config()))
             if self.path == "/api/keys":
                 config = load_config()
-                return self.send(200, {"steamcmd": steam.steamcmd_state(config), "unityCli": bool(unity.cli())})
+                return self.send(200, {"steamcmd": steam.steamcmd_state(config), "unityCli": bool(unity.cli()),
+                                       "play": {"key": play.key_state(project()), "account": play.playapi.account_state()}})
             if self.path == "/api/shots":
                 return self.send(200, {"shots": shots.shot_list(project())})
             if self.path == "/api/play":
                 p = project()
-                return self.send(200, {"builds": [builds.latest(p, "play-dev-apk"), builds.latest(p, "play-aab")],
+                return self.send(200, {**play.status(p), "builds": [builds.latest(p, "play-dev-apk"), builds.latest(p, "play-aab")],
                                        "history": builds.history(p, "play-dev-apk") + builds.history(p, "play-aab"),
                                        "phones": builds.devices(), "package": p.unity_settings()["androidPackage"]})
             if self.path == "/api/log":
@@ -157,6 +162,16 @@ class Handler(BaseHTTPRequestHandler):
             if self.path == "/api/open":
                 open_project(data["path"])
                 return self.send(200, {"ok": True})
+            if self.path == "/api/play/listing":
+                play.save_listing(project(), data)
+                return self.send(200, {"ok": True})
+            if self.path == "/api/play/key":
+                ok, message = play.create_key(project())
+                return self.send(200 if ok else 400, {"ok": ok, "error": message, "message": message})
+            if self.path == "/api/play/publish":
+                preview = bool(data.get("preview", True))
+                return self.send(200, run_job("Google Play: publish preview" if preview else "Google Play: publish",
+                                              lambda: play.publish(project(), preview)))
             if self.path == "/api/steam/listing":
                 steam.save_listing(project(), data)
                 return self.send(200, {"ok": True})
@@ -174,7 +189,7 @@ class Handler(BaseHTTPRequestHandler):
                 save_config(config)
                 return self.send(200, {"ok": True})
             if self.path == "/api/refresh":
-                text = project().log("Refresh: Steam", steam.summary_lines(project(), load_config()))
+                text = project().log("Refresh", steam.summary_lines(project(), load_config()) + play.summary_lines(project()))
                 return self.send(200, {"text": text})
             if self.path == "/api/unity/apply":
                 return self.send(200, run_job("Push to Unity", apply_to_unity))

@@ -2,7 +2,7 @@
 import json
 from pathlib import Path
 
-from . import raster
+from . import images, raster
 
 RULES_DIR = Path(__file__).resolve().parent.parent / "rules"
 ICO_SIZES = (256, 48, 32, 16)
@@ -15,6 +15,40 @@ def rules(store):
 
 def stores():
     return sorted(p.stem for p in RULES_DIR.glob("*.json"))
+
+
+def check(project, store):
+    """Each art file in the store's rules: present, readable and the right size."""
+    folder = project.store / store / "art"
+    out = []
+    for spec in rules(store).get("art", []):
+        found = None
+        for ext in spec.get("formats", ["png", "jpg"]):
+            candidate = folder / f"{spec['file']}.{ext}"
+            if candidate.is_file():
+                found = candidate
+                break
+        item = {"label": spec["label"], "expected": f"{spec['width']}×{spec['height']}", "required": spec["required"],
+                "file": f"{store}/art/{spec['file']}.{spec.get('formats', ['png'])[0]}", "note": spec.get("note", ""), "make": spec.get("make", "")}
+        if not found:
+            item["state"] = "missing" if spec["required"] else "optional"
+        else:
+            dims = images.size(found)
+            item["file"] = str(found.relative_to(project.store)).replace("\\", "/")
+            if not dims:
+                item["state"], item["problem"] = "bad", "not a readable image"
+            else:
+                w, h, fmt = dims
+                item["actual"] = f"{w}×{h}"
+                if spec.get("fit") == "either":
+                    ok = (w == spec["width"] and h <= spec["height"]) or (h == spec["height"] and w <= spec["width"])
+                else:
+                    ok = (w, h) == (spec["width"], spec["height"])
+                item["state"] = "ok" if ok else "bad"
+                if not ok:
+                    item["problem"] = f"is {w}×{h}, needs {item['expected']}"
+        out.append(item)
+    return out
 
 
 def sources(project):

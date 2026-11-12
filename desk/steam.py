@@ -5,7 +5,7 @@ import re
 import subprocess
 from pathlib import Path
 
-from . import builds, images, release, unity
+from . import art, builds, images, release, unity
 from .project import CONFIG_DIR
 
 RULES = json.loads((Path(__file__).resolve().parent.parent / "rules" / "steam.json").read_text(encoding="utf-8"))
@@ -30,36 +30,7 @@ def save_listing(project, fields):
 
 
 def _art(project):
-    folder = project.store / "steam" / "art"
-    out = []
-    for spec in RULES["art"]:
-        found = None
-        for ext in spec.get("formats", ["png", "jpg"]):
-            candidate = folder / f"{spec['file']}.{ext}"
-            if candidate.is_file():
-                found = candidate
-                break
-        item = {"label": spec["label"], "expected": f"{spec['width']}×{spec['height']}", "required": spec["required"],
-                "file": f"steam/art/{spec['file']}.{spec.get('formats', ['png'])[0]}", "note": spec.get("note", "")}
-        if not found:
-            item["state"] = "missing" if spec["required"] else "optional"
-        else:
-            dims = images.size(found)
-            item["file"] = str(found.relative_to(project.store)).replace("\\", "/")
-            if not dims:
-                item["state"], item["problem"] = "bad", "not a readable image"
-            else:
-                w, h, fmt = dims
-                item["actual"] = f"{w}×{h}"
-                if spec.get("fit") == "either":
-                    ok = (w == spec["width"] and h <= spec["height"]) or (h == spec["height"] and w <= spec["width"])
-                else:
-                    ok = (w, h) == (spec["width"], spec["height"])
-                item["state"] = "ok" if ok else "bad"
-                if not ok:
-                    item["problem"] = f"is {w}×{h}, needs {item['expected']}"
-        out.append(item)
-    return out
+    return art.check(project, "steam")
 
 
 def _screenshots(project):

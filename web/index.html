@@ -96,7 +96,7 @@ ul.changes{margin:0;padding-left:16px;font-size:12px;color:var(--muted)}
     <div class="sep"></div>
     <a href="#steam"><span><i class="si steam"></i>Steam</span> <small id="nav-steam"></small></a>
     <a href="#epic"><span><i class="si epic"></i>Epic Games Store</span> <small>later</small></a>
-    <a href="#play"><span><i class="si play"></i>Google Play</span> <small>builds</small></a>
+    <a href="#play"><span><i class="si play"></i>Google Play</span> <small id="nav-play"></small></a>
     <div class="sep"></div>
     <a href="#keys">Keys &amp; accounts</a>
     <a href="#log">Log</a>
@@ -121,7 +121,7 @@ async function copy(text) { try { await navigator.clipboard.writeText(text); toa
 const chip = (state, label) => `<span class="chip ${state}">${esc(label)}</span>`;
 const kindChip = k => ({hand: chip("hand", "by hand"), copy: chip("hand", "copy"), desk: chip("auto", "desk")})[k] || "";
 const mark = s => s === "ok" ? `<span class="mark ok">✓</span>` : `<span class="mark hand">·</span>`;
-let steamTab = "listing";
+let steamTab = "listing", playTab = "listing";
 const storeIcon = id => `<i class="si ${id}"></i>`;
 const fieldInput = (id, f, value, disabled) => f.multiline
   ? `<textarea id="${id}" class="in" rows="4" ${disabled ? "disabled" : ""}>${esc(value)}</textarea>`
@@ -161,7 +161,7 @@ const views = {
   },
   async overview() {
     const [o, r] = await Promise.all([api("/api/overview"), api("/api/release")]);
-    const cards = o.stores.map(s => s.builds ? `<a class="box card" href="#${s.id}"><b>${storeIcon(s.id)}${esc(s.name)}</b><small>Phone builds ready · publishing next</small></a>` : s.later
+    const cards = o.stores.map(s => s.later
       ? `<a class="box card" href="#${s.id}"><b>${storeIcon(s.id)}${esc(s.name)}</b><small>Later</small></a>`
       : `<a class="box card" href="#${s.id}"><b>${storeIcon(s.id)}${esc(s.name)}</b><div class="meter"><i style="width:${Math.round(100 * s.done / s.total)}%"></i></div><small>${s.done} of ${s.total} done · next: ${esc(s.next)}</small></a>`).join("");
     const rows = o.sync.map(r => `<tr><td>${esc(r.label)}</td><td class="mono">${esc(r.desk)}</td><td class="mono">${esc(r.unity)}</td><td>${r.same ? chip("ok", "same") : chip("warn", "differs")}</td></tr>`).join("");
@@ -183,14 +183,9 @@ const views = {
       const fields = s.fields.map(f => `<div class="field"><label for="st-${f.key}">${esc(f.label)}</label>
         ${f.multiline ? `<textarea id="st-${f.key}" class="in" rows="5">${esc(f.value)}</textarea>` : `<input id="st-${f.key}" class="in" value="${esc(f.value)}">`}
         <div><span class="meta">${f.value.length}${f.max ? " / " + f.max : ""}</span> <button class="copy" data-copyfrom="st-${f.key}">Copy</button>${f.problem ? "<br>" + chip("bad", f.problem) : ""}</div></div>`).join("");
-      const art = s.art.map(a => `<tr><td>${a.state !== "missing" && a.state !== "optional" && /\.(png|jpg)$/.test(a.file) ? `<img class="thumb" src="/store-file/${encodeURI(a.file)}?t=${Date.now()}" alt="">` : ""}${esc(a.label)}</td><td class="mono">${esc(a.expected)}</td><td class="mono">${esc(a.file)}</td><td>${
-        a.state === "ok" ? chip("ok", "ok") : a.state === "optional" ? chip("hand", "optional") : a.state === "missing" ? chip("bad", "missing") : chip("bad", a.problem)}</td></tr>`).join("");
       const shots = s.screenshots.items.map(x => `${esc(x.file)} ${x.ok ? "" : "(" + esc(x.size) + ", not usable)"}`).join(", ") || "none yet";
       body = `${releaseBox(r, "steam")}<div class="box"><h3>Text</h3>${fields}<div class="actions"><button class="btn primary" data-act="save-steam">Save</button></div></div>
-        <div class="box"><h3>Art · Store/steam/art</h3><table><tr><th>Image</th><th>Size</th><th>File</th><th></th></tr>${art}</table>
-        <p class="note">Put each image at the file name shown (PNG unless noted). Sizes from Steamworks docs, checked ${esc(s.rules.checked)}.</p>
-        <div class="actions"><button class="btn" data-act="capsules">Make capsules</button><button class="btn" data-act="icons">Make icons</button></div>
-        <p class="note">Make capsules crops the key art (Store/shots/art/key-art.png, from the key-art shot) to each capsule size and places the logo (Store/art/logo.png); focus and logo boxes can be tuned per output in Store/art.json. Make icons resizes Store/art/icon.png (square, 1024×1024) to every store icon size.</p></div>
+        ${artBox("steam", s)}
         ${await shotsBox("steam", s.screenshots)}`;
     } else if (steamTab === "builds") {
       const b = s.build;
@@ -199,7 +194,7 @@ const views = {
         <div class="actions"><button class="btn" data-act="build" data-kind="steam-windows">Build Windows</button><button class="btn" data-act="run-win" ${b.exists ? "" : "disabled"}>Run</button><button class="btn" data-act="upload-preview">Upload preview (nothing sent)</button><button class="btn primary" data-act="upload">Upload to ${esc(s.branch)}</button></div>
         <p class="note">Unity must be open on this project. Uploads use the SteamCMD login cached by your one-time terminal login; the desk never sees the password.</p></div>`;
     } else {
-      body = `<div class="box"><ol class="steps">${s.steps.map(x => `<li>${mark(x.state)}<div><div class="t">${esc(x.title)}</div><div class="d">${esc(x.detail)}${x.link ? ` <a href="${esc(x.link)}" target="_blank" rel="noopener">Open ↗</a>` : ""}</div></div>${kindChip(x.kind)}</li>`).join("")}</ol></div>`;
+      body = stepsBox(s.steps);
     }
     return `<div class="head"><div><h2>Steam</h2><p>Builds upload through SteamCMD. The store page has no public API, so copy each value into Steamworks.</p></div>
       <div class="actions"><button class="btn" data-act="refresh">Refresh</button></div></div>
@@ -208,17 +203,34 @@ const views = {
   async epic() { return `<div class="head"><div><h2>Epic Games Store</h2><p>Not set up yet. Builds will upload through Epic's BuildPatch Tool.</p></div></div>`; },
   async play() {
     const [p, r] = await Promise.all([api("/api/play"), api("/api/release")]);
-    const phones = p.phones.devices.length ? p.phones.devices.map(d => `${esc(d.model)} ${d.state === "device" ? chip("ok", "ready") : chip("warn", d.state)}`).join(", ") : chip("hand", "no phone connected");
-    const apk = p.builds[0];
-    return `<div class="head"><div><h2>Google Play</h2><p>Build for the phone, test it, then publish from here. Listing and publishing through the Play Developer API come next.</p></div></div>
-      <div class="tabs" role="tablist"><button role="tab" aria-selected="true">Builds</button></div>
-      <div id="jobs"></div>
-      ${releaseBox(r, "play")}
-      <div class="box">${buildTable("play", p.history, [["kind", "Type", h => esc(h.kind === "play-aab" ? "Release AAB" : "Phone test APK")], ["file", "File", h => `<span class="mono">${esc(h.path.split(/[\\/]/).pop())}</span>${h.exists ? "" : " " + chip("hand", "deleted")}`]])}
+    const done = p.steps.filter(x => x.state === "ok").length;
+    $("#nav-play").textContent = `${done}/${p.steps.length}`;
+    let body = "";
+    if (playTab === "listing") {
+      const fields = p.fields.map(f => `<div class="field"><label for="pl-${f.key}">${esc(f.label)}</label>
+        <div>${f.multiline ? `<textarea id="pl-${f.key}" class="in" rows="6">${esc(f.value)}</textarea>` : `<input id="${f.readonly ? "pl-ro-" : "pl-"}${f.key}" class="in" value="${esc(f.value)}" ${f.readonly ? "disabled" : ""}>`}${f.note ? `<div class="note">${esc(f.note)}</div>` : ""}</div>
+        <div><span class="meta">${f.value.length}${f.max ? " / " + f.max : ""}</span>${f.problem ? "<br>" + chip("bad", f.problem) : ""}</div></div>`).join("");
+      body = `${releaseBox(r, "play")}<div class="box"><h3>Text · ${esc(p.language)}</h3>${fields}<div class="actions"><button class="btn primary" data-act="save-play">Save</button></div>
+        <p class="note">Uploaded with each publish through the Play Developer API.</p></div>
+        ${artBox("play", p)}${await shotsBox("play", p.screenshots)}`;
+    } else if (playTab === "builds") {
+      const phones = p.phones.devices.length ? p.phones.devices.map(d => `${esc(d.model)} ${d.state === "device" ? chip("ok", "ready") : chip("warn", d.state)}`).join(", ") : chip("hand", "no phone connected");
+      const apk = p.builds[0], key = p.key, account = p.account;
+      body = `<div class="box">${buildTable("play", p.history, [["kind", "Type", h => esc(h.kind === "play-aab" ? "Release AAB" : "Phone test APK")], ["file", "File", h => `<span class="mono">${esc(h.path.split(/[\\/]/).pop())}</span>${h.exists ? "" : " " + chip("hand", "deleted")}`], ["uploaded", "Play", h => h.kind !== "play-aab" ? "" : h.uploaded ? chip("ok", h.uploaded) : chip("hand", "not uploaded")]])}
         <p>Phone: ${phones}</p>
-        <div class="actions"><button class="btn primary" data-act="build" data-kind="play-dev-apk">Build phone test APK</button><button class="btn" data-act="install" ${apk.exists ? "" : "disabled"}>Install on phone</button><button class="btn" disabled title="Needs the upload key (Keys & accounts, coming next)">Build release AAB</button></div>
-        <p class="note">Unity must be open on this project. An Android build switches Unity to Android and back, so the first one takes long. Connect the phone by USB with USB debugging on.</p></div>
-`;
+        <div class="actions"><button class="btn" data-act="build" data-kind="play-dev-apk">Build phone test APK</button><button class="btn" data-act="install" ${apk.exists ? "" : "disabled"}>Install on phone</button>
+          <button class="btn" data-act="build" data-kind="play-aab" ${key.ready ? "" : 'disabled title="Create the upload key first (Keys & accounts)"'}>Build release AAB</button></div>
+        <p class="note">Unity must be open on this project. An Android build switches Unity to Android and back, so the first one takes long. The release AAB is signed with the upload key; Unity reads its password from Credential Manager.</p></div>
+        <div class="box"><h3>Publish · ${esc(p.play.track)} track, status ${esc(p.play.status)}</h3>
+        <p>Uploads the newest release AAB with What's new as release notes, the listing text, icon, feature graphic and phone screenshots in one edit.</p>
+        <div class="actions"><button class="btn" data-act="play-preview" ${p.aab.exists && account.found ? "" : "disabled"}>Publish preview (validated, nothing changes)</button><button class="btn primary" data-act="play-publish" ${p.aab.exists && account.found ? "" : "disabled"}>Publish to ${esc(p.play.track)}</button></div>
+        <p class="note">${account.found ? `Service account ${esc(account.email)}.` : `Set ${esc(account.env)} to the service account JSON (Setup steps).`} Track and status: Store/store.json "play": {"track", "status"}. A draft release waits in Play Console for your click; "completed" rolls it out to the track.</p></div>`;
+    } else {
+      body = stepsBox(p.steps);
+    }
+    return `<div class="head"><div><h2>Google Play</h2><p>Builds, listing and art publish through the Play Developer API. The first upload and the questionnaires are done once in Play Console.</p></div>
+      <div class="actions"><button class="btn" data-act="refresh">Refresh</button></div></div>
+      ${tabBar(playTab, {listing: "Listing", builds: "Builds", steps: "Setup steps"})}<div id="jobs"></div>${body}`;
   },
   async keys() {
     const k = await api("/api/keys");
@@ -229,6 +241,12 @@ const views = {
         <table><tr><td>SteamCMD</td><td class="mono">${esc(c.path)}</td><td>${c.installed ? chip("ok", "installed") : chip("bad", "missing")}</td></tr>
         <tr><td>Cached login</td><td class="mono">"${esc(c.path)}" +login ${esc(c.user || "<account>")}</td><td>${c.loggedIn ? chip("ok", "logged in") : chip("bad", "not yet")} <button class="copy" data-text="&quot;${esc(c.path)}&quot; +login ${esc(c.user || "")}">Copy</button></td></tr></table>
         <p class="note">To install SteamCMD, download the official zip from Valve (${esc("https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip")}) and unpack it into the folder above. Then run the login command once in a terminal and enter the password and Steam Guard code there.</p></div>
+      <div class="box"><h3>Google Play</h3>
+        <table><tr><td>Upload keystore</td><td class="mono">${esc(k.play.key.keystore)}</td><td>${k.play.key.exists ? chip("ok", "found") : chip("bad", "missing")}</td></tr>
+        <tr><td>Password</td><td class="mono">Credential Manager: ${esc(k.play.key.credential)}</td><td>${k.play.key.stored ? chip("ok", "stored") : chip("bad", "missing")}</td></tr>
+        <tr><td>Service account</td><td class="mono">${esc(k.play.account.env)}${k.play.account.email ? " · " + esc(k.play.account.email) : ""}</td><td>${k.play.account.found ? chip("ok", "found") : k.play.account.set ? chip("bad", "not readable") : chip("bad", "not set")}</td></tr></table>
+        <div class="actions"><button class="btn" data-act="play-key" ${k.play.key.ready || !k.play.key.package ? "disabled" : ""}>Create upload key</button></div>
+        <p class="note">${k.play.key.package ? "Create upload key opens a console window: keytool creates the keystore and cmdkey stores the password; both ask for it there. Back up the keystore outside every repository; Play App Signing keeps the release key." : "Set android.package in Store/store.json first."}</p></div>
       <div class="box"><h3>Unity</h3><p>Unity CLI ${k.unityCli ? chip("ok", "found") : chip("bad", "missing")}</p></div>`;
   },
   async log() {
@@ -242,6 +260,16 @@ const views = {
   },
 };
 
+function artBox(store, s) {
+  const rows = s.art.map(a => `<tr><td>${a.state !== "missing" && a.state !== "optional" && /\.(png|jpg)$/.test(a.file) ? `<img class="thumb" src="/store-file/${encodeURI(a.file)}?t=${Date.now()}" alt="">` : ""}${esc(a.label)}</td><td class="mono">${esc(a.expected)}</td><td class="mono">${esc(a.file)}</td><td>${
+    a.state === "ok" ? chip("ok", "ok") : a.state === "optional" ? chip("hand", "optional") : a.state === "missing" ? chip("bad", "missing") : chip("bad", a.problem)}</td></tr>`).join("");
+  return `<div class="box"><h3>Art · Store/${store}/art</h3><table><tr><th>Image</th><th>Size</th><th>File</th><th></th></tr>${rows}</table>
+    <p class="note">Put each image at the file name shown (PNG unless noted), or make them. Sizes from the store's docs, checked ${esc(s.rules.checked)}.</p>
+    <div class="actions"><button class="btn" data-act="capsules">Make capsules</button><button class="btn" data-act="icons">Make icons</button></div>
+    <p class="note">Make capsules crops the key art (Store/shots/art/key-art.png, from the key-art shot) to each size and places the logo (Store/art/logo.png); focus and logo boxes can be tuned per output in Store/art.json. Make icons resizes Store/art/icon.png (square, 1024×1024) to every store icon size. Both write every store's files.</p></div>`;
+}
+const stepsBox = steps => `<div class="box"><ol class="steps">${steps.map(x => `<li>${mark(x.state)}<div><div class="t">${esc(x.title)}</div><div class="d">${esc(x.detail)}${x.link ? ` <a href="${esc(x.link)}" target="_blank" rel="noopener">Open ↗</a>` : ""}</div></div>${kindChip(x.kind)}</li>`).join("")}</ol></div>`;
+const tabBar = (current, names) => `<div class="tabs" role="tablist">${Object.entries(names).map(([t, label]) => `<button role="tab" aria-selected="${t === current}" data-tab="${t}">${label}</button>`).join("")}</div>`;
 async function shotsBox(store, summary) {
   const list = (await api("/api/shots")).shots.filter(x => (x.stores || []).includes(store));
   const cards = list.map(x => {
@@ -321,7 +349,7 @@ document.addEventListener("click", async e => {
   if (!t) return;
   try {
     if (t.dataset.sort) { const [id, key] = t.dataset.sort.split(":"); const cur = sorts[id] || {key: "finished", dir: -1}; sorts[id] = {key, dir: cur.key === key ? -cur.dir : -1}; return render(); }
-    if (t.dataset.tab) { steamTab = t.dataset.tab; return render(); }
+    if (t.dataset.tab) { if (location.hash === "#play") playTab = t.dataset.tab; else steamTab = t.dataset.tab; return render(); }
     if (t.dataset.copyfrom) return copy($("#" + t.dataset.copyfrom).value);
     if (t.dataset.text !== undefined) return copy(t.dataset.text);
     if (t.dataset.recent) { await api("/api/open", {path: t.dataset.recent}); location.hash = "#overview"; return render(); }
@@ -337,10 +365,12 @@ document.addEventListener("click", async e => {
     if (act === "draft") { const d = await api("/api/release/draft", {}); $("#rel-whatsNew").value = d.text || ""; return toast(d.text ? "Draft from commits; shorten it, then Save" : "No commits found"); }
     if (act === "build-all") { const kinds = [...document.querySelectorAll("[data-kind-pick]:checked")].map(el => el.dataset.kindPick); await api("/api/build/all", {kinds}); toast("Started; progress shows under Runs"); return updateJobs(); }
     if (act === "save-steam") { const d = {}; document.querySelectorAll("[id^=st-]").forEach(el => d[el.id.slice(3)] = el.value); await api("/api/steam/listing", d); toast("Saved to Store/steam/listing.json"); return render(); }
+    if (act === "save-play") { const d = {}; document.querySelectorAll("[id^=pl-]").forEach(el => { if (!el.id.startsWith("pl-ro-")) d[el.id.slice(3)] = el.value; }); await api("/api/play/listing", d); toast("Saved to Store/play/listing.json"); return render(); }
+    if (act === "play-key") { const k = await api("/api/play/key", {}); return toast(k.message); }
     if (act === "save-user") { await api("/api/keys/steam-user", {user: $("#steam-user").value}); toast("Saved"); return render(); }
     if (act === "copy-log") return copy($("#logtext").textContent);
     if (act === "run-win") { await api("/api/run/windows", {}); return toast("Started the Windows build"); }
-    const jobs = {"push-unity": ["/api/unity/apply", {}], "build": ["/api/build", {kind: t.dataset.kind}], "install": ["/api/play/install", {}], "capture": ["/api/shots/capture", {only: t.dataset.only || ""}], "icons": ["/api/art/icons", {}], "capsules": ["/api/art/capsules", {}], "upload-preview": ["/api/steam/upload", {preview: true}], "upload": ["/api/steam/upload", {preview: false}]};
+    const jobs = {"push-unity": ["/api/unity/apply", {}], "build": ["/api/build", {kind: t.dataset.kind}], "install": ["/api/play/install", {}], "capture": ["/api/shots/capture", {only: t.dataset.only || ""}], "icons": ["/api/art/icons", {}], "capsules": ["/api/art/capsules", {}], "play-preview": ["/api/play/publish", {preview: true}], "play-publish": ["/api/play/publish", {preview: false}], "upload-preview": ["/api/steam/upload", {preview: true}], "upload": ["/api/steam/upload", {preview: false}]};
     if (jobs[act]) { await api(...jobs[act]); toast("Started; progress shows under Runs"); updateJobs(); }
   } catch (err) { toast(err.message); }
 });

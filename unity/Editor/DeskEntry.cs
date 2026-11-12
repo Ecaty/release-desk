@@ -61,9 +61,10 @@ namespace ReleaseDesk.Editor
         /// <summary>
         /// Builds a player. target: "windows" or "android". For Windows, path is the folder; for Android, the .apk/.aab file
         /// (.aab builds an App Bundle). The result is written to resultPath as JSON, because a long build can outlive
-        /// the CLI call that started it. The previous active platform is restored afterwards.
+        /// the CLI call that started it. The previous active platform is restored afterwards. For an Android release,
+        /// keystore and credential name the upload keystore and its Windows Credential Manager entry (alias "upload").
         /// </summary>
-        public static string Build(string target, string path, bool development, string resultPath)
+        public static string Build(string target, string path, bool development, string resultPath, string keystore = "", string credential = "")
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode)
                 throw new InvalidOperationException("Stop Play mode before building.");
@@ -96,12 +97,14 @@ namespace ReleaseDesk.Editor
             }
             var started = DateTime.Now;
             BuildReport report;
+            var key = target == "android" && !string.IsNullOrEmpty(keystore) ? new UploadKey(keystore, credential, "upload") : null;
             try
             {
                 report = BuildPipeline.BuildPlayer(options);
             }
             finally
             {
+                key?.Dispose();
                 if (EditorUserBuildSettings.activeBuildTarget != previousTarget)
                     EditorUserBuildSettings.SwitchActiveBuildTarget(previousGroup, previousTarget);
             }

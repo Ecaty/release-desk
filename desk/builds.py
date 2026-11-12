@@ -125,8 +125,15 @@ def build(project, kind):
     store = release.BUILD_STORE[spec["store"]]
     notes = release.changes(release.effective(project, store)["whatsNew"])
     unity.call(project.root, f"return ReleaseDesk.Editor.DeskEntry.ApplySettings({unity.literal(release.unity_file(project, store))});")
+    signing = ""
+    if kind == "play-aab":
+        from . import play  # play imports builds
+        key = play.key_state(project)
+        if not key["ready"]:
+            return False, "Create the upload key first (Keys & accounts)."
+        signing = f", {unity.literal(key['keystore'])}, {unity.literal(key['credential'])}"
     code = (f"return ReleaseDesk.Editor.DeskEntry.Build({unity.literal(spec['target'])}, {unity.literal(path)}, "
-            f"{'true' if spec['development'] else 'false'}, {unity.literal(record)});")
+            f"{'true' if spec['development'] else 'false'}, {unity.literal(record)}{signing});")
     ok, message = unity.call(project.root, code, timeout=600)
     still_running = "did not answer" in str(message) or "timeout" in str(message).lower()
     if not ok and not still_running and not record.exists():

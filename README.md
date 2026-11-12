@@ -2,7 +2,7 @@
 
 A local dashboard that keeps everything a game needs for its stores in one place: the listing text and art, builds, per-store setup steps, key status and a run log. It is reusable across projects; each project keeps its own data in a `Store/` folder.
 
-Status: Steam works end to end up to the upload (plus screenshot capture) (listing, art and screenshot checks, Unity settings sync, Windows build, SteamPipe upload with preview). Epic and Google Play are next. Design mockup: `prototypes/dashboard.html`.
+Status: Steam works end to end up to the upload (listing, art, icons and capsules, screenshots, Unity settings sync, Windows build, SteamPipe upload with preview). Google Play has listing, art, upload key, signed release AAB and publishing through the Play Developer API, written and checked offline; the first real upload waits for the Play account, package id and service account. Epic is later. Design mockup: `prototypes/dashboard.html`.
 
 ## Use
 
@@ -15,6 +15,13 @@ Status: Steam works end to end up to the upload (plus screenshot capture) (listi
 ## Screenshots
 
 `Store/shots.json` lists shots (`name`, `stores`, `width`, `height`, `wait`, `setup`). The desk asks Unity to enter Play mode; for each shot it calls the game's `IShotStage.Prepare(shot)` (the game decides what `setup` means, for example Flecs Script), renders that camera off-screen at the exact size (no UI) and writes `Store/shots/<store>/<name>.png`. The game implements `ReleaseDesk.Editor.IShotStage` once.
+
+## Google Play
+
+- **Upload key:** Keys & accounts > Create upload key opens a console: Unity's `keytool` creates `%USERPROFILE%\.release-keys\<package>-upload.jks` (alias `upload`) and `cmdkey` stores the password as `release-desk/<package>/upload-key` in Windows Credential Manager. Both ask for the password in that console; the desk only checks that the file and the entry exist. Back the keystore up outside every repository; Play App Signing keeps the release key.
+- **Release AAB:** the Unity package reads the password from Credential Manager inside the Editor for that build only and restores the previous keystore settings afterwards; nothing is written to ProjectSettings.
+- **Publish:** one Play Developer API edit uploads the newest release AAB to the track with What's new as release notes, the listing text (`Store/play/listing.json`, title = release name), icon, feature graphic and phone screenshots (`Store/shots/play`). Preview validates and then deletes the edit. Sign-in uses the service account JSON at `PLAY_SERVICE_ACCOUNT_JSON`; the token request is signed with the desk's own RS256 code (no packages). `Store/store.json` `"play": {"track": "internal", "status": "draft"}` sets the track and release status (draft waits for a click in Play Console).
+- **By hand once:** developer account, creating the app and its first upload in Play Console, content rating, data safety and target audience, and the closed test new personal accounts need before production.
 
 ## Release
 
@@ -90,4 +97,4 @@ The desk never shows or stores secret values; it only checks that each one exist
 ## Later
 
 - **Branch builds:** a Refresh that lists the game's branches (a small branch view) with a Build button per branch. The branch is checked out in place in the game project: the desk refuses when there are uncommitted changes or unsaved scenes, waits for Unity to reimport, builds, and switches back to the previous branch afterwards.
-- **Build machine:** if the main PC should stay free during builds, a GitHub Actions self-hosted runner on a second machine can build a chosen branch; the desk would start the run and collect the result. Only manual runs and the owner's pushes may trigger it (the game repo is public).
+- **Build machine:** if the main PC should stay free during builds (candidate: a laptop with an i7-4500U, 2 cores, 16 GB, so expect builds a few times slower than the main PC), a GitHub Actions self-hosted runner on a second machine can build a chosen branch; the desk would start the run and collect the result. Only manual runs and the owner's pushes may trigger it (the game repo is public).

@@ -2,10 +2,20 @@
   "store": "play",
   "checked": "2026-11-12",
   "sources": [
-    "https://support.google.com/googleplay/android-developer/answer/9866151"
+    "https://support.google.com/googleplay/android-developer/answer/9866151",
+    "https://support.google.com/googleplay/android-developer/answer/9859152",
+    "https://developers.google.com/android-publisher/api-ref/rest/v3/edits"
   ],
+  "language": "en-US",
+  "text": {
+    "shortDescription": { "label": "Short description", "required": true, "max": 80 },
+    "fullDescription": { "label": "Full description", "required": true, "max": 4000, "multiline": true }
+  },
+  "titleMax": 30,
+  "releaseNotesMax": 500,
   "art": [
     { "file": "icon", "label": "App icon", "width": 512, "height": 512, "required": true, "formats": ["png"], "make": "icon", "note": "32-bit PNG, up to 1 MB" },
     { "file": "feature_graphic", "label": "Feature graphic", "width": 1024, "height": 500, "required": true, "formats": ["png", "jpg"], "make": "capsule", "logo": { "x": 0.5, "y": 0.5, "w": 0.6, "h": 0.55 }, "note": "24-bit PNG or JPEG, no transparency" }
-  ]
+  ],
+  "screenshots": { "folder": "shots/play", "min": 2, "max": 8, "minSide": 320, "maxSide": 3840, "note": "Phone screenshots: PNG or JPEG, each side 320 to 3840 px, long side at most twice the short side. Verify the current minimum in Play Console." }
 }
