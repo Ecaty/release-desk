@@ -323,8 +323,20 @@ async function render() {
   const name = start.project || view === "project" ? view : "project";
   try { $("#main").innerHTML = await (views[name] || views.overview)(); }
   catch (e) { $("#main").innerHTML = `<div class="box">${chip("bad", "error")} ${esc(e.message)}</div>`; }
+  trackEdits();
   updateJobs();
 }
+
+// Save buttons appear only while their box differs from what was loaded.
+const saveScope = b => b.closest(".field:has(input + button[data-act^=save])") || b.closest(".box");
+const snapshot = scope => JSON.stringify([...scope.querySelectorAll("input,textarea,select")].map(el => el.type === "checkbox" ? el.checked : el.value));
+function trackEdits() {
+  document.querySelectorAll("#main [data-act^=save]").forEach(b => { b.dataset.loaded = snapshot(saveScope(b)); b.hidden = true; });
+}
+function edited(e) {
+  document.querySelectorAll("#main [data-act^=save]").forEach(b => { if (saveScope(b).contains(e.target)) b.hidden = snapshot(saveScope(b)) === b.dataset.loaded; });
+}
+document.addEventListener("input", edited);
 window.addEventListener("hashchange", render);
 
 // Live progress: while any run is going, refresh the Runs box every 3 s; when it ends, redraw the page.
@@ -341,6 +353,7 @@ async function updateJobs() {
 }
 
 document.addEventListener("change", e => {
+  edited(e);
   const ov = e.target.closest("[data-ov]");
   if (ov) { const input = $("#rel-" + ov.dataset.ov); input.disabled = !ov.checked; if (ov.checked) input.focus(); }
 });
@@ -362,7 +375,7 @@ document.addEventListener("click", async e => {
       document.querySelectorAll("[data-ov]").forEach(el => override[el.dataset.ov] = el.checked);
       await api("/api/release", {store: t.dataset.store, values, override}); toast("Saved to Store/store.json"); return render();
     }
-    if (act === "draft") { const d = await api("/api/release/draft", {}); $("#rel-whatsNew").value = d.text || ""; return toast(d.text ? "Draft from commits; shorten it, then Save" : "No commits found"); }
+    if (act === "draft") { const d = await api("/api/release/draft", {}); $("#rel-whatsNew").value = d.text || ""; $("#rel-whatsNew").dispatchEvent(new Event("input", {bubbles: true})); return toast(d.text ? "Draft from commits; shorten it, then Save" : "No commits found"); }
     if (act === "build-all") { const kinds = [...document.querySelectorAll("[data-kind-pick]:checked")].map(el => el.dataset.kindPick); await api("/api/build/all", {kinds}); toast("Started; progress shows under Runs"); return updateJobs(); }
     if (act === "save-steam") { const d = {}; document.querySelectorAll("[id^=st-]").forEach(el => d[el.id.slice(3)] = el.value); await api("/api/steam/listing", d); toast("Saved to Store/steam/listing.json"); return render(); }
     if (act === "save-play") { const d = {}; document.querySelectorAll("[id^=pl-]").forEach(el => { if (!el.id.startsWith("pl-ro-")) d[el.id.slice(3)] = el.value; }); await api("/api/play/listing", d); toast("Saved to Store/play/listing.json"); return render(); }
