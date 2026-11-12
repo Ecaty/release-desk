@@ -2,7 +2,15 @@
 
 A local dashboard that keeps everything a game needs for its stores in one place: the listing text and art, builds, per-store setup steps, key status and a run log. It is reusable across projects; each project keeps its own data in a `Store/` folder.
 
-Status: design and clickable mockup (`prototypes/dashboard.html`). Nothing is implemented yet.
+Status: Steam works end to end up to the upload (listing, art and screenshot checks, Unity settings sync, Windows build, SteamPipe upload with preview). Epic and Google Play are next. Design mockup: `prototypes/dashboard.html`.
+
+## Use
+
+1. In the game's Unity project, add the package to `Packages/manifest.json`:
+   `"com.release-desk.unity": "https://github.com/Ecaty/release-desk.git?path=/unity"`
+2. Add the game's private store data as a `Store/` folder (or submodule) in the project root with a `store.json`.
+3. Run `Start-Desk.cmd [path-to-unity-project]` (Python 3.10+, no packages needed) and open http://127.0.0.1:27760/.
+4. Keep the Unity Editor open on the project for Push to Unity and builds.
 
 ## What it does
 
@@ -27,11 +35,11 @@ Store rules (field limits, image sizes, required assets) live in one rules file 
 - **release-desk (this repo, public):** the desk's code and the Unity package. No game data.
 - **Store data (one private repo per game):** listing text, art, screenshots, capture list. Private because unreleased text and art should not sit in a public game repo.
 - **The game's Unity project:** references the desk's Unity package by Git URL (`.../release-desk.git?path=/unity`), which adds the Editor entry points the desk calls (apply PlayerSettings, capture screenshots, build). The game repo holds no store data.
-- **Linking:** a local, ignored `projects.json` in the desk maps each game to its Unity project path and store-data path. Store-data repos are not submodules of this public repo, so public clones never point at private repos.
+- **Linking:** the desk takes only the Unity project folder and finds `Store/` inside it. In this setup `Store/` is a private submodule of the game repo; public clones of the game simply skip it. Recent projects are remembered in `%APPDATA%elease-desk\config.json`.
 - **Traceability:** each upload records the game's commit and the store-data commit in the log.
 
 ```
-<game>-store/            private store-data repo
+Store/                   private store-data repo, submodule in the game's root
   store.json             shared defaults: name, version, package/app ids (no secrets)
   shots.json             screenshot capture list: scene, camera, world, sizes
   steam/ epic/ play/     per-store text (listing.json) and art (Git LFS)

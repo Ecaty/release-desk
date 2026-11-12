@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Release Desk</title>
+<style>
+/* Layout: left rail of sections, right pane = one store at a time; summary first, detail below. */
+:root{
+  --bg:#f5f6f4;--panel:#fff;--ink:#1d2321;--muted:#5f6b66;--line:#dde2df;--accent:#2f6f5e;--accent-ink:#fff;--soft:#e8f0ec;
+  --ok:#2e7d4f;--warn:#a86a00;--bad:#b3392f;--auto:#2f5f9e;--ok-bg:#e6f3ea;--warn-bg:#fbf0dc;--bad-bg:#f8e4e1;--auto-bg:#e5edf8;
+  --f-body:"Segoe UI",system-ui,sans-serif;--f-mono:Consolas,ui-monospace,monospace;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#141917;--panel:#1c2220;--ink:#e6ebe8;--muted:#9aa7a1;--line:#2c3431;--accent:#6fbfa6;--accent-ink:#0f1513;--soft:#22302b;
+  --ok:#7fd29d;--warn:#e7b45c;--bad:#ef8a7f;--auto:#8fb4ea;--ok-bg:#1f3227;--warn-bg:#352a17;--bad-bg:#3a2220;--auto-bg:#1e2a3b;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 var(--f-body);padding:0 16px}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 0 40px;display:grid;grid-template-columns:210px minmax(0,1fr);gap:20px}
+header{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:10px 20px;align-items:center;justify-content:space-between}
+header h1{font-size:20px;margin:0}
+header .proj{color:var(--muted);font-size:13px;font-family:var(--f-mono)}
+nav{display:flex;flex-direction:column;gap:4px}
+nav a{display:flex;justify-content:space-between;align-items:center;padding:9px 10px;border-radius:7px;color:var(--ink);text-decoration:none}
+nav a:hover{background:var(--soft)}
+nav a[aria-current]{background:var(--panel);box-shadow:inset 3px 0 0 var(--accent);font-weight:600}
+nav .sep{height:1px;background:var(--line);margin:8px 4px}
+nav small{color:var(--muted)}
+main{min-width:0;display:flex;flex-direction:column;gap:16px}
+.head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;align-items:flex-start}
+.head h2{margin:0;font-size:22px}
+.head p{margin:4px 0 0;color:var(--muted);max-width:64ch}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+button,input,textarea,select{font:inherit;color:inherit}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:7px;padding:7px 12px;cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+.btn:disabled{opacity:.5;cursor:default}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.box h3{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:2px 0 12px}
+.chip{display:inline-block;font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.ok{background:var(--ok-bg);color:var(--ok)}.warn{background:var(--warn-bg);color:var(--warn)}.bad{background:var(--bad-bg);color:var(--bad)}.auto{background:var(--auto-bg);color:var(--auto)}.hand{background:var(--soft);color:var(--muted)}
+.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.card{display:flex;flex-direction:column;gap:6px;color:var(--ink);text-decoration:none}
+.card b{font-size:16px}.card small{color:var(--muted)}
+.meter{height:6px;border-radius:3px;background:var(--line);overflow:hidden}.meter i{display:block;height:100%;background:var(--accent)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:8px 6px;border-top:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:500;border-top:none;font-size:12px}
+.mono{font-family:var(--f-mono);font-size:12px;overflow-wrap:anywhere}
+.field{display:grid;grid-template-columns:150px minmax(0,1fr) auto;gap:10px;padding:9px 0;border-top:1px solid var(--line);align-items:start}
+.field:first-of-type{border-top:none}
+.field label{color:var(--muted);font-size:13px;padding-top:4px}
+.in{width:100%;border:1px solid var(--line);border-radius:6px;padding:5px 8px;background:var(--bg)}
+.meta{font-size:11px;color:var(--muted);white-space:nowrap}
+.copy{border:1px solid var(--line);background:transparent;border-radius:6px;padding:2px 8px;font-size:12px;cursor:pointer}
+.steps{list-style:none;margin:0;padding:0}
+.steps li{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.steps li:first-child{border-top:none}
+.mark{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700}
+.t{font-weight:600}.d{color:var(--muted);font-size:13px;overflow-wrap:anywhere}.d a{color:var(--accent)}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line)}
+.tabs button{border:none;background:none;padding:8px 12px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button[aria-selected=true]{color:var(--ink);border-bottom-color:var(--accent);font-weight:600}
+.log{font-family:var(--f-mono);font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;max-height:420px;overflow:auto;margin:0}
+.note{font-size:12px;color:var(--muted)}
+.job{font-size:13px}
+.toast{position:fixed;right:16px;bottom:16px;background:var(--ink);color:var(--bg);padding:8px 12px;border-radius:8px;font-size:13px;max-width:60ch}
+@media (max-width:820px){.wrap{grid-template-columns:minmax(0,1fr)}nav{flex-direction:row;flex-wrap:wrap}nav .sep{display:none}.cards{grid-template-columns:minmax(0,1fr)}.field{grid-template-columns:minmax(0,1fr) auto}.field label{grid-column:1/-1}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><h1>Release Desk</h1><span class="proj" id="proj"></span></header>
+  <nav id="nav">
+    <a href="#overview">Overview</a>
+    <div class="sep"></div>
+    <a href="#steam">Steam <small id="nav-steam"></small></a>
+    <a href="#epic">Epic Games Store <small>later</small></a>
+    <a href="#play">Google Play <small>later</small></a>
+    <div class="sep"></div>
+    <a href="#keys">Keys &amp; accounts</a>
+    <a href="#log">Log</a>
+    <div class="sep"></div>
+    <a href="#project">Project</a>
+  </nav>
+  <main id="main"></main>
+</div>
+<div class="toast" id="toast" hidden></div>
+<script>
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const api = async (path, body) => {
+  const r = await fetch(path, body === undefined ? {} : {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)});
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error || r.statusText);
+  return data;
+};
+let toastTimer;
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => t.hidden = true, 3000); }
+async function copy(text) { try { await navigator.clipboard.writeText(text); toast("Copied"); } catch { toast("Copy failed; select the text instead"); } }
+const chip = (state, label) => `<span class="chip ${state}">${esc(label)}</span>`;
+const kindChip = k => ({hand: chip("hand", "by hand"), copy: chip("hand", "copy"), desk: chip("auto", "desk")})[k] || "";
+const mark = s => s === "ok" ? `<span class="mark ok">✓</span>` : `<span class="mark hand">·</span>`;
+let steamTab = "listing";
+
+const views = {
+  async project() {
+    const s = await api("/api/start");
+    return `<div class="head"><div><h2>Project</h2><p>Give the Unity project folder. The desk reads its settings and its Store/ folder.</p></div></div>
+      <div class="box"><div class="field"><label for="path">Unity project</label><input id="path" class="in" value="${esc(s.project)}" placeholder="A:\\Projects\\MyGame"><button class="btn primary" data-act="open">Open</button></div>
+      ${s.recent.length ? `<h3 style="margin-top:12px">Recent</h3>${s.recent.map(p => `<div><button class="copy" data-recent="${esc(p)}">${esc(p)}</button></div>`).join("")}` : ""}</div>`;
+  },
+  async overview() {
+    const o = await api("/api/overview");
+    const cards = o.stores.map(s => s.later
+      ? `<a class="box card" href="#${s.id}"><b>${esc(s.name)}</b><small>Later</small></a>`
+      : `<a class="box card" href="#${s.id}"><b>${esc(s.name)}</b><div class="meter"><i style="width:${Math.round(100 * s.done / s.total)}%"></i></div><small>${s.done} of ${s.total} done · next: ${esc(s.next)}</small></a>`).join("");
+    const rows = o.sync.map(r => `<tr><td>${esc(r.label)}</td><td class="mono">${esc(r.desk)}</td><td class="mono">${esc(r.unity)}</td><td>${r.same ? chip("ok", "same") : chip("warn", "differs")}</td></tr>`).join("");
+    return `<div class="head"><div><h2>Overview</h2><p>Unity ${esc(o.editor)} · Store data ${o.hasStore ? "found" : "missing (add a Store/ folder with store.json)"}</p></div>
+      <div class="actions"><button class="btn primary" data-act="refresh">Refresh</button></div></div>
+      <div class="cards">${cards}</div>
+      <div class="box"><h3>Shared defaults</h3>
+        <div class="field"><label for="sh-name">Game name</label><input id="sh-name" class="in" value="${esc(o.shared.name)}"><span></span></div>
+        <div class="field"><label for="sh-version">Version</label><input id="sh-version" class="in" value="${esc(o.shared.version)}"><span></span></div>
+        <div class="field"><label for="sh-build">Build number</label><input id="sh-build" class="in" type="number" min="1" value="${esc(o.shared.build)}"><span></span></div>
+        <div class="actions"><button class="btn" data-act="save-shared">Save</button></div></div>
+      <div class="box"><h3>Synced to Unity</h3><table><tr><th>Setting</th><th>Desk</th><th>Unity</th><th></th></tr>${rows}</table>
+        <p class="note">Push to Unity writes these into PlayerSettings in the open Editor.</p><div class="actions"><button class="btn" data-act="push-unity">Push to Unity</button></div></div>
+      ${jobsBox(o.jobs)}`;
+  },
+  async steam() {
+    const s = await api("/api/steam");
+    const done = s.steps.filter(x => x.state === "ok").length;
+    $("#nav-steam").textContent = `${done}/${s.steps.length}`;
+    const tabs = ["listing", "builds", "steps"].map(t => `<button role="tab" aria-selected="${t === steamTab}" data-tab="${t}">${{listing: "Listing", builds: "Builds", steps: "Setup steps"}[t]}</button>`).join("");
+    let body = "";
+    if (steamTab === "listing") {
+      const fields = s.fields.map(f => `<div class="field"><label for="st-${f.key}">${esc(f.label)}</label>
+        ${f.multiline ? `<textarea id="st-${f.key}" class="in" rows="5">${esc(f.value)}</textarea>` : `<input id="st-${f.key}" class="in" value="${esc(f.value)}">`}
+        <div><span class="meta">${f.value.length}${f.max ? " / " + f.max : ""}</span> <button class="copy" data-copyfrom="st-${f.key}">Copy</button>${f.problem ? "<br>" + chip("bad", f.problem) : ""}</div></div>`).join("");
+      const art = s.art.map(a => `<tr><td>${esc(a.label)}</td><td class="mono">${esc(a.expected)}</td><td class="mono">${esc(a.file)}</td><td>${
+        a.state === "ok" ? chip("ok", "ok") : a.state === "optional" ? chip("hand", "optional") : a.state === "missing" ? chip("bad", "missing") : chip("bad", a.problem)}</td></tr>`).join("");
+      const shots = s.screenshots.items.map(x => `${esc(x.file)} ${x.ok ? "" : "(" + esc(x.size) + ", not usable)"}`).join(", ") || "none yet";
+      body = `<div class="box"><h3>Text</h3>${fields}<div class="actions"><button class="btn primary" data-act="save-steam">Save</button></div></div>
+        <div class="box"><h3>Art · Store/steam/art</h3><table><tr><th>Image</th><th>Size</th><th>File</th><th></th></tr>${art}</table>
+        <p class="note">Put each image at the file name shown (PNG unless noted). Sizes from Steamworks docs, checked ${esc(s.rules.checked)}.</p></div>
+        <div class="box"><h3>Screenshots · Store/${esc(s.screenshots.folder)}</h3><p>${s.screenshots.good} of ${s.screenshots.min} usable: ${shots}</p><p class="note">${esc(s.screenshots.note)}</p></div>`;
+    } else if (steamTab === "builds") {
+      const b = s.build;
+      body = `<div class="box"><table><tr><th>Build</th><th>Version</th><th>Size</th><th>Made</th><th>Branch</th></tr>
+        <tr><td>Windows x64</td><td class="mono">${esc(b.version || "—")} ${b.build ? "(" + b.build + ")" : ""}</td><td class="mono">${b.exists ? b.sizeMB + " MB" : "—"}</td><td>${esc(b.finished || "—")}</td><td>${b.uploaded ? chip("ok", s.branch) : chip("hand", "not uploaded")}</td></tr></table>
+        <p class="note mono">${esc(b.folder)}</p>
+        <div class="actions"><button class="btn" data-act="build-win">Build Windows</button><button class="btn" data-act="upload-preview">Upload preview (nothing sent)</button><button class="btn primary" data-act="upload">Upload to ${esc(s.branch)}</button></div>
+        <p class="note">Unity must be open on this project. Uploads use the SteamCMD login cached by your one-time terminal login; the desk never sees the password.</p></div>`;
+    } else {
+      body = `<div class="box"><ol class="steps">${s.steps.map(x => `<li>${mark(x.state)}<div><div class="t">${esc(x.title)}</div><div class="d">${esc(x.detail)}${x.link ? ` <a href="${esc(x.link)}" target="_blank" rel="noopener">Open ↗</a>` : ""}</div></div>${kindChip(x.kind)}</li>`).join("")}</ol></div>`;
+    }
+    const jobs = await api("/api/jobs");
+    return `<div class="head"><div><h2>Steam</h2><p>Builds upload through SteamCMD. The store page has no public API, so copy each value into Steamworks.</p></div>
+      <div class="actions"><button class="btn" data-act="refresh">Refresh</button></div></div>
+      <div class="tabs" role="tablist">${tabs}</div>${body}${jobsBox(jobs)}`;
+  },
+  async epic() { return `<div class="head"><div><h2>Epic Games Store</h2><p>Not set up yet. Builds will upload through Epic's BuildPatch Tool.</p></div></div>`; },
+  async play() { return `<div class="head"><div><h2>Google Play</h2><p>Not set up yet. Listing and builds will use the Play Developer API.</p></div></div>`; },
+  async keys() {
+    const k = await api("/api/keys");
+    const c = k.steamcmd;
+    return `<div class="head"><div><h2>Keys &amp; accounts</h2><p>The desk never shows or stores passwords. It only checks that each login exists where it should.</p></div></div>
+      <div class="box"><h3>Steam</h3>
+        <div class="field"><label for="steam-user">Build account name</label><input id="steam-user" class="in" value="${esc(c.user)}" placeholder="not your main Steam account"><button class="btn" data-act="save-user">Save</button></div>
+        <table><tr><td>SteamCMD</td><td class="mono">${esc(c.path)}</td><td>${c.installed ? chip("ok", "installed") : chip("bad", "missing")}</td></tr>
+        <tr><td>Cached login</td><td class="mono">"${esc(c.path)}" +login ${esc(c.user || "<account>")}</td><td>${c.loggedIn ? chip("ok", "logged in") : chip("bad", "not yet")} <button class="copy" data-text="&quot;${esc(c.path)}&quot; +login ${esc(c.user || "")}">Copy</button></td></tr></table>
+        <p class="note">To install SteamCMD, download the official zip from Valve (${esc("https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip")}) and unpack it into the folder above. Then run the login command once in a terminal and enter the password and Steam Guard code there.</p></div>
+      <div class="box"><h3>Unity</h3><p>Unity CLI ${k.unityCli ? chip("ok", "found") : chip("bad", "missing")}</p></div>`;
+  },
+  async log() {
+    const l = await api("/api/log");
+    return `<div class="head"><div><h2>Log</h2><p>Last run summary from Store/Logs/latest.txt.</p></div><div class="actions"><button class="btn" data-act="copy-log">Copy log</button></div></div>
+      <pre class="log" id="logtext">${esc(l.text || "No runs yet.")}</pre>`;
+  },
+};
+
+function jobsBox(jobs) {
+  const names = Object.keys(jobs || {});
+  if (!names.length) return "";
+  return `<div class="box"><h3>Runs</h3>${names.map(n => `<div class="job"><b>${esc(n)}</b> ${chip(jobs[n].state === "done" ? "ok" : jobs[n].state === "failed" ? "bad" : "warn", jobs[n].state)} <span class="mono">${esc(jobs[n].message)}</span></div>`).join("")}</div>`;
+}
+
+async function render() {
+  const view = (location.hash || "#overview").slice(1);
+  document.querySelectorAll("#nav a").forEach(a => a.getAttribute("href") === "#" + view ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current"));
+  const start = await api("/api/start").catch(() => ({project: ""}));
+  $("#proj").textContent = start.project || "no project open";
+  const name = start.project || view === "project" ? view : "project";
+  try { $("#main").innerHTML = await (views[name] || views.overview)(); }
+  catch (e) { $("#main").innerHTML = `<div class="box">${chip("bad", "error")} ${esc(e.message)}</div>`; }
+}
+window.addEventListener("hashchange", render);
+
+let polling = null;
+function pollJobs() {
+  clearInterval(polling);
+  polling = setInterval(async () => {
+    const jobs = await api("/api/jobs");
+    if (!Object.values(jobs).some(j => j.state === "running")) { clearInterval(polling); render(); }
+  }, 3000);
+}
+
+document.addEventListener("click", async e => {
+  const t = e.target.closest("[data-act],[data-tab],[data-copyfrom],[data-text],[data-recent]");
+  if (!t) return;
+  try {
+    if (t.dataset.tab) { steamTab = t.dataset.tab; return render(); }
+    if (t.dataset.copyfrom) return copy($("#" + t.dataset.copyfrom).value);
+    if (t.dataset.text !== undefined) return copy(t.dataset.text);
+    if (t.dataset.recent) { await api("/api/open", {path: t.dataset.recent}); location.hash = "#overview"; return render(); }
+    const act = t.dataset.act;
+    if (act === "open") { await api("/api/open", {path: $("#path").value}); location.hash = "#overview"; return render(); }
+    if (act === "refresh") { await api("/api/refresh", {}); toast("Refreshed; summary written to the log"); return render(); }
+    if (act === "save-shared") { await api("/api/shared", {name: $("#sh-name").value, version: $("#sh-version").value, build: $("#sh-build").value}); toast("Saved to Store/store.json"); return render(); }
+    if (act === "save-steam") { const d = {}; document.querySelectorAll("[id^=st-]").forEach(el => d[el.id.slice(3)] = el.value); await api("/api/steam/listing", d); toast("Saved to Store/steam/listing.json"); return render(); }
+    if (act === "save-user") { await api("/api/keys/steam-user", {user: $("#steam-user").value}); toast("Saved"); return render(); }
+    if (act === "copy-log") return copy($("#logtext").textContent);
+    const jobs = {"push-unity": ["/api/unity/apply", {}], "build-win": ["/api/steam/build", {}], "upload-preview": ["/api/steam/upload", {preview: true}], "upload": ["/api/steam/upload", {preview: false}]};
+    if (jobs[act]) { await api(...jobs[act]); toast("Started; this page updates when it finishes"); render(); pollJobs(); }
+  } catch (err) { toast(err.message); }
+});
+render();
+</script>
+</body>
+</html>
