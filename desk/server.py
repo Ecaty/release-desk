@@ -7,7 +7,7 @@ import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from . import builds, steam, unity
+from . import builds, shots, steam, unity
 from .project import Project, load_config, save_config
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -110,6 +110,8 @@ class Handler(BaseHTTPRequestHandler):
             if self.path == "/api/keys":
                 config = load_config()
                 return self.send(200, {"steamcmd": steam.steamcmd_state(config), "unityCli": bool(unity.cli())})
+            if self.path == "/api/shots":
+                return self.send(200, {"shots": shots.shot_list(project())})
             if self.path == "/api/play":
                 p = project()
                 return self.send(200, {"builds": [builds.latest(p, "play-dev-apk"), builds.latest(p, "play-aab")],
@@ -166,6 +168,9 @@ class Handler(BaseHTTPRequestHandler):
                 kind = data["kind"]
                 spec = builds.KINDS[kind]
                 return self.send(200, run_job(f"Build {spec['store']} {spec['label']}", lambda: builds.build(project(), kind)))
+            if self.path == "/api/shots/capture":
+                only = str(data.get("only", ""))
+                return self.send(200, run_job("Capture screenshots" + (f" ({only})" if only else ""), lambda: shots.capture(project(), only)))
             if self.path == "/api/run/windows":
                 ok, message = builds.run_windows(project())
                 return self.send(200 if ok else 400, {"ok": ok, "error": message, "message": message})
