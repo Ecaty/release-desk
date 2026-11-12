@@ -64,3 +64,8 @@ The desk never shows or stores secret values; it only checks that each one exist
 - Store adapters, one per store, each with `check` (read-only), `refresh` (apply) and its rules file.
 - Store pages in the desk: Steam, Epic Games Store, Google Play.
 - Implementation order: Google Play first end to end (fully automatable, matches the Android test phone), then Steam builds, then Epic builds.
+
+## Later
+
+- **Branch builds:** a Refresh that lists the game's branches (a small branch view) with a Build button per branch. Building a branch other than the checked-out one needs its own working copy (a Git worktree with its own Unity Library) or a separate build machine.
+- **Build machine:** if the main PC should stay free during builds, a GitHub Actions self-hosted runner on a second machine can build a chosen branch; the desk would start the run and collect the result. Only manual runs and the owner's pushes may trigger it (the game repo is public).
