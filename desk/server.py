@@ -1,5 +1,6 @@
 """Release Desk local server. Usage: python -m desk.server [unity-project-folder]  (serves http://127.0.0.1:27760)"""
 import json
+import subprocess
 import sys
 import threading
 import urllib.parse
@@ -82,6 +83,22 @@ def run_job(name, fn):
     return STATE["jobs"][name]
 
 
+# A native folder picker in its own process (Tk wants the main thread; the server runs request threads).
+PICK_FOLDER = """
+import sys, tkinter
+from tkinter import filedialog
+root = tkinter.Tk(); root.withdraw(); root.attributes('-topmost', True)
+print(filedialog.askdirectory(parent=root, initialdir=sys.argv[1] or None, mustexist=True,
+                              title='Choose the Unity project folder') or '')
+"""
+
+
+def browse(start=""):
+    """Asks for a folder with the system dialog; returns '' when cancelled."""
+    run = subprocess.run([sys.executable, "-c", PICK_FOLDER, start], capture_output=True, text=True, timeout=600)
+    return str(Path(run.stdout.strip())) if run.stdout.strip() else ""
+
+
 def apply_to_unity():
     p = project()
     return unity.call(p.root, f"return ReleaseDesk.Editor.DeskEntry.ApplySettings({unity.literal(p.store / 'store.json')});")
@@ -159,6 +176,8 @@ class Handler(BaseHTTPRequestHandler):
         try:
             data = self.body()
             p = STATE["project"]
+            if self.path == "/api/browse":
+                return self.send(200, {"path": browse(str(data.get("start", "")))})
             if self.path == "/api/open":
                 open_project(data["path"])
                 return self.send(200, {"ok": True})

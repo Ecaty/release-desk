@@ -156,7 +156,7 @@ const views = {
   async project() {
     const s = await api("/api/start");
     return `<div class="head"><div><h2>Project</h2><p>Give the Unity project folder. The desk reads its settings and its Store/ folder.</p></div></div>
-      <div class="box"><div class="field"><label for="path">Unity project</label><input id="path" class="in" value="${esc(s.project)}" placeholder="A:\\Projects\\MyGame"><button class="btn primary" data-act="open">Open</button></div>
+      <div class="box"><div class="field"><label for="path">Unity project</label><input id="path" class="in" value="${esc(s.project)}" placeholder="A:\\Projects\\MyGame"><span class="actions"><button class="btn" data-act="browse">Browse…</button><button class="btn primary" data-act="open">Open</button></span></div>
       ${s.recent.length ? `<h3 style="margin-top:12px">Recent</h3>${s.recent.map(p => `<div><button class="copy" data-recent="${esc(p)}">${esc(p)}</button></div>`).join("")}` : ""}</div>`;
   },
   async overview() {
@@ -367,6 +367,7 @@ document.addEventListener("click", async e => {
     if (t.dataset.text !== undefined) return copy(t.dataset.text);
     if (t.dataset.recent) { await api("/api/open", {path: t.dataset.recent}); location.hash = "#overview"; return render(); }
     const act = t.dataset.act;
+    if (act === "browse") { const b = await api("/api/browse", {start: $("#path").value}); if (!b.path) return; $("#path").value = b.path; await api("/api/open", {path: b.path}); location.hash = "#overview"; return render(); }
     if (act === "open") { await api("/api/open", {path: $("#path").value}); location.hash = "#overview"; return render(); }
     if (act === "refresh") { await api("/api/refresh", {}); toast("Refreshed; summary written to the log"); return render(); }
     if (act === "save-release") {
