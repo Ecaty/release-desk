@@ -1,0 +1,18 @@
+{
+  "store": "epic",
+  "checked": "2026-11-13",
+  "sources": [
+    "https://dev.epicgames.com/docs/epic-games-store/sales-and-marketing/marketing/storefront-media-guide",
+    "https://dev.epicgames.com/docs/epic-games-store/publishing-tools/uploading-binaries/bpt-instructions-180"
+  ],
+  "text": {
+    "about": { "label": "About section", "required": true, "max": 10000, "multiline": true, "note": "Product home page text; images in the section count toward the limit." }
+  },
+  "art": [
+    { "file": "product_logo", "label": "Product logo", "width": 960, "height": 540, "required": true, "formats": ["png"], "make": "logo", "pad": true, "note": "PNG up to 1 MB, logo centred on a transparent 960×540 canvas" },
+    { "file": "offer_landscape", "label": "Offer image, landscape", "width": 2560, "height": 1440, "required": true, "formats": ["png", "jpg"], "make": "capsule", "logo": { "x": 0.5, "y": 0.5, "w": 0.55, "h": 0.5 }, "note": "Use for both the general and the library landscape image" },
+    { "file": "offer_portrait", "label": "Offer image, portrait", "width": 1200, "height": 1600, "required": true, "formats": ["png", "jpg"], "make": "capsule", "logo": { "x": 0.5, "y": 0.22, "w": 0.82, "h": 0.3 }, "note": "Use for both the general and the library portrait image" },
+    { "file": "social_preview", "label": "Social preview", "width": 1200, "height": 1200, "required": false, "formats": ["jpg"], "make": "capsule", "logo": { "x": 0.5, "y": 0.5, "w": 0.7, "h": 0.5 }, "note": "JPEG up to 4 MB" }
+  ],
+  "screenshots": { "folder": "shots/epic", "width": 1920, "height": 1080, "min": 1, "recommended": 5, "note": "Media carousel images: 1920×1080, up to 4 MB. Epic recommends at least five assets including a video (videos are added by hand)." }
+}

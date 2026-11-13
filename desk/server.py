@@ -9,7 +9,7 @@ import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from . import art, builds, play, release, shots, steam, unity
+from . import art, builds, epic, play, release, shots, steam, unity
 from .project import Project, load_config, save_config
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -51,10 +51,13 @@ def overview():
     open_steps = [x for x in s["steps"] if x["state"] != "ok"]
     g = play.status(p)
     play_open = [x for x in g["steps"] if x["state"] != "ok"]
+    e = epic.status(p)
+    epic_open = [x for x in e["steps"] if x["state"] != "ok"]
     return {"project": str(p.root), "editor": unity_settings["editor"], "hasStore": p.has_store(), "shared": shared, "sync": sync,
             "stores": [{"id": "steam", "name": "Steam", "done": len(s["steps"]) - len(open_steps), "total": len(s["steps"]),
                         "next": open_steps[0]["title"] if open_steps else "Ready"},
-                       {"id": "epic", "name": "Epic Games Store", "later": True},
+                       {"id": "epic", "name": "Epic Games Store", "done": len(e["steps"]) - len(epic_open), "total": len(e["steps"]),
+                        "next": epic_open[0]["title"] if epic_open else "Ready"},
                        {"id": "play", "name": "Google Play", "done": len(g["steps"]) - len(play_open), "total": len(g["steps"]),
                         "next": play_open[0]["title"] if play_open else "Ready"}],
             "jobs": STATE["jobs"]}
@@ -77,7 +80,8 @@ def run_job(name, fn):
         p = STATE["project"]
         minutes = round((time.time() - started) / 60, 1)
         p.log(f"{name}: {'ok' if ok else 'failed'} ({minutes} min)", str(message).splitlines()[:12]
-              + (play.summary_lines(p) if "Play" in name or "AAB" in name else steam.summary_lines(p, load_config())))
+              + (play.summary_lines(p) if "Play" in name or "AAB" in name else epic.summary_lines(p) if "Epic" in name
+                 else steam.summary_lines(p, load_config())))
 
     threading.Thread(target=work, daemon=True).start()
     return STATE["jobs"][name]
@@ -153,9 +157,12 @@ class Handler(BaseHTTPRequestHandler):
             if self.path == "/api/keys":
                 config = load_config()
                 return self.send(200, {"steamcmd": steam.steamcmd_state(config), "unityCli": bool(unity.cli()),
-                                       "play": {"key": play.key_state(project()), "account": play.playapi.account_state()}})
+                                       "play": {"key": play.key_state(project()), "account": play.playapi.account_state()},
+                                       "epic": epic.key_state(project())})
             if self.path == "/api/shots":
                 return self.send(200, {"shots": shots.shot_list(project())})
+            if self.path == "/api/epic":
+                return self.send(200, epic.status(project()))
             if self.path == "/api/play":
                 p = project()
                 return self.send(200, {**play.status(p), "builds": [builds.latest(p, "play-dev-apk"), builds.latest(p, "play-aab")],
@@ -194,6 +201,21 @@ class Handler(BaseHTTPRequestHandler):
             if self.path == "/api/play/key":
                 ok, message = play.create_key(project())
                 return self.send(200 if ok else 400, {"ok": ok, "error": message, "message": message})
+            if self.path == "/api/play/settings":
+                play.save_settings(project(), str(data.get("track", "")), str(data.get("status", "")))
+                return self.send(200, {"ok": True})
+            if self.path == "/api/play/check":
+                return self.send(200, run_job("Google Play: check", lambda: play.check(project())))
+            if self.path == "/api/epic/listing":
+                epic.save_listing(project(), data)
+                return self.send(200, {"ok": True})
+            if self.path == "/api/epic/secret":
+                ok, message = epic.save_secret(project())
+                return self.send(200 if ok else 400, {"ok": ok, "error": message, "message": message})
+            if self.path == "/api/epic/check":
+                return self.send(200, run_job("Epic: check connection", lambda: epic.check(project())))
+            if self.path == "/api/epic/upload":
+                return self.send(200, run_job("Epic: upload", lambda: epic.upload(project())))
             if self.path == "/api/play/publish":
                 preview = bool(data.get("preview", True))
                 return self.send(200, run_job("Google Play: publish preview" if preview else "Google Play: publish",
@@ -215,7 +237,7 @@ class Handler(BaseHTTPRequestHandler):
                 save_config(config)
                 return self.send(200, {"ok": True})
             if self.path == "/api/refresh":
-                text = project().log("Refresh", steam.summary_lines(project(), load_config()) + play.summary_lines(project()))
+                text = project().log("Refresh", steam.summary_lines(project(), load_config()) + epic.summary_lines(project()) + play.summary_lines(project()))
                 return self.send(200, {"text": text})
             if self.path == "/api/unity/apply":
                 return self.send(200, run_job("Push to Unity", apply_to_unity))
@@ -231,7 +253,7 @@ class Handler(BaseHTTPRequestHandler):
             if self.path == "/api/art/icons":
                 return self.send(200, run_job("Make icons", lambda: art.make_icons(project())))
             if self.path == "/api/run/windows":
-                ok, message = builds.run_windows(project())
+                ok, message = builds.run_windows(project(), data.get("kind", "steam-windows"))
                 return self.send(200 if ok else 400, {"ok": ok, "error": message, "message": message})
             if self.path == "/api/play/install":
                 p = project()

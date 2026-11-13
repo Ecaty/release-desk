@@ -103,7 +103,7 @@ nav .ms{margin-right:7px}.mark .ms{font-size:18px}.mark.ok .ms{font-variation-se
     <a href="#overview"><span><span class="ms" aria-hidden="true">space_dashboard</span>Overview</span></a>
     <div class="sep"></div>
     <a href="#steam"><span><i class="si steam"></i>Steam</span> <small id="nav-steam"></small></a>
-    <a href="#epic"><span><i class="si epic"></i>Epic Games Store</span> <small>later</small></a>
+    <a href="#epic"><span><i class="si epic"></i>Epic Games Store</span> <small id="nav-epic"></small></a>
     <a href="#play"><span><i class="si play"></i>Google Play</span> <small id="nav-play"></small></a>
     <div class="sep"></div>
     <a href="#keys"><span><span class="ms" aria-hidden="true">key</span>Keys &amp; accounts</span></a>
@@ -129,7 +129,7 @@ const chipIcon = {ok: "check", bad: "error", warn: "warning", auto: "bolt"};
 const chip = (state, label) => `<span class="chip ${state}">${chipIcon[state] ? ic(chipIcon[state]) : ""}${esc(label)}</span>`;
 const kindChip = k => ({hand: `<span class="chip hand">${ic("front_hand")}by hand</span>`, copy: `<span class="chip hand">${ic("content_copy")}copy</span>`, desk: chip("auto", "desk")})[k] || "";
 const mark = s => s === "ok" ? `<span class="mark ok">${ic("check_circle")}</span>` : `<span class="mark hand">${ic("radio_button_unchecked")}</span>`;
-let steamTab = "listing", playTab = "listing";
+let steamTab = "listing", playTab = "listing", epicTab = "listing";
 const storeIcon = id => `<i class="si ${id}"></i>`;
 const fieldInput = (id, f, value, disabled) => f.multiline
   ? `<textarea id="${id}" class="in" rows="4" ${disabled ? "disabled" : ""}>${esc(value)}</textarea>`
@@ -207,7 +207,31 @@ const views = {
 </div>
       <div class="tabs" role="tablist">${tabs}</div><div id="jobs"></div>${body}`;
   },
-  async epic() { return `<div class="head"><div><h2>Epic Games Store</h2><p>Not set up yet. Builds will upload through Epic's BuildPatch Tool.</p></div></div>`; },
+  async epic() {
+    const [e, r] = await Promise.all([api("/api/epic"), api("/api/release")]);
+    const done = e.steps.filter(x => x.state === "ok").length;
+    $("#nav-epic").textContent = `${done}/${e.steps.length}`;
+    let body = "";
+    if (epicTab === "listing") {
+      const fields = e.fields.map(f => `<div class="field"><label for="ep-${f.key}">${esc(f.label)}</label>
+        <div>${f.multiline ? `<textarea id="ep-${f.key}" class="in" rows="8">${esc(f.value)}</textarea>` : `<input id="${f.readonly ? "ep-ro-" : "ep-"}${f.key}" class="in" value="${esc(f.value)}" ${f.readonly ? "disabled" : ""}>`}${f.note ? `<div class="note">${esc(f.note)}</div>` : ""}</div>
+        <div><span class="meta">${f.value.length}${f.max ? " / " + f.max : ""}</span> <button class="copy" data-copyfrom="${f.readonly ? "ep-ro-" : "ep-"}${f.key}">${ic("content_copy")}Copy</button>${f.problem ? "<br>" + chip("bad", f.problem) : ""}</div></div>`).join("");
+      body = `${releaseBox(r, "epic")}<div class="box"><h3>Text</h3>${fields}<div class="actions"><button class="btn primary" data-act="save-epic">${ic("save")}Save</button></div>
+        <p class="note">Epic has no public API for the store page; copy each value into the Developer Portal.</p></div>
+        ${artBox("epic", e)}${await shotsBox("epic", e.screenshots)}`;
+    } else if (epicTab === "builds") {
+      const b = e.build, k = e.key;
+      body = `<div class="box">${buildTable("epic", b.history, [["uploaded", "Epic", h => h.uploaded ? chip("ok", h.uploaded) : h.exists ? chip("hand", "not uploaded") : chip("hand", "replaced")]])}
+        <p class="note mono">${esc(b.folder)}</p>
+        <div class="actions"><button class="btn" data-act="build" data-kind="epic-windows">${ic("build")}Build Windows</button><button class="btn" data-act="run-win" data-kind="epic-windows" ${b.exists ? "" : "disabled"}>${ic("play_arrow")}Run</button>
+          <button class="btn" data-act="epic-check" ${k.ready ? "" : "disabled"}>${ic("check")}Check connection</button><button class="btn primary" data-act="epic-upload" ${k.ready && b.exists ? "" : "disabled"}>${ic("cloud_upload")}Upload to Dev sandbox</button></div>
+        <p class="note">Unity must be open on this project. Check connection lists the binaries Epic has (changes nothing). Uploads use Epic's BuildPatch Tool with the client secret from Credential Manager; the desk never sees it. Attach the uploaded binary to the Windows platform in the Developer Portal.</p></div>`;
+    } else {
+      body = stepsBox(e.steps);
+    }
+    return `<div class="head"><div><h2>Epic Games Store</h2><p>Builds upload through Epic's BuildPatch Tool. The store page has no public API, so copy each value into the Developer Portal.</p></div></div>
+      ${tabBar(epicTab, {listing: "Listing", builds: "Builds", steps: "Setup steps"})}<div id="jobs"></div>${body}`;
+  },
   async play() {
     const [p, r] = await Promise.all([api("/api/play"), api("/api/release")]);
     const done = p.steps.filter(x => x.state === "ok").length;
@@ -228,10 +252,12 @@ const views = {
         <div class="actions"><button class="btn" data-act="build" data-kind="play-dev-apk">${ic("build")}Build phone test APK</button><button class="btn" data-act="install" ${apk.exists ? "" : "disabled"}>${ic("install_mobile")}Install on phone</button>
           <button class="btn" data-act="build" data-kind="play-aab" ${key.ready ? "" : 'disabled title="Create the upload key first (Keys & accounts)"'}>${ic("build")}Build release AAB</button></div>
         <p class="note">Unity must be open on this project. An Android build switches Unity to Android and back, so the first one takes long. The release AAB is signed with the upload key; Unity reads its password from Credential Manager.</p></div>
-        <div class="box"><h3>Publish · ${esc(p.play.track)} track, status ${esc(p.play.status)}</h3>
+        <div class="box"><h3>Publish</h3>
+        <div class="field"><label for="play-track">Track</label><select id="play-track" class="in">${Object.entries(p.tracks).map(([k, v]) => `<option value="${k}" ${k === p.play.track ? "selected" : ""}>${esc(v)}</option>`).join("")}</select><span></span></div>
+        <div class="field"><label for="play-status">Release</label><div><select id="play-status" class="in">${Object.entries(p.statuses).map(([k, v]) => `<option value="${k}" ${k === p.play.status ? "selected" : ""}>${esc(v)}</option>`).join("")}</select><div class="note">Draft waits for your click in Play Console and is the only kind Play accepts until the app's first release is published.</div></div><button class="btn" data-act="save-play-settings">${ic("save")}Save</button></div>
         <p>Uploads the newest release AAB with What's new as release notes, the listing text, icon, feature graphic and phone screenshots in one edit.</p>
-        <div class="actions"><button class="btn" data-act="play-preview" ${p.aab.exists && account.found ? "" : "disabled"}>${ic("visibility")}Publish preview (validated, nothing changes)</button><button class="btn primary" data-act="play-publish" ${p.aab.exists && account.found ? "" : "disabled"}>${ic("publish")}Publish to ${esc(p.play.track)}</button></div>
-        <p class="note">${account.found ? `Service account ${esc(account.email)}.` : `Set ${esc(account.env)} to the service account JSON (Setup steps).`} Track and status: Store/store.json "play": {"track", "status"}. A draft release waits in Play Console for your click; "completed" rolls it out to the track.</p></div>`;
+        <div class="actions"><button class="btn" data-act="play-check" ${account.found && p.key.package ? "" : "disabled"}>${ic("check")}Check Play</button><button class="btn" data-act="play-preview" ${p.aab.exists && account.found ? "" : "disabled"}>${ic("visibility")}Publish preview (validated, nothing changes)</button><button class="btn primary" data-act="play-publish" ${p.aab.exists && account.found ? "" : "disabled"}>${ic("publish")}Publish to ${esc(p.play.track)}</button></div>
+        <p class="note">${account.found ? `Service account ${esc(account.email)}.` : `Set ${esc(account.env)} to the service account JSON (Setup steps).`} Check Play lists what each track holds and the highest version code (changes nothing). After a publish the build number goes up by one for the next upload.</p></div>`;
     } else {
       body = stepsBox(p.steps);
     }
@@ -248,6 +274,12 @@ const views = {
         <table><tr><td>SteamCMD</td><td class="mono">${esc(c.path)}</td><td>${c.installed ? chip("ok", "installed") : chip("bad", "missing")}</td></tr>
         <tr><td>Cached login</td><td class="mono">"${esc(c.path)}" +login ${esc(c.user || "<account>")}</td><td>${c.loggedIn ? chip("ok", "logged in") : chip("bad", "not yet")} <button class="copy" data-text="&quot;${esc(c.path)}&quot; +login ${esc(c.user || "")}">${ic("content_copy")}Copy</button></td></tr></table>
         <p class="note">To install SteamCMD, download the official zip from Valve (${esc("https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip")}) and unpack it into the folder above. Then run the login command once in a terminal and enter the password and Steam Guard code there.</p></div>
+      <div class="box"><h3>Epic Games Store</h3>
+        <table><tr><td>BuildPatch Tool</td><td class="mono">${esc(k.epic.bpt || k.epic.bptFolder)}</td><td>${k.epic.installed ? chip("ok", "found") : chip("bad", "missing")}</td></tr>
+        <tr><td>IDs (Store/store.json "epic")</td><td class="mono">${Object.entries(k.epic.ids).map(([n, v]) => `${esc(n)}: ${esc(v || "—")}`).join("<br>")}</td><td>${k.epic.missing.length ? chip("bad", k.epic.missing.length + " missing") : chip("ok", "set")}</td></tr>
+        <tr><td>Client secret</td><td class="mono">Credential Manager: ${esc(k.epic.credential)}</td><td>${k.epic.stored ? chip("ok", "stored") : chip("bad", "missing")}</td></tr></table>
+        <div class="actions"><button class="btn" data-act="epic-secret" ${k.epic.ids.productId && k.epic.ids.clientId ? "" : "disabled"}>${ic("key")}Save BPT secret</button></div>
+        <p class="note">Download the BuildPatch Tool from the Developer Portal (Artifacts and Binaries) and unzip it into the folder above. Save BPT secret opens a console where cmdkey asks for the secret; the desk never sees it.</p></div>
       <div class="box"><h3>Google Play</h3>
         <table><tr><td>Upload keystore</td><td class="mono">${esc(k.play.key.keystore)}</td><td>${k.play.key.exists ? chip("ok", "found") : chip("bad", "missing")}</td></tr>
         <tr><td>Password</td><td class="mono">Credential Manager: ${esc(k.play.key.credential)}</td><td>${k.play.key.stored ? chip("ok", "stored") : chip("bad", "missing")}</td></tr>
@@ -376,7 +408,7 @@ document.addEventListener("click", async e => {
   if (!t) return;
   try {
     if (t.dataset.sort) { const [id, key] = t.dataset.sort.split(":"); const cur = sorts[id] || {key: "finished", dir: -1}; sorts[id] = {key, dir: cur.key === key ? -cur.dir : -1}; return render(); }
-    if (t.dataset.tab) { if (location.hash === "#play") playTab = t.dataset.tab; else steamTab = t.dataset.tab; return render(); }
+    if (t.dataset.tab) { if (location.hash === "#play") playTab = t.dataset.tab; else if (location.hash === "#epic") epicTab = t.dataset.tab; else steamTab = t.dataset.tab; return render(); }
     if (t.dataset.copyfrom) return copy($("#" + t.dataset.copyfrom).value);
     if (t.dataset.text !== undefined) return copy(t.dataset.text);
     if (t.dataset.recent) { await api("/api/open", {path: t.dataset.recent}); location.hash = "#overview"; return render(); }
@@ -393,11 +425,14 @@ document.addEventListener("click", async e => {
     if (act === "build-all") { const kinds = [...document.querySelectorAll("[data-kind-pick]:checked")].map(el => el.dataset.kindPick); await api("/api/build/all", {kinds}); toast("Started; progress shows under Runs"); return updateJobs(); }
     if (act === "save-steam") { const d = {}; document.querySelectorAll("[id^=st-]").forEach(el => d[el.id.slice(3)] = el.value); await api("/api/steam/listing", d); toast("Saved to Store/steam/listing.json"); return render(); }
     if (act === "save-play") { const d = {}; document.querySelectorAll("[id^=pl-]").forEach(el => { if (!el.id.startsWith("pl-ro-")) d[el.id.slice(3)] = el.value; }); await api("/api/play/listing", d); toast("Saved to Store/play/listing.json"); return render(); }
+    if (act === "save-epic") { const d = {}; document.querySelectorAll("[id^=ep-]").forEach(el => { if (!el.id.startsWith("ep-ro-")) d[el.id.slice(3)] = el.value; }); await api("/api/epic/listing", d); toast("Saved to Store/epic/listing.json"); return render(); }
+    if (act === "epic-secret") { const k = await api("/api/epic/secret", {}); return toast(k.message); }
+    if (act === "save-play-settings") { await api("/api/play/settings", {track: $("#play-track").value, status: $("#play-status").value}); toast("Saved to Store/store.json"); return render(); }
     if (act === "play-key") { const k = await api("/api/play/key", {}); return toast(k.message); }
     if (act === "save-user") { await api("/api/keys/steam-user", {user: $("#steam-user").value}); toast("Saved"); return render(); }
     if (act === "copy-log") return copy($("#logtext").textContent);
-    if (act === "run-win") { await api("/api/run/windows", {}); return toast("Started the Windows build"); }
-    const jobs = {"push-unity": ["/api/unity/apply", {}], "build": ["/api/build", {kind: t.dataset.kind}], "install": ["/api/play/install", {}], "capture": ["/api/shots/capture", {only: t.dataset.only || ""}], "icons": ["/api/art/icons", {}], "capsules": ["/api/art/capsules", {}], "play-preview": ["/api/play/publish", {preview: true}], "play-publish": ["/api/play/publish", {preview: false}], "upload-preview": ["/api/steam/upload", {preview: true}], "upload": ["/api/steam/upload", {preview: false}]};
+    if (act === "run-win") { const r = await api("/api/run/windows", {kind: t.dataset.kind || "steam-windows"}); return toast(r.message); }
+    const jobs = {"push-unity": ["/api/unity/apply", {}], "build": ["/api/build", {kind: t.dataset.kind}], "install": ["/api/play/install", {}], "capture": ["/api/shots/capture", {only: t.dataset.only || ""}], "icons": ["/api/art/icons", {}], "capsules": ["/api/art/capsules", {}], "play-preview": ["/api/play/publish", {preview: true}], "play-check": ["/api/play/check", {}], "epic-check": ["/api/epic/check", {}], "epic-upload": ["/api/epic/upload", {}], "play-publish": ["/api/play/publish", {preview: false}], "upload-preview": ["/api/steam/upload", {preview: true}], "upload": ["/api/steam/upload", {preview: false}]};
     if (jobs[act]) { await api(...jobs[act]); toast("Started; progress shows under Runs"); updateJobs(); }
   } catch (err) { toast(err.message); }
 });

@@ -10,8 +10,8 @@ FIELDS = {
     "whatsNew": {"label": "What's new", "multiline": True, "max": 500,
                  "note": "What players notice, not technical work. Leave it empty and each build records the 'Release-note:' lines committed since the previous build; Fill from commits shows them here to edit. Play shows it as “What’s new” (500 characters). On Steam, paste it into an update event in Steamworks (players see events, not build descriptions)."},
 }
-STORES = {"steam": "Steam", "play": "Google Play"}
-BUILD_STORE = {"Steam": "steam", "GooglePlay": "play"}
+STORES = {"steam": "Steam", "epic": "Epic Games Store", "play": "Google Play"}
+BUILD_STORE = {"Steam": "steam", "Epic": "epic", "GooglePlay": "play"}
 NOTES = {"steam": {"name": "Cannot be changed after Valve's pre-release review."}}
 
 
@@ -61,6 +61,20 @@ def save(project, values, store=None, override=None):
             data.pop("overrides")
     project.write("store.json", data)
     return data
+
+
+def bump_build(project, store):
+    """Next build number after an upload: raises the store's override when it has one, else the shared number."""
+    data = project.read("store.json", {}) or {}
+    own = (data.get("overrides", {}) or {}).get(store, {})
+    if "build" in own:
+        own["build"] = int(own["build"]) + 1
+        value = own["build"]
+    else:
+        data["build"] = int(data.get("build", 0)) + 1
+        value = data["build"]
+    project.write("store.json", data)
+    return value
 
 
 def status(project):

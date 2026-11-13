@@ -2,7 +2,7 @@
 
 A local dashboard that keeps everything a game needs for its stores in one place: the listing text and art, builds, per-store setup steps, key status and a run log. It is reusable across projects; each project keeps its own data in a `Store/` folder.
 
-Status: Steam works end to end up to the upload (listing, art, icons and capsules, screenshots, Unity settings sync, Windows build, SteamPipe upload with preview). Google Play has listing, art, upload key, signed release AAB and publishing through the Play Developer API, written and checked offline; the first real upload waits for the Play account, package id and service account. Epic is later. Design mockup: `prototypes/dashboard.html`.
+Status: all three stores are wired up. Steam works end to end up to the upload (listing, art, icons and capsules, screenshots, Unity settings sync, Windows build, SteamPipe upload with preview). Google Play has listing, art, upload key, signed release AAB, track and release-status choice, a read-only track check and publishing through the Play Developer API. Epic has listing and art checks, a Windows build and Dev-sandbox upload through Epic's BuildPatch Tool. Real Play and Epic uploads wait for their developer accounts. Design mockup: `prototypes/dashboard.html`.
 
 ## Use
 
@@ -16,11 +16,19 @@ Status: Steam works end to end up to the upload (listing, art, icons and capsule
 
 `Store/shots.json` lists shots (`name`, `stores`, `width`, `height`, `wait`, `setup`). The desk asks Unity to enter Play mode; for each shot it calls the game's `IShotStage.Prepare(shot)` (the game decides what `setup` means, for example Flecs Script), renders that camera off-screen at the exact size (no UI) and writes `Store/shots/<store>/<name>.png`. The game implements `ReleaseDesk.Editor.IShotStage` once.
 
+## Epic Games Store
+
+- **Setup:** put `organizationId`, `productId`, `artifactId` and the BPT `clientId` under `"epic"` in `Store/store.json`; unzip the BuildPatch Tool (Developer Portal > Artifacts and Binaries) into `%APPDATA%elease-desk\BuildPatchTool`; **Save BPT secret** (Keys & accounts) opens a console where `cmdkey` stores the client secret as `release-desk/epic/<productId>/bpt-secret`.
+- **Upload:** **Build Windows** (Epic tab) builds into `Build/Epic/Windows`; **Upload to Dev sandbox** runs BPT `UploadBinary` with build version `<version>-b<build>-<commit>` and an ignore list for debug files. A PowerShell helper reads the secret from Credential Manager into BPT's own environment (`-ClientSecretEnvVar`), so the desk never holds it. **Check connection** runs `ListBinaries` and changes nothing. Output goes to `Store/Logs/buildpatchtool.txt`.
+- **Listing and art:** no public store-page API, so each field has Copy. Sizes from Epic's Storefront Media Guide: product logo 960×540 PNG (made from the logo), offer images 2560×1440 and 1200×1600 and social preview 1200×1200 (made from key art + logo), media carousel screenshots 1920×1080 in `Store/shots/epic` (add `"epic"` to a shot's stores).
+- **By hand:** organization and product, attaching the binary to the artifact's Windows platform, regions and age ratings, price, review submission and Release Management.
+
 ## Google Play
 
 - **Upload key:** Keys & accounts > Create upload key opens a console: Unity's `keytool` creates `%USERPROFILE%\.release-keys\<package>-upload.jks` (alias `upload`) and `cmdkey` stores the password as `release-desk/<package>/upload-key` in Windows Credential Manager. Both ask for the password in that console; the desk only checks that the file and the entry exist. Back the keystore up outside every repository; Play App Signing keeps the release key.
 - **Release AAB:** the Unity package reads the password from Credential Manager inside the Editor for that build only and restores the previous keystore settings afterwards; nothing is written to ProjectSettings.
 - **Publish:** one Play Developer API edit uploads the newest release AAB to the track with What's new as release notes, the listing text (`Store/play/listing.json`, title = release name), icon, feature graphic and phone screenshots (`Store/shots/play`). Preview validates and then deletes the edit. Sign-in uses the service account JSON at `PLAY_SERVICE_ACCOUNT_JSON`; the token request is signed with the desk's own RS256 code (no packages). `Store/store.json` `"play": {"track": "internal", "status": "draft"}` sets the track and release status (draft waits for a click in Play Console).
+- **Track and checks:** the Builds tab chooses the track (internal, closed, open, production) and whether a release is a draft or rolls out; **Check Play** lists each track's releases and the highest version code without changing anything. After a successful publish the build number goes up by one (the Play override if it has one, else the shared number).
 - **By hand once:** developer account, creating the app and its first upload in Play Console, content rating, data safety and target audience, and the closed test new personal accounts need before production.
 
 ## Release

@@ -17,6 +17,7 @@ from . import release, unity
 
 KINDS = {
     "steam-windows": {"store": "Steam", "target": "windows", "label": "Windows", "folder": True, "development": False},
+    "epic-windows": {"store": "Epic", "target": "windows", "label": "Windows (Epic)", "folder": True, "development": False},
     "play-dev-apk": {"store": "GooglePlay", "target": "android", "label": "Phone test APK", "ext": "-dev.apk", "development": True},
     "play-aab": {"store": "GooglePlay", "target": "android", "label": "Release AAB", "ext": ".aab", "development": False},
 }
@@ -209,8 +210,8 @@ def unity_activity():
     return out if "busy" in out.lower() or "..." in out else ""
 
 
-def run_windows(project):
-    folder = output(project, "steam-windows")
+def run_windows(project, kind="steam-windows"):
+    folder = output(project, kind)
     exes = [p for p in folder.glob("*.exe") if "UnityCrashHandler" not in p.name]
     if not exes:
         return False, "Build Windows first."

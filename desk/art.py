@@ -148,8 +148,12 @@ def make_capsules(project, only=""):
         out = project.store / store / "art" / f"{spec['file']}.{fmt}"
         settings = _settings(project, store, spec)
         if spec["make"] == "logo":
-            image = raster.contain(logo, width, height)
-            if logo.width < image.width:
+            fitted = raster.contain(logo, width, height)
+            image = fitted
+            if spec.get("pad"):  # exact canvas size, logo centred on transparency
+                image = raster.Image(width, height)
+                raster.paste(image, fitted, (width - fitted.width) // 2, (height - fitted.height) // 2)
+            if logo.width < fitted.width:
                 lines.append(f"Note: the logo is {logo.width}×{logo.height}; a larger logo would keep {spec['label']} sharp.")
         else:
             if key.width < width or key.height < height:

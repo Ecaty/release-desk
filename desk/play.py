@@ -27,6 +27,18 @@ def settings(project):
     return {"track": data.get("track", "internal"), "status": data.get("status", "draft")}
 
 
+TRACKS = {"internal": "Internal testing", "alpha": "Closed testing", "beta": "Open testing", "production": "Production"}
+STATUSES = {"draft": "Draft (finish in Play Console)", "completed": "Roll out"}
+
+
+def save_settings(project, track, status):
+    if track not in TRACKS or status not in STATUSES:
+        raise ValueError("Unknown track or status")
+    data = project.read("store.json", {}) or {}
+    data.setdefault("play", {}).update({"track": track, "status": status})
+    project.write("store.json", data)
+
+
 # Upload key ---------------------------------------------------------------------------------------------------
 
 def keytool(project):
@@ -155,7 +167,7 @@ def status(project):
          "detail": "Questionnaires in Play Console; needed before any testing track goes out to testers."},
     ]
     return {"fields": fields, "art": art_items, "screenshots": shots, "key": key, "account": account, "aab": aab, "steps": steps,
-            "play": play, "language": RULES["language"], "rules": {"checked": RULES["checked"], "sources": RULES["sources"]}}
+            "play": play, "tracks": TRACKS, "statuses": STATUSES, "language": RULES["language"], "rules": {"checked": RULES["checked"], "sources": RULES["sources"]}}
 
 
 def summary_lines(project):
@@ -229,7 +241,31 @@ def publish(project, preview=True):
         raise
     builds.mark_uploaded(project, "play-aab", play["track"])
     lines.append(f"Committed: {play['track']} track")
+    lines.append(f"Build number raised to {release.bump_build(project, 'play')} for the next upload")
     return True, "\n".join(lines)
+
+
+def check(project):
+    """Read-only: what each track holds in Play Console (opens an edit, reads the tracks, deletes the edit)."""
+    pkg = package(project)
+    if not pkg:
+        return False, "Set android.package in Store/store.json first."
+    api = playapi.Play(pkg)
+    edit = api.call("POST", "/edits", {})["id"]
+    try:
+        tracks = api.call("GET", f"/edits/{edit}/tracks").get("tracks", [])
+    finally:
+        api.call("DELETE", f"/edits/{edit}")
+    lines, highest = [], 0
+    for track in tracks:
+        for rel in track.get("releases", []):
+            codes = [int(c) for c in rel.get("versionCodes", [])]
+            highest = max([highest] + codes)
+            lines.append(f"{TRACKS.get(track['track'], track['track'])}: {rel.get('name', '')} codes {', '.join(map(str, codes)) or '-'} ({rel.get('status', '')})")
+    build = release.effective(project, "play")["build"]
+    lines.append(f"Highest version code on Play: {highest or 'none'}; next AAB uses build number {build}"
+                 + ("" if build > highest else " - raise it above the highest code before building"))
+    return True, "\n".join(lines) or "No releases on any track yet."
 
 
 def release_notes(project, aab_path):
