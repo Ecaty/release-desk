@@ -11,7 +11,7 @@ from . import jobs
 
 NOT_RUNNING = "No Pipeline instance found"
 # Messages that mean "closed, starting or busy reloading": wait, do not fail.
-NOT_READY = (NOT_RUNNING, "still settling", "not serviceable", "did not answer")
+NOT_READY = (NOT_RUNNING, "still settling", "not serviceable", "did not answer", "did not start within")
 
 
 def _not_ready(message):
@@ -75,14 +75,23 @@ def _call(project_root, code, timeout):
         run = jobs.run(args, timeout=timeout + 30)
     except subprocess.TimeoutExpired:
         return False, "Unity did not answer in time; it may still be working."
+    # Pipeline 1.0 prints the eval value itself and reports failures on stderr with a non-zero exit;
+    # 0.10 wrapped both in {"success", "result" | "errors"}. Accept either.
     try:
         data = json.loads(run.stdout)
     except ValueError:
-        return False, (run.stdout or run.stderr).strip()[:400]
-    if data.get("success"):
-        return True, data.get("result")
-    errors = data.get("errors") or [{}]
-    return False, errors[0].get("message", "Unity command failed.")[:400]
+        data = None
+        if run.returncode == 0 and run.stdout.strip():
+            return False, run.stdout.strip()[:400]
+    if isinstance(data, dict) and "success" in data and ("result" in data or "errors" in data or not data["success"]):
+        if data["success"]:
+            return True, data.get("result")
+        errors = data.get("errors") or [{}]
+        return False, str(errors[0].get("message", "Unity command failed."))[:400]
+    if run.returncode == 0 and run.stdout.strip():
+        return True, data
+    text = "\n".join(line[7:] if line.startswith("error: ") else line for line in (run.stderr or run.stdout).strip().splitlines())
+    return False, (text or f"Unity command failed (exit {run.returncode}).")[:400]
 
 
 def ensure_editor(project_root):
