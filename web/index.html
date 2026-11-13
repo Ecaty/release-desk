@@ -17,7 +17,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 var(--f-body);
 .wrap{max-width:1180px;margin:0 auto;padding:20px 0 40px;display:grid;grid-template-columns:210px minmax(0,1fr);gap:20px}
 header{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:10px 20px;align-items:center;justify-content:space-between}
 header h1{font-size:20px;margin:0}
-header .proj{color:var(--muted);font-size:13px;font-family:var(--f-mono);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+header .proj{color:var(--muted);font-size:13px;font-family:var(--f-mono);display:flex;flex-wrap:wrap;gap:8px;align-items:center}header .proj .btn{font-family:var(--f-body);color:var(--ink)}
 .wrap.empty{grid-template-columns:minmax(0,1fr)}.wrap.empty nav,.wrap.empty header{display:none}
 .start{max-width:560px;margin:10vh auto 0;display:flex;flex-direction:column;gap:14px}
 .start h1{margin:0;font-size:24px}.start p{margin:0;color:var(--muted)}
@@ -60,7 +60,7 @@ th{color:var(--muted);font-weight:500;border-top:none;font-size:12px}
 .steps{list-style:none;margin:0;padding:0}
 .steps li{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:10px;padding:10px 0;border-top:1px solid var(--line);align-items:start}
 .steps li>.chip{justify-self:end}
-th.sort{cursor:pointer;user-select:none}th.sort:hover{color:var(--ink)}th.sort[data-dir]::after{content:" " attr(data-dir)}
+th.sort{cursor:pointer;user-select:none}th.sort:hover{color:var(--ink)}th.sort[data-dir]::after{content:attr(data-dir);font-family:"Material Symbols Outlined";font-size:14px;margin-left:3px;vertical-align:-2px;font-feature-settings:"liga"}
 .progress{height:6px;border-radius:3px;background:var(--line);overflow:hidden;margin:8px 0 4px}
 .progress i{display:block;height:100%;width:30%;background:var(--accent);animation:slide 1.4s ease-in-out infinite}
 @keyframes slide{0%{margin-left:-30%}100%{margin-left:100%}}
@@ -88,22 +88,26 @@ nav a span{display:flex;align-items:center}
 .in:disabled{opacity:.6}
 .pick{display:flex;flex-wrap:wrap;gap:8px 16px;margin:4px 0 8px}.pick label{display:flex;gap:6px;align-items:center}
 ul.changes{margin:0;padding-left:16px;font-size:12px;color:var(--muted)}
+@font-face{font-family:"Material Symbols Outlined";font-style:normal;font-weight:400;font-display:block;src:url(/fonts/material-symbols.woff2) format("woff2")}
+.ms{font-family:"Material Symbols Outlined";font-weight:normal;font-style:normal;font-size:18px;line-height:1;letter-spacing:normal;text-transform:none;display:inline-block;white-space:nowrap;direction:ltr;-webkit-font-feature-settings:"liga";font-feature-settings:"liga";-webkit-font-smoothing:antialiased;font-variation-settings:"FILL" 0,"opsz" 20;vertical-align:-4px;flex:none}
+.btn .ms,.copy .ms{margin-right:6px}.copy .ms{font-size:15px;vertical-align:-3px}.chip .ms{font-size:14px;vertical-align:-2px;margin-right:3px}
+nav .ms{margin-right:7px}.mark .ms{font-size:18px}.mark.ok .ms{font-variation-settings:"FILL" 1,"opsz" 20}
 .toast{position:fixed;right:16px;bottom:16px;background:var(--ink);color:var(--bg);padding:8px 12px;border-radius:8px;font-size:13px;max-width:60ch}
 @media (max-width:820px){.wrap{grid-template-columns:minmax(0,1fr)}nav{flex-direction:row;flex-wrap:wrap}nav .sep{display:none}.cards{grid-template-columns:minmax(0,1fr)}.field{grid-template-columns:minmax(0,1fr) auto}.field label{grid-column:1/-1}}
 </style>
 </head>
 <body>
 <div class="wrap" id="wrap">
-  <header><h1 id="title">Release Desk</h1><span class="proj"><span id="proj"></span><button class="btn" data-act="refresh">Refresh</button><button class="btn" data-act="browse">Switch</button></span></header>
+  <header><h1 id="title">Release Desk</h1><span class="proj"><span id="proj"></span><button class="btn" data-act="refresh"><span class="ms" aria-hidden="true">refresh</span>Refresh</button><button class="btn" data-act="browse"><span class="ms" aria-hidden="true">swap_horiz</span>Switch</button></span></header>
   <nav id="nav">
-    <a href="#overview">Overview</a>
+    <a href="#overview"><span><span class="ms" aria-hidden="true">space_dashboard</span>Overview</span></a>
     <div class="sep"></div>
     <a href="#steam"><span><i class="si steam"></i>Steam</span> <small id="nav-steam"></small></a>
     <a href="#epic"><span><i class="si epic"></i>Epic Games Store</span> <small>later</small></a>
     <a href="#play"><span><i class="si play"></i>Google Play</span> <small id="nav-play"></small></a>
     <div class="sep"></div>
-    <a href="#keys">Keys &amp; accounts</a>
-    <a href="#log">Log</a>
+    <a href="#keys"><span><span class="ms" aria-hidden="true">key</span>Keys &amp; accounts</span></a>
+    <a href="#log"><span><span class="ms" aria-hidden="true">receipt_long</span>Log</span></a>
   </nav>
   <main id="main"></main>
 </div>
@@ -120,9 +124,11 @@ const api = async (path, body) => {
 let toastTimer;
 function toast(msg) { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => t.hidden = true, 3000); }
 async function copy(text) { try { await navigator.clipboard.writeText(text); toast("Copied"); } catch { toast("Copy failed; select the text instead"); } }
-const chip = (state, label) => `<span class="chip ${state}">${esc(label)}</span>`;
-const kindChip = k => ({hand: chip("hand", "by hand"), copy: chip("hand", "copy"), desk: chip("auto", "desk")})[k] || "";
-const mark = s => s === "ok" ? `<span class="mark ok">✓</span>` : `<span class="mark hand">·</span>`;
+const ic = name => `<span class="ms" aria-hidden="true">${name}</span>`;
+const chipIcon = {ok: "check", bad: "error", warn: "warning", auto: "bolt"};
+const chip = (state, label) => `<span class="chip ${state}">${chipIcon[state] ? ic(chipIcon[state]) : ""}${esc(label)}</span>`;
+const kindChip = k => ({hand: `<span class="chip hand">${ic("front_hand")}by hand</span>`, copy: `<span class="chip hand">${ic("content_copy")}copy</span>`, desk: chip("auto", "desk")})[k] || "";
+const mark = s => s === "ok" ? `<span class="mark ok">${ic("check_circle")}</span>` : `<span class="mark hand">${ic("radio_button_unchecked")}</span>`;
 let steamTab = "listing", playTab = "listing";
 const storeIcon = id => `<i class="si ${id}"></i>`;
 const fieldInput = (id, f, value, disabled) => f.multiline
@@ -135,11 +141,11 @@ function releaseBox(r, store) {
     const own = store && r.stores[store].overrides.includes(k);
     const note = (store && r.stores[store].notes[k]) || f.note || "";
     const side = store ? `<label class="ov"><input type="checkbox" data-ov="${k}" ${own ? "checked" : ""}> override</label>`
-      : `<div>${f.max ? `<span class="meta">${String(values[k] ?? "").length} / ${f.max}</span>` : ""}${k === "whatsNew" ? `<br><button class="copy" data-act="draft">Fill from commits</button>` : ""}</div>`;
+      : `<div>${f.max ? `<span class="meta">${String(values[k] ?? "").length} / ${f.max}</span>` : ""}${k === "whatsNew" ? `<br><button class="copy" data-act="draft">${ic("history")}Fill from commits</button>` : ""}</div>`;
     return `<div class="field"><label for="rel-${k}">${esc(f.label)}</label><div>${fieldInput("rel-" + k, f, values[k], store && !own)}${note ? `<div class="note">${esc(note)}</div>` : ""}</div>${side}</div>`;
   }).join("");
   return `<div class="box"><h3>${store ? "Release · unticked fields use the shared value from Overview" : "Release · shared by all stores"}</h3>${rows}
-    <div class="actions"><button class="btn primary" data-act="save-release" data-store="${store || ""}">Save</button>${store ? "" : `<button class="btn" data-act="push-unity">Push to Unity</button>`}</div></div>`;
+    <div class="actions"><button class="btn primary" data-act="save-release" data-store="${store || ""}">${ic("save")}Save</button>${store ? "" : `<button class="btn" data-act="push-unity">${ic("sync")}Push to Unity</button>`}</div></div>`;
 }
 function perStore(r) {
   const keys = Object.keys(r.fields);
@@ -151,14 +157,14 @@ function buildAllBox(r) {
   const picks = Object.entries(r.kinds).map(([k, label]) => `<label><input type="checkbox" data-kind-pick="${k}" ${k === "play-aab" ? "" : "checked"}>${storeIcon(r.buildStore[k])}${esc(label)}</label>`).join("");
   return `<div class="box"><h3>Build all</h3><div class="pick">${picks}</div>
     <p class="note">Builds one after another in the open Editor, each with its store's release values (pushed to Unity before each build), and records version, commit and What's new. Uploading stays per store.</p>
-    <div class="actions"><button class="btn primary" data-act="build-all">Build selected</button></div></div>`;
+    <div class="actions"><button class="btn primary" data-act="build-all">${ic("construction")}Build selected</button></div></div>`;
 }
 
 const views = {
   async start(start) {
     return `<div class="start"><h1>Release Desk</h1><p>Open a Unity project. The desk reads its settings and its Store/ folder.</p>
-      <div class="actions"><button class="btn primary" data-act="browse">Open Unity project…</button></div>
-      ${start.recent.length ? `<div class="recent"><h3 class="note">Recent</h3>${start.recent.map(p => `<button class="copy" data-recent="${esc(p)}">${esc(p)}</button>`).join("")}</div>` : ""}</div>`;
+      <div class="actions"><button class="btn primary" data-act="browse">${ic("folder_open")}Open Unity project…</button></div>
+      ${start.recent.length ? `<div class="recent"><h3 class="note">Recent</h3>${start.recent.map(p => `<button class="copy" data-recent="${esc(p)}">${ic("folder")}${esc(p)}</button>`).join("")}</div>` : ""}</div>`;
   },
   async overview() {
     const [o, r] = await Promise.all([api("/api/overview"), api("/api/release")]);
@@ -171,7 +177,7 @@ const views = {
       <div class="cards">${cards}</div>
       ${releaseBox(r)}${perStore(r)}${buildAllBox(r)}
       <div class="box"><h3>Synced to Unity</h3><table><tr><th>Setting</th><th>Desk</th><th>Unity</th><th></th></tr>${rows}</table>
-        <p class="note">Push to Unity writes these into PlayerSettings in the open Editor.</p><div class="actions"><button class="btn" data-act="push-unity">Push to Unity</button></div></div>
+        <p class="note">Push to Unity writes these into PlayerSettings in the open Editor.</p><div class="actions"><button class="btn" data-act="push-unity">${ic("sync")}Push to Unity</button></div></div>
       <div id="jobs"></div>`;
   },
   async steam() {
@@ -183,16 +189,16 @@ const views = {
     if (steamTab === "listing") {
       const fields = s.fields.map(f => `<div class="field"><label for="st-${f.key}">${esc(f.label)}</label>
         ${f.multiline ? `<textarea id="st-${f.key}" class="in" rows="5">${esc(f.value)}</textarea>` : `<input id="st-${f.key}" class="in" value="${esc(f.value)}">`}
-        <div><span class="meta">${f.value.length}${f.max ? " / " + f.max : ""}</span> <button class="copy" data-copyfrom="st-${f.key}">Copy</button>${f.problem ? "<br>" + chip("bad", f.problem) : ""}</div></div>`).join("");
+        <div><span class="meta">${f.value.length}${f.max ? " / " + f.max : ""}</span> <button class="copy" data-copyfrom="st-${f.key}">${ic("content_copy")}Copy</button>${f.problem ? "<br>" + chip("bad", f.problem) : ""}</div></div>`).join("");
       const shots = s.screenshots.items.map(x => `${esc(x.file)} ${x.ok ? "" : "(" + esc(x.size) + ", not usable)"}`).join(", ") || "none yet";
-      body = `${releaseBox(r, "steam")}<div class="box"><h3>Text</h3>${fields}<div class="actions"><button class="btn primary" data-act="save-steam">Save</button></div></div>
+      body = `${releaseBox(r, "steam")}<div class="box"><h3>Text</h3>${fields}<div class="actions"><button class="btn primary" data-act="save-steam">${ic("save")}Save</button></div></div>
         ${artBox("steam", s)}
         ${await shotsBox("steam", s.screenshots)}`;
     } else if (steamTab === "builds") {
       const b = s.build;
       body = `<div class="box">${buildTable("steam", b.history, [["uploaded", "Steam", h => h.uploaded ? chip("ok", h.uploaded) : h.exists ? chip("hand", "not uploaded") : chip("hand", "replaced")]])}
         <p class="note mono">${esc(b.folder)}</p>
-        <div class="actions"><button class="btn" data-act="build" data-kind="steam-windows">Build Windows</button><button class="btn" data-act="run-win" ${b.exists ? "" : "disabled"}>Run</button><button class="btn" data-act="upload-preview">Upload preview (nothing sent)</button><button class="btn primary" data-act="upload">Upload to ${esc(s.branch)}</button></div>
+        <div class="actions"><button class="btn" data-act="build" data-kind="steam-windows">${ic("build")}Build Windows</button><button class="btn" data-act="run-win" ${b.exists ? "" : "disabled"}>${ic("play_arrow")}Run</button><button class="btn" data-act="upload-preview">${ic("visibility")}Upload preview (nothing sent)</button><button class="btn primary" data-act="upload">${ic("cloud_upload")}Upload to ${esc(s.branch)}</button></div>
         <p class="note">Unity must be open on this project. Uploads use the SteamCMD login cached by your one-time terminal login; the desk never sees the password.</p></div>`;
     } else {
       body = stepsBox(s.steps);
@@ -211,7 +217,7 @@ const views = {
       const fields = p.fields.map(f => `<div class="field"><label for="pl-${f.key}">${esc(f.label)}</label>
         <div>${f.multiline ? `<textarea id="pl-${f.key}" class="in" rows="6">${esc(f.value)}</textarea>` : `<input id="${f.readonly ? "pl-ro-" : "pl-"}${f.key}" class="in" value="${esc(f.value)}" ${f.readonly ? "disabled" : ""}>`}${f.note ? `<div class="note">${esc(f.note)}</div>` : ""}</div>
         <div><span class="meta">${f.value.length}${f.max ? " / " + f.max : ""}</span>${f.problem ? "<br>" + chip("bad", f.problem) : ""}</div></div>`).join("");
-      body = `${releaseBox(r, "play")}<div class="box"><h3>Text · ${esc(p.language)}</h3>${fields}<div class="actions"><button class="btn primary" data-act="save-play">Save</button></div>
+      body = `${releaseBox(r, "play")}<div class="box"><h3>Text · ${esc(p.language)}</h3>${fields}<div class="actions"><button class="btn primary" data-act="save-play">${ic("save")}Save</button></div>
         <p class="note">Uploaded with each publish through the Play Developer API.</p></div>
         ${artBox("play", p)}${await shotsBox("play", p.screenshots)}`;
     } else if (playTab === "builds") {
@@ -219,12 +225,12 @@ const views = {
       const apk = p.builds[0], key = p.key, account = p.account;
       body = `<div class="box">${buildTable("play", p.history, [["kind", "Type", h => esc(h.kind === "play-aab" ? "Release AAB" : "Phone test APK")], ["file", "File", h => `<span class="mono">${esc(h.path.split(/[\\/]/).pop())}</span>${h.exists ? "" : " " + chip("hand", "deleted")}`], ["uploaded", "Play", h => h.kind !== "play-aab" ? "" : h.uploaded ? chip("ok", h.uploaded) : chip("hand", "not uploaded")]])}
         <p>Phone: ${phones}</p>
-        <div class="actions"><button class="btn" data-act="build" data-kind="play-dev-apk">Build phone test APK</button><button class="btn" data-act="install" ${apk.exists ? "" : "disabled"}>Install on phone</button>
-          <button class="btn" data-act="build" data-kind="play-aab" ${key.ready ? "" : 'disabled title="Create the upload key first (Keys & accounts)"'}>Build release AAB</button></div>
+        <div class="actions"><button class="btn" data-act="build" data-kind="play-dev-apk">${ic("build")}Build phone test APK</button><button class="btn" data-act="install" ${apk.exists ? "" : "disabled"}>${ic("install_mobile")}Install on phone</button>
+          <button class="btn" data-act="build" data-kind="play-aab" ${key.ready ? "" : 'disabled title="Create the upload key first (Keys & accounts)"'}>${ic("build")}Build release AAB</button></div>
         <p class="note">Unity must be open on this project. An Android build switches Unity to Android and back, so the first one takes long. The release AAB is signed with the upload key; Unity reads its password from Credential Manager.</p></div>
         <div class="box"><h3>Publish · ${esc(p.play.track)} track, status ${esc(p.play.status)}</h3>
         <p>Uploads the newest release AAB with What's new as release notes, the listing text, icon, feature graphic and phone screenshots in one edit.</p>
-        <div class="actions"><button class="btn" data-act="play-preview" ${p.aab.exists && account.found ? "" : "disabled"}>Publish preview (validated, nothing changes)</button><button class="btn primary" data-act="play-publish" ${p.aab.exists && account.found ? "" : "disabled"}>Publish to ${esc(p.play.track)}</button></div>
+        <div class="actions"><button class="btn" data-act="play-preview" ${p.aab.exists && account.found ? "" : "disabled"}>${ic("visibility")}Publish preview (validated, nothing changes)</button><button class="btn primary" data-act="play-publish" ${p.aab.exists && account.found ? "" : "disabled"}>${ic("publish")}Publish to ${esc(p.play.track)}</button></div>
         <p class="note">${account.found ? `Service account ${esc(account.email)}.` : `Set ${esc(account.env)} to the service account JSON (Setup steps).`} Track and status: Store/store.json "play": {"track", "status"}. A draft release waits in Play Console for your click; "completed" rolls it out to the track.</p></div>`;
     } else {
       body = stepsBox(p.steps);
@@ -238,15 +244,15 @@ const views = {
     const c = k.steamcmd;
     return `<div class="head"><div><h2>Keys &amp; accounts</h2><p>The desk never shows or stores passwords. It only checks that each login exists where it should.</p></div></div>
       <div class="box"><h3>Steam</h3>
-        <div class="field"><label for="steam-user">Build account name</label><input id="steam-user" class="in" value="${esc(c.user)}" placeholder="not your main Steam account"><button class="btn" data-act="save-user">Save</button></div>
+        <div class="field"><label for="steam-user">Build account name</label><input id="steam-user" class="in" value="${esc(c.user)}" placeholder="not your main Steam account"><button class="btn" data-act="save-user">${ic("save")}Save</button></div>
         <table><tr><td>SteamCMD</td><td class="mono">${esc(c.path)}</td><td>${c.installed ? chip("ok", "installed") : chip("bad", "missing")}</td></tr>
-        <tr><td>Cached login</td><td class="mono">"${esc(c.path)}" +login ${esc(c.user || "<account>")}</td><td>${c.loggedIn ? chip("ok", "logged in") : chip("bad", "not yet")} <button class="copy" data-text="&quot;${esc(c.path)}&quot; +login ${esc(c.user || "")}">Copy</button></td></tr></table>
+        <tr><td>Cached login</td><td class="mono">"${esc(c.path)}" +login ${esc(c.user || "<account>")}</td><td>${c.loggedIn ? chip("ok", "logged in") : chip("bad", "not yet")} <button class="copy" data-text="&quot;${esc(c.path)}&quot; +login ${esc(c.user || "")}">${ic("content_copy")}Copy</button></td></tr></table>
         <p class="note">To install SteamCMD, download the official zip from Valve (${esc("https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip")}) and unpack it into the folder above. Then run the login command once in a terminal and enter the password and Steam Guard code there.</p></div>
       <div class="box"><h3>Google Play</h3>
         <table><tr><td>Upload keystore</td><td class="mono">${esc(k.play.key.keystore)}</td><td>${k.play.key.exists ? chip("ok", "found") : chip("bad", "missing")}</td></tr>
         <tr><td>Password</td><td class="mono">Credential Manager: ${esc(k.play.key.credential)}</td><td>${k.play.key.stored ? chip("ok", "stored") : chip("bad", "missing")}</td></tr>
         <tr><td>Service account</td><td class="mono">${esc(k.play.account.env)}${k.play.account.email ? " · " + esc(k.play.account.email) : ""}</td><td>${k.play.account.found ? chip("ok", "found") : k.play.account.set ? chip("bad", "not readable") : chip("bad", "not set")}</td></tr></table>
-        <div class="actions"><button class="btn" data-act="play-key" ${k.play.key.ready || !k.play.key.package ? "disabled" : ""}>Create upload key</button></div>
+        <div class="actions"><button class="btn" data-act="play-key" ${k.play.key.ready || !k.play.key.package ? "disabled" : ""}>${ic("key")}Create upload key</button></div>
         <p class="note">${k.play.key.package ? "Create upload key opens a console window: keytool creates the keystore and cmdkey stores the password; both ask for it there. Back up the keystore outside every repository; Play App Signing keeps the release key." : "Set android.package in Store/store.json first."}</p></div>
       <div class="box"><h3>Unity</h3><p>Unity CLI ${k.unityCli ? chip("ok", "found") : chip("bad", "missing")}</p></div>`;
   },
@@ -254,7 +260,7 @@ const views = {
     const l = await api("/api/log");
     const tools = Object.entries(l.tools).filter(([, t]) => t).map(([n, t]) => `<div class="box"><h3>${esc(n)}</h3><pre class="log">${esc(t)}</pre></div>`).join("");
     const history = l.history.slice(1).map(h => `<pre class="log" style="margin-bottom:8px">${esc(h)}</pre>`).join("") || `<p class="note">No earlier runs.</p>`;
-    return `<div class="head"><div><h2>Log</h2><p>Files in Store/Logs: latest.txt is the summary to read first; history.txt keeps every run.</p></div><div class="actions"><button class="btn" data-act="copy-log">Copy latest</button></div></div>
+    return `<div class="head"><div><h2>Log</h2><p>Files in Store/Logs: latest.txt is the summary to read first; history.txt keeps every run.</p></div><div class="actions"><button class="btn" data-act="copy-log">${ic("content_copy")}Copy latest</button></div></div>
       <div class="box"><h3>Latest run</h3><pre class="log" id="logtext">${esc(l.text || "No runs yet.")}</pre></div>
       ${tools}
       <div class="box"><h3>Earlier runs</h3>${history}</div>`;
@@ -266,23 +272,23 @@ function artBox(store, s) {
     a.state === "ok" ? chip("ok", "ok") : a.state === "optional" ? chip("hand", "optional") : a.state === "missing" ? chip("bad", "missing") : chip("bad", a.problem)}</td></tr>`).join("");
   return `<div class="box"><h3>Art · Store/${store}/art</h3><table><tr><th>Image</th><th>Size</th><th>File</th><th></th></tr>${rows}</table>
     <p class="note">Put each image at the file name shown (PNG unless noted), or make them. Sizes from the store's docs, checked ${esc(s.rules.checked)}.</p>
-    <div class="actions"><button class="btn" data-act="capsules">Make capsules</button><button class="btn" data-act="icons">Make icons</button></div>
+    <div class="actions"><button class="btn" data-act="capsules">${ic("view_quilt")}Make capsules</button><button class="btn" data-act="icons">${ic("apps")}Make icons</button></div>
     <p class="note">Make capsules crops the key art (Store/shots/art/key-art.png, from the key-art shot) to each size and places the logo (Store/art/logo.png); focus and logo boxes can be tuned per output in Store/art.json. Make icons resizes Store/art/icon.png (square, 1024×1024) to every store icon size. Both write every store's files.</p></div>`;
 }
-const stepsBox = steps => `<div class="box"><ol class="steps">${steps.map(x => `<li>${mark(x.state)}<div><div class="t">${esc(x.title)}</div><div class="d">${esc(x.detail)}${x.link ? ` <a href="${esc(x.link)}" target="_blank" rel="noopener">Open ↗</a>` : ""}</div></div>${kindChip(x.kind)}</li>`).join("")}</ol></div>`;
+const stepsBox = steps => `<div class="box"><ol class="steps">${steps.map(x => `<li>${mark(x.state)}<div><div class="t">${esc(x.title)}</div><div class="d">${esc(x.detail)}${x.link ? ` <a href="${esc(x.link)}" target="_blank" rel="noopener">Open ${ic("open_in_new")}</a>` : ""}</div></div>${kindChip(x.kind)}</li>`).join("")}</ol></div>`;
 const tabBar = (current, names) => `<div class="tabs" role="tablist">${Object.entries(names).map(([t, label]) => `<button role="tab" aria-selected="${t === current}" data-tab="${t}">${label}</button>`).join("")}</div>`;
 async function shotsBox(store, summary) {
   const list = (await api("/api/shots")).shots.filter(x => (x.stores || []).includes(store));
   const cards = list.map(x => {
     const f = x.files.find(f => f.store === store);
-    return `<figure class="shot">${f ? `<img src="/store-file/${encodeURI(f.file)}?t=${encodeURIComponent(f.made)}" alt="${esc(x.name)}" loading="lazy">` : `<div class="noshot">not captured</div>`}
+    return `<figure class="shot">${f ? `<img src="/store-file/${encodeURI(f.file)}?t=${encodeURIComponent(f.made)}" alt="${esc(x.name)}" loading="lazy">` : `<div class="noshot">${ic("image_not_supported")} not captured</div>`}
       <figcaption><span class="mono">${esc(x.name)}</span> <span class="note">${x.width}×${x.height}${f ? " · " + esc(f.made) : ""}</span>
-      <button class="copy" data-act="capture" data-only="${esc(x.name)}">Capture</button></figcaption></figure>`;
+      <button class="copy" data-act="capture" data-only="${esc(x.name)}">${ic("photo_camera")}Capture</button></figcaption></figure>`;
   }).join("");
   return `<div class="box"><h3>Screenshots · Store/shots/${esc(store)}</h3>
     <p>${summary.good} of ${summary.min} usable. Each shot is set up by its Flecs Script in Store/shots.json; Unity plays, renders the exact size without UI, and returns to edit mode.</p>
     <div class="shots">${cards || `<p class="note">No shots for this store in Store/shots.json.</p>`}</div>
-    <div class="actions"><button class="btn primary" data-act="capture">Capture all</button></div><p class="note">${esc(summary.note)}</p></div>`;
+    <div class="actions"><button class="btn primary" data-act="capture">${ic("photo_camera")}Capture all</button></div><p class="note">${esc(summary.note)}</p></div>`;
 }
 const mmss = sec => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
 function jobsBox(jobs) {
@@ -305,13 +311,13 @@ function buildTable(id, rows, extra) {
     ["minutes", "Build time", h => h.minutes != null ? `${h.minutes} min` : "—"],
     ["sizeMB", "Size", h => h.sizeMB != null ? `<span class="mono">${h.sizeMB} MB</span>` : "—"],
     ["finished", "Made", h => esc(h.finished)],
-    ["changes", "Changes", h => (h.changes || []).length ? `<ul class="changes">${h.changes.map(c => `<li>${esc(c)}</li>`).join("")}</ul><button class="copy" data-text="${esc(h.changes.map(c => "• " + c).join("\n"))}">Copy</button>` : "—"], ...extra];
+    ["changes", "Changes", h => (h.changes || []).length ? `<ul class="changes">${h.changes.map(c => `<li>${esc(c)}</li>`).join("")}</ul><button class="copy" data-text="${esc(h.changes.map(c => "• " + c).join("\n"))}">${ic("content_copy")}Copy</button>` : "—"], ...extra];
   if (!rows.length) return `<p class="note">No builds yet.</p>`;
   const st = sorts[id] || {key: "finished", dir: -1};
   const val = (h, k) => k === "version" ? String(h.version).split(".").map(n => n.padStart(5, "0")).join(".") + String(h.build).padStart(8, "0")
     : typeof h[k] === "number" ? h[k] : String(h[k] ?? "");
   const sorted = [...rows].sort((a, b) => { const x = val(a, st.key), y = val(b, st.key); return (x > y ? 1 : x < y ? -1 : 0) * st.dir; });
-  const head = cols.map(([k, label]) => rows.length > 1 ? `<th class="sort" data-sort="${id}:${k}" ${st.key === k ? `data-dir="${st.dir > 0 ? "▲" : "▼"}"` : ""}>${label}</th>` : `<th>${label}</th>`).join("");
+  const head = cols.map(([k, label]) => rows.length > 1 ? `<th class="sort" data-sort="${id}:${k}" ${st.key === k ? `data-dir="${st.dir > 0 ? "arrow_upward" : "arrow_downward"}"` : ""}>${label}</th>` : `<th>${label}</th>`).join("");
   const body = sorted.map(h => `<tr>${cols.map(([, , f]) => `<td>${f(h)}</td>`).join("")}${h.result && h.result !== "Succeeded" ? `<td>${chip("bad", h.result)}</td>` : ""}</tr>`).join("");
   return `<table><tr>${head}</tr>${body}</table>`;
 }

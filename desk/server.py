@@ -131,6 +131,9 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(200, target.read_bytes(), "image/png" if target.suffix.lower() == ".png" else "image/jpeg")
             if self.path.split("?")[0] in ("/", "/index.html"):
                 return self.send(200, (ROOT / "web" / "index.html").read_bytes(), "text/html; charset=utf-8")
+            if self.path.startswith("/fonts/") and self.path.endswith(".woff2"):
+                font = ROOT / "web" / "fonts" / Path(self.path).name
+                return self.send(200, font.read_bytes(), "font/woff2") if font.is_file() else self.send(404, {"error": "not found"})
             if self.path.startswith("/icons/") and self.path.endswith(".svg"):
                 icon = (ROOT / "web" / "icons" / Path(self.path).name)
                 return self.send(200, icon.read_bytes(), "image/svg+xml") if icon.is_file() else self.send(404, {"error": "not found"})
