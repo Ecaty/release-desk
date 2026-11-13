@@ -198,9 +198,15 @@ function releaseBox(r, store) {
   const rows = Object.entries(r.fields).map(([k, f]) => {
     const own = store && r.stores[store].overrides.includes(k);
     const note = (store && r.stores[store].notes[k]) || f.note || "";
-    const side = store ? `<label class="ov"><input type="checkbox" data-ov="${k}" ${own ? "checked" : ""}> override</label>`
-      : `<div>${f.max ? `<span class="meta">${String(values[k] ?? "").length} / ${f.max}</span>` : ""}${k === "whatsNew" ? `<br><button class="copy" data-act="draft">${ic("history")}Fill from commits</button>` : ""}</div>`;
-    return `<div class="field"><label for="rel-${k}">${esc(f.label)}</label><div>${fieldInput("rel-" + k, f, values[k], store && !own)}${note ? `<div class="note">${esc(note)}</div>` : ""}</div>${side}</div>`;
+    const length = String(values[k] ?? "").length;
+    const limit = store && r.stores[store].limits[k];
+    // Over a store's limit: on a store page for this store; on Overview for every store that uses the shared text.
+    const over = store ? (r.stores[store].tooLong[k] ? [`${r.stores[store].tooLong[k]} for ${r.stores[store].name}${own ? "" : ": tick override and shorten it"}`] : [])
+      : Object.values(r.stores).filter(st => !st.overrides.includes(k) && st.tooLong[k]).map(st => `${st.name} (${st.limits[k]} max)`);
+    const side = store ? `<div><label class="ov"><input type="checkbox" data-ov="${k}" ${own ? "checked" : ""}> override</label>${limit ? `<span class="meta">${length} / ${limit}</span>` : ""}</div>`
+      : `<div>${f.max ? `<span class="meta">${length} / ${f.max}</span>` : f.multiline && length ? `<span class="meta">${length}</span>` : ""}${k === "whatsNew" ? `<br><button class="copy" data-act="draft">${ic("history")}Fill from commits</button>` : ""}</div>`;
+    const warn = over.length ? `<div>${store ? chip("bad", over[0]) : chip("warn", "Too long for " + over.join(", ") + "; override it on those store pages")}</div>` : "";
+    return `<div class="field"><label for="rel-${k}">${esc(f.label)}</label><div>${fieldInput("rel-" + k, f, values[k], store && !own)}${warn}${note ? `<div class="note">${esc(note)}</div>` : ""}</div>${side}</div>`;
   }).join("");
   return `<div class="box"><h3>Release</h3><p class="note sub">${store ? "Unticked fields use the shared value from Overview." : "Shared by all stores; each store page can override a field."}</p>${rows}
     <div class="actions"><button class="btn primary" data-act="save-release" data-store="${store || ""}">${ic("save")}Save</button>${store ? "" : `<button class="btn" data-act="push-unity">${ic("sync")}Push to Unity</button>`}</div></div>`;
@@ -240,7 +246,7 @@ const views = {
     let body = "";
     if (steamTab === "listing") {
       const fields = s.fields.map(f => `<div class="field"><label for="st-${f.key}">${esc(f.label)}</label>
-        ${f.multiline ? `<textarea id="st-${f.key}" class="in" rows="5" ${f.problem ? "data-problem" : ""}>${esc(f.value)}</textarea>` : `<input id="st-${f.key}" class="in" value="${esc(f.value)}" ${f.problem ? "data-problem" : ""}>`}
+        ${f.multiline ? `<textarea id="st-${f.key}" class="in" rows="5" ${f.problem ? "data-problem" : ""} ${f.readonly ? "disabled" : ""}>${esc(f.value)}</textarea>` : `<input id="st-${f.key}" class="in" value="${esc(f.value)}" ${f.readonly ? "disabled" : ""} ${f.problem ? "data-problem" : ""}>`}
         <div><span class="meta">${f.value.length}${f.max ? " / " + f.max : ""}</span> <button class="copy" data-copyfrom="st-${f.key}">${ic("content_copy")}Copy</button>${f.problem ? "<br>" + chip("bad", f.problem) : ""}</div></div>`).join("");
       const shots = s.screenshots.items.map(x => `${esc(x.file)} ${x.ok ? "" : "(" + esc(x.size) + ", not usable)"}`).join(", ") || "none yet";
       body = `${releaseBox(r, "steam")}<div class="box" id="steam-text"><h3>Text</h3>${fields}<div class="actions"><button class="btn primary" data-act="save-steam">${ic("save")}Save</button></div></div>
@@ -264,7 +270,7 @@ const views = {
     let body = "";
     if (epicTab === "listing") {
       const fields = e.fields.map(f => `<div class="field"><label for="ep-${f.key}">${esc(f.label)}</label>
-        <div>${f.multiline ? `<textarea id="ep-${f.key}" class="in" rows="8" ${f.problem ? "data-problem" : ""}>${esc(f.value)}</textarea>` : `<input id="${f.readonly ? "ep-ro-" : "ep-"}${f.key}" class="in" value="${esc(f.value)}" ${f.problem && !f.readonly ? "data-problem" : ""} ${f.readonly ? "disabled" : ""}>`}${f.note ? `<div class="note">${esc(f.note)}</div>` : ""}</div>
+        <div>${f.multiline ? `<textarea id="${f.readonly ? "ep-ro-" : "ep-"}${f.key}" class="in" rows="8" ${f.problem && !f.readonly ? "data-problem" : ""} ${f.readonly ? "disabled" : ""}>${esc(f.value)}</textarea>` : `<input id="${f.readonly ? "ep-ro-" : "ep-"}${f.key}" class="in" value="${esc(f.value)}" ${f.problem && !f.readonly ? "data-problem" : ""} ${f.readonly ? "disabled" : ""}>`}${f.note ? `<div class="note">${esc(f.note)}</div>` : ""}</div>
         <div><span class="meta">${f.value.length}${f.max ? " / " + f.max : ""}</span> <button class="copy" data-copyfrom="${f.readonly ? "ep-ro-" : "ep-"}${f.key}">${ic("content_copy")}Copy</button>${f.problem ? "<br>" + chip("bad", f.problem) : ""}</div></div>`).join("");
       body = `${releaseBox(r, "epic")}<div class="box" id="epic-text"><h3>Text</h3>${fields}<div class="actions"><button class="btn primary" data-act="save-epic">${ic("save")}Save</button></div>
         <p class="note">Epic has no public API for the store page; copy each value into the Developer Portal.</p></div>
@@ -287,7 +293,7 @@ const views = {
     let body = "";
     if (playTab === "listing") {
       const fields = p.fields.map(f => `<div class="field"><label for="pl-${f.key}">${esc(f.label)}</label>
-        <div>${f.multiline ? `<textarea id="pl-${f.key}" class="in" rows="6" ${f.problem ? "data-problem" : ""}>${esc(f.value)}</textarea>` : `<input id="${f.readonly ? "pl-ro-" : "pl-"}${f.key}" class="in" value="${esc(f.value)}" ${f.problem && !f.readonly ? "data-problem" : ""} ${f.readonly ? "disabled" : ""}>`}${f.note ? `<div class="note">${esc(f.note)}</div>` : ""}</div>
+        <div>${f.multiline ? `<textarea id="${f.readonly ? "pl-ro-" : "pl-"}${f.key}" class="in" rows="6" ${f.problem && !f.readonly ? "data-problem" : ""} ${f.readonly ? "disabled" : ""}>${esc(f.value)}</textarea>` : `<input id="${f.readonly ? "pl-ro-" : "pl-"}${f.key}" class="in" value="${esc(f.value)}" ${f.problem && !f.readonly ? "data-problem" : ""} ${f.readonly ? "disabled" : ""}>`}${f.note ? `<div class="note">${esc(f.note)}</div>` : ""}</div>
         <div><span class="meta">${f.value.length}${f.max ? " / " + f.max : ""}</span>${f.problem ? "<br>" + chip("bad", f.problem) : ""}</div></div>`).join("");
       body = `${releaseBox(r, "play")}<div class="box" id="play-text"><h3>Text</h3><p class="note sub">Language: ${esc(p.language)}</p>${fields}<div class="actions"><button class="btn primary" data-act="save-play">${ic("save")}Save</button></div>
         <p class="note">Uploaded with each publish through the Play Developer API.</p></div>
@@ -423,7 +429,7 @@ async function handStore(id, title, intro, d, buildActions) {
   let body = "";
   if (tab === "listing") {
     const fields = d.fields.map(f => `<div class="field"><label for="${id}-f-${f.key}">${esc(f.label)}</label>
-      <div>${f.multiline ? `<textarea id="${id}-f-${f.key}" class="in" rows="6" ${f.problem ? "data-problem" : ""}>${esc(f.value)}</textarea>` : `<input id="${id}-f-${f.key}" class="in" value="${esc(f.value)}" ${f.readonly ? "disabled" : ""} ${f.problem && !f.readonly ? "data-problem" : ""}>`}${f.note ? `<div class="note">${esc(f.note)}</div>` : ""}</div>
+      <div>${f.multiline ? `<textarea id="${id}-f-${f.key}" class="in" rows="6" ${f.problem && !f.readonly ? "data-problem" : ""} ${f.readonly ? "disabled" : ""}>${esc(f.value)}</textarea>` : `<input id="${id}-f-${f.key}" class="in" value="${esc(f.value)}" ${f.readonly ? "disabled" : ""} ${f.problem && !f.readonly ? "data-problem" : ""}>`}${f.note ? `<div class="note">${esc(f.note)}</div>` : ""}</div>
       <div><span class="meta">${f.value.length}${f.max ? " / " + f.max : ""}</span> <button class="copy" data-copyfrom="${id}-f-${f.key}">${ic("content_copy")}Copy</button>${f.problem ? "<br>" + chip("bad", f.problem) : ""}</div></div>`).join("");
     body = `${releaseBox(r, id)}<div class="box" id="${id}-text"><h3>Text</h3>${fields}<div class="actions"><button class="btn primary" data-act="save-hand" data-store="${id}">${ic("save")}Save</button></div></div>
       ${artBox(id, d)}${await shotsBox(id, d.screenshots)}`;

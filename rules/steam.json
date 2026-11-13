@@ -7,8 +7,8 @@
     "https://partner.steamgames.com/doc/sdk/uploading"
   ],
   "text": {
-    "shortDescription": { "label": "Short description", "required": true, "max": 300, "note": "Plain text, no line breaks. Exact limit: verify in the Steamworks editor." },
-    "about": { "label": "About this game", "required": true, "multiline": true }
+    "shortDescription": { "label": "Short description", "from": "short", "required": true, "max": 300, "note": "Plain text, no line breaks. Exact limit: verify in the Steamworks editor." },
+    "about": { "label": "About this game", "from": "description", "required": true, "multiline": true }
   },
   "art": [
     { "file": "header_capsule", "label": "Header capsule", "width": 920, "height": 430, "required": true, "make": "capsule", "logo": { "x": 0.5, "y": 0.5, "w": 0.62, "h": 0.55 } },

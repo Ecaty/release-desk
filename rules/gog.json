@@ -7,7 +7,7 @@
     "https://docs.gog.com/build-delivery/"
   ],
   "text": {
-    "description": { "label": "Store description", "required": true, "multiline": true, "note": "GOG supports EN, DE, FR, CN, PL and RU descriptions." },
+    "description": { "label": "Store description", "from": "description", "required": true, "multiline": true, "note": "GOG supports EN, DE, FR, CN, PL and RU descriptions." },
     "systemRequirements": { "label": "System requirements", "required": true, "multiline": true },
     "legal": { "label": "Legal lines", "required": true, "multiline": true, "note": "Copyright and trademark lines shown on the store page." }
   },

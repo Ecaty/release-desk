@@ -6,7 +6,7 @@
     "https://learn.microsoft.com/en-us/windows/apps/publish/msstore-dev-cli/overview"
   ],
   "text": {
-    "description": { "label": "Description", "required": true, "max": 10000, "multiline": true }
+    "description": { "label": "Description", "from": "description", "required": true, "max": 10000, "multiline": true }
   },
   "art": [
     { "file": "poster_art", "label": "2:3 poster art", "width": 1440, "height": 2160, "required": true, "formats": ["png"], "make": "capsule", "logo": { "x": 0.5, "y": 0.24, "w": 0.82, "h": 0.3 }, "note": "Main logo image for games; title in the top two-thirds" },

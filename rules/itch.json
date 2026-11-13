@@ -7,8 +7,8 @@
     "https://itch.io/docs/creators/quality-guidelines"
   ],
   "text": {
-    "tagline": { "label": "Short description or tagline", "required": true, "note": "Shown in browse listings." },
-    "description": { "label": "Description", "required": true, "multiline": true }
+    "tagline": { "label": "Short description or tagline", "from": "short", "required": true, "note": "Shown in browse listings." },
+    "description": { "label": "Description", "from": "description", "required": true, "multiline": true }
   },
   "art": [
     { "file": "cover", "label": "Cover image", "width": 630, "height": 500, "required": true, "formats": ["png", "jpg"], "make": "capsule", "logo": { "x": 0.5, "y": 0.42, "w": 0.8, "h": 0.45 }, "note": "Recommended size; shown in browse and on the page" }

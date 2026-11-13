@@ -8,8 +8,8 @@ def listing(project, store):
 
 def save_listing(project, store, rules, fields):
     data = listing(project, store)
-    for key in rules["text"]:
-        if key in fields:
+    for key, rule in rules["text"].items():
+        if key in fields and not rule.get("from"):
             data[key] = str(fields[key]).strip()
     project.write(f"{store}/listing.json", data)
     return data
@@ -19,12 +19,7 @@ def fields(project, store, rules, name_label="Product name"):
     text, rel = listing(project, store), release.effective(project, store)
     out = [{"key": "name", "label": name_label, "value": rel["name"], "readonly": True,
             "note": "From Release (game name; override it for this store there).", "problem": "" if rel["name"] else "empty"}]
-    for key, rule in rules["text"].items():
-        value = text.get(key, "")
-        problem = "empty" if rule.get("required") and not value else (
-            f"{len(value)} / {rule['max']} characters" if rule.get("max") and len(value) > rule["max"] else "")
-        out.append({"key": key, "label": rule["label"], "value": value, "max": rule.get("max"), "multiline": rule.get("multiline", False),
-                    "note": rule.get("note", ""), "problem": problem})
+    out.extend(release.text_fields(project, store, rules, text))
     return out
 
 

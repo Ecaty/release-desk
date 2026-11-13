@@ -97,8 +97,8 @@ def listing(project):
 
 def save_listing(project, fields):
     data = listing(project)
-    for key in RULES["text"]:
-        if key in fields:
+    for key, rule in RULES["text"].items():
+        if key in fields and not rule.get("from"):
             data[key] = str(fields[key]).strip()
     project.write("epic/listing.json", data)
     return data
@@ -108,12 +108,7 @@ def _fields(project):
     text, rel = listing(project), release.effective(project, "epic")
     out = [{"key": "name", "label": "Product name", "value": rel["name"], "readonly": True,
             "note": "From Release (game name; override it for Epic there).", "problem": "" if rel["name"] else "empty"}]
-    for key, rule in RULES["text"].items():
-        value = text.get(key, "")
-        problem = "empty" if rule.get("required") and not value else (
-            f"{len(value)} / {rule['max']} characters" if rule.get("max") and len(value) > rule["max"] else "")
-        out.append({"key": key, "label": rule["label"], "value": value, "max": rule.get("max"), "multiline": rule.get("multiline", False),
-                    "note": rule.get("note", ""), "problem": problem})
+    out.extend(release.text_fields(project, "epic", RULES, text))
     return out
 
 

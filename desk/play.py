@@ -98,8 +98,8 @@ def listing(project):
 
 def save_listing(project, fields):
     data = listing(project)
-    for key in RULES["text"]:
-        if key in fields:
+    for key, rule in RULES["text"].items():
+        if key in fields and not rule.get("from"):
             data[key] = str(fields[key]).strip()
     project.write("play/listing.json", data)
     return data
@@ -111,12 +111,7 @@ def _fields(project):
             "note": "From Release (game name; override it for Google Play there).",
             "problem": "" if rel["name"] and len(rel["name"]) <= RULES["titleMax"] else
             ("empty" if not rel["name"] else f"{len(rel['name'])} / {RULES['titleMax']} characters")}]
-    for key, rule in RULES["text"].items():
-        value = text.get(key, "")
-        problem = "empty" if rule.get("required") and not value else (
-            f"{len(value)} / {rule['max']} characters" if rule.get("max") and len(value) > rule["max"] else "")
-        out.append({"key": key, "label": rule["label"], "value": value, "max": rule.get("max"), "multiline": rule.get("multiline", False),
-                    "note": rule.get("note", ""), "problem": problem})
+    out.extend(release.text_fields(project, "play", RULES, text))
     return out
 
 

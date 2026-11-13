@@ -8,8 +8,8 @@
   ],
   "language": "en-US",
   "text": {
-    "shortDescription": { "label": "Short description", "required": true, "max": 80 },
-    "fullDescription": { "label": "Full description", "required": true, "max": 4000, "multiline": true }
+    "shortDescription": { "label": "Short description", "from": "short", "required": true, "max": 80 },
+    "fullDescription": { "label": "Full description", "from": "description", "required": true, "max": 4000, "multiline": true }
   },
   "titleMax": 30,
   "releaseNotesMax": 500,

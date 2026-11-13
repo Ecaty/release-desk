@@ -22,8 +22,8 @@ def listing(project):
 
 def save_listing(project, fields):
     data = listing(project)
-    for key in RULES["text"]:
-        if key in fields:
+    for key, rule in RULES["text"].items():
+        if key in fields and not rule.get("from"):
             data[key] = str(fields[key]).strip()
     project.write("steam/listing.json", data)
     return data
@@ -70,15 +70,7 @@ def status(project, config):
     steam = shared.get("steam", {})
     text = listing(project)
     fields = []
-    for key, rule in RULES["text"].items():
-        value = text.get(key, "")
-        problem = ""
-        if rule.get("required") and not value:
-            problem = "empty"
-        elif rule.get("max") and len(value) > rule["max"]:
-            problem = f"{len(value)} / {rule['max']} characters"
-        fields.append({"key": key, "label": rule["label"], "value": value, "max": rule.get("max"),
-                       "multiline": rule.get("multiline", False), "note": rule.get("note", ""), "problem": problem})
+    fields.extend(release.text_fields(project, "steam", RULES, text))
     art = _art(project)
     shots = _screenshots(project)
     build = _build(project)

@@ -5,6 +5,10 @@ import subprocess
 
 FIELDS = {
     "name": {"label": "Game name"},
+    "short": {"label": "Short description", "multiline": True,
+              "note": "One or two sentences: Steam short description (300), Google Play short description (80), itch.io tagline."},
+    "description": {"label": "Description", "multiline": True,
+                    "note": "The long store text: Steam About this game, Play full description (4000), Epic About, GOG, Microsoft Store, itch.io."},
     "version": {"label": "Version", "note": "Unity bundleVersion"},
     "build": {"label": "Build number", "note": "Android version code; raise it for each store upload", "number": True},
     "whatsNew": {"label": "What's new", "multiline": True, "max": 500,
@@ -19,6 +23,46 @@ def _clean(field, value):
     if FIELDS[field].get("number"):
         return int(value or 0)
     return str(value or "").strip()
+
+
+def limits(store):
+    """Shared field -> maximum length on this store, from its rules file."""
+    from . import art
+    try:
+        rules = art.rules(store)
+    except OSError:
+        return {}
+    out = {rule["from"]: rule["max"] for rule in rules.get("text", {}).values() if rule.get("from") and rule.get("max")}
+    if rules.get("titleMax"):
+        out["name"] = rules["titleMax"]
+    return out
+
+
+def too_long(project, store):
+    """Fields whose value for this store is over the store's limit: {field: "120 / 80 characters"}."""
+    values = effective(project, store)
+    return {f: f"{len(str(values.get(f, '')))} / {m} characters" for f, m in limits(store).items() if len(str(values.get(f, ""))) > m}
+
+
+def text_fields(project, store, rules, text):
+    """A store's listing text: fields marked "from" in its rules show the release value (shared or this store's
+    override) and are edited in the Release box; the rest are the store's own text in <store>/listing.json."""
+    values, own = effective(project, store), overrides(project, store)
+    out = []
+    for key, rule in rules["text"].items():
+        src = rule.get("from")
+        value = str(values.get(src, "")) if src else text.get(key, "")
+        problem = "empty" if rule.get("required") and not value else (
+            f"{len(value)} / {rule['max']} characters" if rule.get("max") and len(value) > rule["max"] else "")
+        note = rule.get("note", "")
+        if src:
+            origin = "this store's override" if src in own else "the shared text"
+            note = (f"From Release ({FIELDS[src]['label'].lower()}, {origin})."
+                    + (" Too long here: tick override in the Release box and shorten it." if problem and "characters" in problem else "")
+                    + (" " + note if note else ""))
+        out.append({"key": key, "label": rule["label"], "value": value, "max": rule.get("max"), "multiline": rule.get("multiline", False),
+                    "note": note, "problem": problem, "readonly": bool(src)})
+    return out
 
 
 def shared(project):
@@ -80,7 +124,7 @@ def bump_build(project, store):
 def status(project):
     return {"fields": FIELDS, "shared": shared(project),
             "stores": {s: {"name": label, "values": effective(project, s), "overrides": sorted(overrides(project, s)),
-                         "notes": NOTES.get(s, {})}
+                         "notes": NOTES.get(s, {}), "limits": limits(s), "tooLong": too_long(project, s)}
                        for s, label in STORES.items()}}
 
 
@@ -123,12 +167,27 @@ def draft(project, since=""):
     return "\n".join("- " + n for n in notes)
 
 
+MOVED = {"steam": {"name": "name", "shortDescription": "short", "about": "description"},
+         "play": {"shortDescription": "short", "fullDescription": "description"}, "epic": {"about": "description"},
+         "gog": {"description": "description"}, "microsoft": {"description": "description"},
+         "itch": {"tagline": "short", "description": "description"}}
+
+
 def migrate(project):
-    """Earlier desks kept the Steam game name in steam/listing.json; it is now the shared name or a Steam override."""
-    listing = project.read("steam/listing.json", None)
-    if not listing or "name" not in listing:
-        return
-    name = str(listing.pop("name") or "").strip()
-    if name and name != shared(project)["name"] and "name" not in overrides(project, "steam"):
-        save(project, {"name": name}, "steam", {"name": True})
-    project.write("steam/listing.json", listing)
+    """Earlier desks kept the game name and descriptions per store in <store>/listing.json; they are now shared
+    release fields. The first store's text becomes the shared value; text that differs becomes that store's override."""
+    for store, mapping in MOVED.items():
+        listing = project.read(f"{store}/listing.json", None)
+        if not listing or not any(k in listing for k in mapping):
+            continue
+        for key, field in mapping.items():
+            if key not in listing:
+                continue
+            value = str(listing.pop(key) or "").strip()
+            if not value:
+                continue
+            if not shared(project)[field]:
+                save(project, {field: value})
+            elif value != shared(project)[field] and field not in overrides(project, store):
+                save(project, {field: value}, store, {field: True})
+        project.write(f"{store}/listing.json", listing)

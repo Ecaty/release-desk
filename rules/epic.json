@@ -6,7 +6,7 @@
     "https://dev.epicgames.com/docs/epic-games-store/publishing-tools/uploading-binaries/bpt-instructions-180"
   ],
   "text": {
-    "about": { "label": "About section", "required": true, "max": 10000, "multiline": true, "note": "Product home page text; images in the section count toward the limit." }
+    "about": { "label": "About section", "from": "description", "required": true, "max": 10000, "multiline": true, "note": "Product home page text; images in the section count toward the limit." }
   },
   "art": [
     { "file": "product_logo", "label": "Product logo", "width": 960, "height": 540, "required": true, "formats": ["png"], "make": "logo", "pad": true, "note": "PNG up to 1 MB, logo centred on a transparent 960×540 canvas" },
