@@ -219,13 +219,9 @@ const views = {
   },
   async overview() {
     const [o, r] = await Promise.all([api("/api/overview"), api("/api/release")]);
-    const cards = o.stores.map(s => s.later
-      ? `<a class="box card" href="#${s.id}"><b>${storeIcon(s.id)}${esc(s.name)}</b><small>Later</small></a>`
-      : `<a class="box card" href="#${s.id}"><b>${storeIcon(s.id)}${esc(s.name)}</b><div class="meter"><i style="width:${Math.round(100 * s.done / s.total)}%"></i></div><small>${s.done} of ${s.total} done · next: ${esc(s.next)}</small></a>`).join("");
     const rows = o.sync.map(r => `<tr><td>${esc(r.label)}</td><td class="mono">${esc(r.desk)}</td><td class="mono">${esc(r.unity)}</td><td>${r.same ? chip("ok", "same") : chip("warn", "differs")}</td></tr>`).join("");
     return `<div class="head"><div><h2>Overview</h2><p>Unity ${esc(o.editor)} · Store data ${o.hasStore ? "found" : "missing (add a Store/ folder with store.json)"}</p></div>
 </div>
-      <div class="cards">${cards}</div>
       ${releaseBox(r)}${perStore(r)}${buildAllBox(r)}
       <div class="box"><h3>Synced to Unity</h3><table><tr><th>Setting</th><th>Desk</th><th>Unity</th><th></th></tr>${rows}</table>
         <p class="note">Push to Unity writes these into PlayerSettings in the open Editor.</p><div class="actions"><button class="btn" data-act="push-unity">${ic("sync")}Push to Unity</button></div></div>
