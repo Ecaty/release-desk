@@ -2,7 +2,7 @@
 
 A local dashboard that keeps everything a game needs for its stores in one place: the listing text and art, builds, per-store setup steps, key status and a run log. It is reusable across projects; each project keeps its own data in a `Store/` folder.
 
-Status: five stores are wired up: Steam (upload with SteamCMD), Epic Games Store (BuildPatch Tool), GOG (Pipeline Builder), Microsoft Store (MSIX + msstore CLI) and Google Play (Play Developer API). Each has listing and art checks, its own Windows or Android build and setup steps that jump to the field that finishes them. Real uploads to Epic, GOG, Microsoft and Play wait for their developer accounts. Design mockup: `prototypes/dashboard.html`.
+Status: six stores are wired up: Steam (upload with SteamCMD), Epic Games Store (BuildPatch Tool), GOG (Pipeline Builder), Microsoft Store (MSIX + msstore CLI), Google Play (Play Developer API) and Samsung Galaxy Store (Galaxy Store Developer API, same AAB as Play). Each has listing and art checks, its own Windows or Android build and setup steps that jump to the field that finishes them. Real uploads to Epic, GOG, Microsoft, Play and Galaxy Store wait for their developer accounts. Design mockup: `prototypes/dashboard.html`.
 
 ## Use
 
@@ -44,6 +44,12 @@ Status: five stores are wired up: Steam (upload with SteamCMD), Epic Games Store
 - **Publish:** one Play Developer API edit uploads the newest release AAB to the track with What's new as release notes, the listing text (`Store/play/listing.json`, title = release name), icon, feature graphic and phone screenshots (`Store/shots/play`). Preview validates and then deletes the edit. Sign-in uses the service account JSON at `PLAY_SERVICE_ACCOUNT_JSON`; the token request is signed with the desk's own RS256 code (no packages). `Store/store.json` `"play": {"track": "internal", "status": "draft"}` sets the track and release status (draft waits for a click in Play Console).
 - **Track and checks:** the Builds tab chooses the track (internal, closed, open, production) and whether a release is a draft or rolls out; **Check Play** lists each track's releases and the highest version code without changing anything. After a successful publish the build number goes up by one (the Play override if it has one, else the shared number).
 - **By hand once:** developer account, creating the app and its first upload in Play Console, content rating, data safety and target audience, and the closed test new personal accounts need before production.
+
+## Galaxy Store
+
+- Same release AAB as Google Play; Galaxy Store makes a universal APK from it (Play Asset Delivery is not supported). No Samsung device is needed: Samsung reviews on its own devices.
+- **By hand once:** seller account, registering the app with its listing, screenshots, age rating, countries and signing choice in Seller Portal (the API cannot register apps). Put the 12-digit content ID and the service account ID in Keys & accounts; save the service account's private key outside every repository with its path in `SAMSUNG_SERVICE_ACCOUNT_KEY`.
+- **Submit update:** signs a JWT with the key (desk's own RS256), uploads the AAB in an upload session, opens an update with What's new, registers the binary with the previous binary's device targeting, and submits for review. **Check Galaxy Store** only reads the app's status.
 
 ## Release
 
@@ -120,7 +126,6 @@ The desk never shows or stores secret values; it only checks that each one exist
 ## Later
 
 - **Apple App Store:** needs a Mac with Xcode to build and sign, and review of the downloaded-recipe question (guideline 2.5.2); see the game's distribution notes.
-- **Samsung Galaxy Store:** same AAB as Google Play, uploaded through Samsung's Seller Portal; small extra Android reach.
 
 - **Branch builds:** a Refresh that lists the game's branches (a small branch view) with a Build button per branch. The branch is checked out in place in the game project: the desk refuses when there are uncommitted changes or unsaved scenes, waits for Unity to reimport, builds, and switches back to the previous branch afterwards.
 - **Build machine:** if the main PC should stay free during builds (candidate: a laptop with an i7-4500U, 2 cores, 16 GB, so expect builds a few times slower than the main PC), a GitHub Actions self-hosted runner on a second machine can build a chosen branch; the desk would start the run and collect the result. Only manual runs and the owner's pushes may trigger it (the game repo is public).

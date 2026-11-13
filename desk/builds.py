@@ -104,12 +104,13 @@ def _add_history(project, entry):
     _history_file(project).write_text(json.dumps(items[:200], indent=2), encoding="utf-8")
 
 
-def mark_uploaded(project, kind, where):
+def mark_uploaded(project, kind, where, field="uploaded"):
+    """Records on the newest build of this kind where it went (field "galaxy" for the Galaxy Store copy of the AAB)."""
     items = history(project)
     for i in items:
         i.pop("exists", None)
         if i.get("kind") == kind:
-            i["uploaded"] = where
+            i[field] = where
             break
     _history_file(project).write_text(json.dumps(items, indent=2), encoding="utf-8")
 

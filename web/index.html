@@ -124,6 +124,7 @@ nav small.lvl{font-weight:600;padding:1px 7px;border-radius:999px}.lvl.done{back
     <a href="#gog"><span><i class="si gog"></i>GOG</span> <small id="nav-gog"></small></a>
     <a href="#microsoft"><span><i class="si microsoft"></i>Microsoft Store</span> <small id="nav-microsoft"></small></a>
     <a href="#play"><span><i class="si play"></i>Google Play</span> <small id="nav-play"></small></a>
+    <a href="#samsung"><span><span class="ms" aria-hidden="true">storefront</span>Galaxy Store</span> <small id="nav-samsung"></small></a>
     <div class="sep"></div>
     <a href="#keys"><span><span class="ms" aria-hidden="true">key</span>Keys &amp; accounts</span></a>
     <a href="#log"><span><span class="ms" aria-hidden="true">receipt_long</span>Log</span></a>
@@ -149,8 +150,8 @@ const chip = (state, label) => `<span class="chip ${state}">${chipIcon[state] ? 
 const kindChip = k => ({hand: `<span class="chip hand">${ic("front_hand")}by hand</span>`, copy: `<span class="chip hand">${ic("content_copy")}copy</span>`, desk: chip("auto", "desk")})[k] || "";
 const mark = s => s === "ok" ? `<span class="mark ok">${ic("check_circle")}</span>` : `<span class="mark hand">${ic("radio_button_unchecked")}</span>`;
 let steamTab = "listing", playTab = "listing", epicTab = "listing";
-const otherTabs = {gog: "listing", microsoft: "listing"};
-const STORE_NAMES = {steam: "Steam", epic: "Epic Games Store", gog: "GOG", microsoft: "Microsoft Store", play: "Google Play"};
+const otherTabs = {gog: "listing", microsoft: "listing", samsung: "builds"};
+const STORE_NAMES = {steam: "Steam", epic: "Epic Games Store", gog: "GOG", microsoft: "Microsoft Store", play: "Google Play", samsung: "Galaxy Store"};
 const setTab = (store, tab) => { if (store === "play") playTab = tab; else if (store === "epic") epicTab = tab; else if (store in otherTabs) otherTabs[store] = tab; else steamTab = tab; };
 let stepFocus = {store: "", index: -1};
 // Progress for a store page header: bar, count (opens all steps), next open step, and arrows through the open steps.
@@ -185,7 +186,8 @@ async function goToStep(store, index) {
   document.querySelector(`[data-step="${index}"]`)?.scrollIntoView({block: "center", behavior: "smooth"});
 }
 const levelOf = (done, total) => done >= total ? "done" : done > 0 ? "part" : "none";
-const storeIcon = id => `<i class="si ${id}"></i>`;
+// Official marks where a readable one exists; Samsung only has a wordmark, so the Galaxy Store uses a standard symbol.
+const storeIcon = id => id === "samsung" ? `<span class="ms" aria-hidden="true" style="margin-right:7px">storefront</span>` : `<i class="si ${id}"></i>`;
 const fieldInput = (id, f, value, disabled) => f.multiline
   ? `<textarea id="${id}" class="in" rows="4" ${disabled ? "disabled" : ""}>${esc(value)}</textarea>`
   : `<input id="${id}" class="in" ${f.number ? 'type="number" min="1"' : ""} value="${esc(value)}" ${disabled ? "disabled" : ""}>`;
@@ -325,6 +327,26 @@ const views = {
         <button class="btn primary" data-act="ms-publish" id="microsoft-upload" ${k.ready ? "" : "disabled"}>${ic("publish")}Publish update</button></div>
       <p class="note">Package MSIX wraps the Windows build as version ${esc(d.msixVersion)} (major.minor.build.0) with the identity from Keys &amp; accounts; the Store signs it. Publish update runs msstore publish with the newest MSIX in Build/Microsoft. Microsoft's CLI updates free products only for now.</p>`);
   },
+  async samsung() {
+    const [g, r] = await Promise.all([api("/api/samsung"), api("/api/release")]);
+    const tab = otherTabs.samsung, k = g.key, a = g.aab;
+    let body = "";
+    if (tab === "listing") {
+      body = `${releaseBox(r, "samsung")}${artBox("samsung", g)}<div class="box"><p class="note">The store listing, screenshots, age rating and countries are kept in Seller Portal; What's new above goes with each update.</p></div>`;
+    } else if (tab === "builds") {
+      const rows = g.history.filter(h => h.kind === "play-aab");
+      body = `<div class="box" id="samsung-builds">${buildTable("samsung", rows, [["galaxy", "Galaxy Store", h => h.galaxy ? chip("ok", h.galaxy) : chip("hand", "not submitted")]])}
+        <p>Uses the newest release AAB from Google Play: ${a.exists ? `<span class="mono">${esc(a.path.split(/[\\/]/).pop())}</span>` : chip("hand", "none yet")}</p>
+        <div class="actions"><button class="btn" data-act="go" data-go="play/builds/play-builds">${ic("build")}Build release AAB</button>
+          <button class="btn" data-act="samsung-check" ${k.ready ? "" : "disabled"}>${ic("check")}Check Galaxy Store</button>
+          <button class="btn primary" data-act="samsung-submit" id="samsung-upload" ${k.ready && a.exists ? "" : "disabled"}>${ic("publish")}Submit update</button></div>
+        <p class="note">No Samsung device is needed; Samsung reviews the app on its own devices. Check Galaxy Store signs in and reads the app's status (changes nothing). Submit update uploads the AAB as a new binary with What's new and sends it to Samsung's review.</p></div>`;
+    } else {
+      body = stepsBox(g.steps, "samsung");
+    }
+    return `<div class="head"><div><h2>Galaxy Store</h2><p>Samsung's store for Galaxy phones, with the same release AAB as Google Play, submitted through the Galaxy Store Developer API.</p></div></div>${progressHead("samsung", g.steps)}
+      ${tabBar(tab, {listing: "Listing", builds: "Builds", steps: "Setup steps"})}<div id="jobs"></div>${body}`;
+  },
   async keys() {
     const k = await api("/api/keys");
     // Arriving from a store's setup steps: keep that store's progress and arrows here.
@@ -363,6 +385,10 @@ const views = {
         <tr id="play-account"><td>Service account</td><td class="mono">${esc(k.play.account.env)}${k.play.account.email ? " · " + esc(k.play.account.email) : ""}</td><td>${k.play.account.found ? chip("ok", "found") : k.play.account.set ? chip("bad", "not readable") : chip("bad", "not set")}</td></tr></table>
         <div class="actions"><button class="btn" data-act="play-key" ${k.play.key.ready || !k.play.key.package ? "disabled" : ""}>${ic("key")}Create upload key</button></div>
         <p class="note">${k.play.key.package ? "Create upload key opens a console window: keytool creates the keystore and cmdkey stores the password; both ask for it there. Back up the keystore outside every repository; Play App Signing keeps the release key." : "Set android.package in Store/store.json first."}</p></div>
+      <div class="box"><h3>Galaxy Store</h3>
+        ${idField("samsung", "contentId", "Content ID", "12-digit app ID from Seller Portal, after the app is registered there.")}${idField("samsung", "serviceAccountId", "Service account ID", "Seller Portal > Assistance > API Service.")}${idSave("samsung")}
+        <table><tr id="samsung-key"><td>Service account key</td><td class="mono">${esc(k.samsung.env)}</td><td>${k.samsung.found ? chip("ok", "found") : k.samsung.set ? chip("bad", "not readable") : chip("bad", "not set")}</td></tr></table>
+        <p class="note">Save the private key from Seller Portal outside every repository and set ${esc(k.samsung.env)} to its path; the desk signs the token request with it and never shows it.</p></div>
       <div class="box"><h3>Unity</h3><p>Unity CLI ${k.unityCli ? chip("ok", "found") : chip("bad", "missing")}</p></div>`;
   },
   async log() {
@@ -552,7 +578,7 @@ document.addEventListener("click", async e => {
     if (act === "save-user") { await api("/api/keys/steam-user", {user: $("#steam-user").value}); toast("Saved"); return render(); }
     if (act === "copy-log") return copy($("#logtext").textContent);
     if (act === "run-win") { const r = await api("/api/run/windows", {kind: t.dataset.kind || "steam-windows"}); return toast(r.message); }
-    const jobs = {"push-unity": ["/api/unity/apply", {}], "build": ["/api/build", {kind: t.dataset.kind}], "install": ["/api/play/install", {}], "capture": ["/api/shots/capture", {only: t.dataset.only || ""}], "icons": ["/api/art/icons", {}], "capsules": ["/api/art/capsules", {}], "play-preview": ["/api/play/publish", {preview: true}], "play-check": ["/api/play/check", {}], "epic-check": ["/api/epic/check", {}], "gog-upload": ["/api/gog/upload", {}], "ms-package": ["/api/microsoft/package", {}], "ms-publish": ["/api/microsoft/publish", {}], "epic-upload": ["/api/epic/upload", {}], "play-publish": ["/api/play/publish", {preview: false}], "upload-preview": ["/api/steam/upload", {preview: true}], "upload": ["/api/steam/upload", {preview: false}]};
+    const jobs = {"push-unity": ["/api/unity/apply", {}], "build": ["/api/build", {kind: t.dataset.kind}], "install": ["/api/play/install", {}], "capture": ["/api/shots/capture", {only: t.dataset.only || ""}], "icons": ["/api/art/icons", {}], "capsules": ["/api/art/capsules", {}], "play-preview": ["/api/play/publish", {preview: true}], "play-check": ["/api/play/check", {}], "epic-check": ["/api/epic/check", {}], "gog-upload": ["/api/gog/upload", {}], "samsung-check": ["/api/samsung/check", {}], "samsung-submit": ["/api/samsung/submit", {}], "ms-package": ["/api/microsoft/package", {}], "ms-publish": ["/api/microsoft/publish", {}], "epic-upload": ["/api/epic/upload", {}], "play-publish": ["/api/play/publish", {preview: false}], "upload-preview": ["/api/steam/upload", {preview: true}], "upload": ["/api/steam/upload", {preview: false}]};
     if (jobs[act]) { await api(...jobs[act]); toast("Started; progress shows under Runs"); updateJobs(); }
   } catch (err) { toast(err.message); }
 });

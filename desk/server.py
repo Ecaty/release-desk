@@ -9,7 +9,7 @@ import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from . import art, builds, epic, gog, jobs, microsoft, play, release, shots, steam, unity
+from . import art, builds, epic, gog, jobs, microsoft, play, release, samsung, shots, steam, unity
 from .project import Project, load_config, save_config
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -52,7 +52,7 @@ def overview():
 
 
 IDS = {"steam": ("appId", "depot", "branch"), "epic": ("organizationId", "productId", "artifactId", "clientId"), "gog": ("productId", "branch"),
-       "microsoft": ("productId", "identityName", "publisher", "publisherName"), "play": ("package",)}
+       "microsoft": ("productId", "identityName", "publisher", "publisherName"), "play": ("package",), "samsung": ("contentId", "serviceAccountId")}
 
 
 def save_ids(p, data):
@@ -78,7 +78,8 @@ def ids(p):
     return {"steam": {"appId": steam.get("appId", ""), "depot": (steam.get("depots", {}) or {}).get("windows", ""), "branch": steam.get("branch", "beta")},
             "epic": {k: epic_ids.get(k, "") for k in IDS["epic"]},
             "gog": {k: (store.get("gog", {}) or {}).get(k, "") for k in IDS["gog"]},
-            "microsoft": {k: (store.get("microsoft", {}) or {}).get(k, "") for k in IDS["microsoft"]}, "play": {"package": (store.get("android", {}) or {}).get("package", "")}}
+            "microsoft": {k: (store.get("microsoft", {}) or {}).get(k, "") for k in IDS["microsoft"]},
+            "samsung": {k: str((store.get("samsung", {}) or {}).get(k, "")) for k in IDS["samsung"]}, "play": {"package": (store.get("android", {}) or {}).get("package", "")}}
 
 
 def progress(p):
@@ -86,7 +87,7 @@ def progress(p):
     out = []
     for sid, name, steps in (("steam", "Steam", steam.status(p, load_config())["steps"]), ("epic", "Epic Games Store", epic.status(p)["steps"]),
                              ("gog", "GOG", gog.status(p)["steps"]), ("microsoft", "Microsoft Store", microsoft.status(p)["steps"]),
-                             ("play", "Google Play", play.status(p)["steps"])):
+                             ("play", "Google Play", play.status(p)["steps"]), ("samsung", "Galaxy Store", samsung.status(p)["steps"])):
         open_steps = [x for x in steps if x["state"] != "ok"]
         out.append({"id": sid, "name": name, "done": len(steps) - len(open_steps), "total": len(steps),
                     "next": open_steps[0]["title"] if open_steps else "Ready"})
@@ -118,6 +119,7 @@ def run_job(name, fn):
         p.log(f"{name}: {'ok' if state == 'done' else state} ({minutes} min)", str(message).splitlines()[:12]
               + (play.summary_lines(p) if "Play" in name or "AAB" in name else epic.summary_lines(p) if "Epic" in name
                  else gog.summary_lines(p) if "GOG" in name else microsoft.summary_lines(p) if "Microsoft" in name
+                 else samsung.summary_lines(p) if "Galaxy" in name
                  else steam.summary_lines(p, load_config())))
 
     threading.Thread(target=work, daemon=True).start()
@@ -198,9 +200,11 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(200, {"steamcmd": steam.steamcmd_state(config), "unityCli": bool(unity.cli()),
                                        "play": {"key": play.key_state(project()), "account": play.playapi.account_state()},
                                        "epic": epic.key_state(project()), "gog": gog.key_state(project()),
-                                       "microsoft": microsoft.key_state(project()), "ids": ids(project())})
+                                       "microsoft": microsoft.key_state(project()), "samsung": samsung.key_state(project()), "ids": ids(project())})
             if self.path == "/api/shots":
                 return self.send(200, {"shots": shots.shot_list(project())})
+            if self.path == "/api/samsung":
+                return self.send(200, samsung.status(project()))
             if self.path == "/api/gog":
                 return self.send(200, gog.status(project()))
             if self.path == "/api/microsoft":
@@ -264,6 +268,10 @@ class Handler(BaseHTTPRequestHandler):
                 from . import storekit
                 storekit.save_listing(project(), "gog" if module is gog else "microsoft", module.RULES, data)
                 return self.send(200, {"ok": True})
+            if self.path == "/api/samsung/check":
+                return self.send(200, run_job("Galaxy Store: check", lambda: samsung.check(project())))
+            if self.path == "/api/samsung/submit":
+                return self.send(200, run_job("Galaxy Store: submit update", lambda: samsung.submit(project())))
             if self.path == "/api/gog/upload":
                 return self.send(200, run_job("GOG: upload", lambda: gog.upload(project())))
             if self.path == "/api/microsoft/package":
@@ -305,7 +313,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(200, {"ok": True})
             if self.path == "/api/refresh":
                 text = project().log("Refresh", steam.summary_lines(project(), load_config()) + epic.summary_lines(project()) + gog.summary_lines(project())
-                                    + microsoft.summary_lines(project()) + play.summary_lines(project()))
+                                    + microsoft.summary_lines(project()) + play.summary_lines(project()) + samsung.summary_lines(project()))
                 return self.send(200, {"text": text})
             if self.path == "/api/unity/apply":
                 return self.send(200, run_job("Push to Unity", apply_to_unity))

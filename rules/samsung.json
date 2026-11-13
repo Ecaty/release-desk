@@ -1,0 +1,12 @@
+{
+  "store": "samsung",
+  "checked": "2026-11-13",
+  "sources": [
+    "https://developer.samsung.com/galaxy-store/galaxy-store-developer-api/content-publish-api/user-guide-submit-an-update.html",
+    "https://developer.samsung.com/galaxy-store/galaxy-store-developer-api/create-an-access-token.html",
+    "https://developer.samsung.com/galaxy-games/faq.html"
+  ],
+  "art": [
+    { "file": "icon", "label": "App icon", "width": 512, "height": 512, "required": true, "formats": ["png"], "make": "icon", "note": "Store listing images and screenshots are managed in Seller Portal" }
+  ]
+}
