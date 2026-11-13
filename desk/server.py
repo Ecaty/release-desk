@@ -138,7 +138,11 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(200, {**release.status(project()), "kinds": {k: v["label"] for k, v in builds.KINDS.items()},
                                        "buildStore": {k: release.BUILD_STORE[v["store"]] for k, v in builds.KINDS.items()}})
             if self.path == "/api/start":
-                return self.send(200, {"project": str(STATE["project"].root) if STATE["project"] else "", "recent": load_config().get("recent", [])})
+                p = STATE["project"]
+                title = ""
+                if p:
+                    title = release.shared(p)["name"] or p.unity_settings()["productName"] or p.root.name
+                return self.send(200, {"project": str(p.root) if p else "", "title": title, "recent": load_config().get("recent", [])})
             if self.path == "/api/overview":
                 return self.send(200, overview())
             if self.path == "/api/steam":
