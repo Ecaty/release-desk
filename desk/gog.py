@@ -66,11 +66,11 @@ def status(project):
     portal = "https://devportal.gog.com/"
     steps = [
         {"title": "Submit the game to GOG", "state": "ok" if settings(project)["productId"] else "todo", "kind": "hand",
-         "link": "https://partners.gog.com/", "go": "keys//ids-gog-productId",
+         "link": "https://partners.gog.com/", "go": "gog/keys/ids-gog-productId",
          "detail": "GOG curates its catalogue: submit the game for consideration. After signing, put the product ID in Keys & accounts."},
-        {"title": "Pipeline Builder", "state": "ok" if key["installed"] else "todo", "kind": "hand", "link": portal, "go": "keys//gog-tool",
+        {"title": "Pipeline Builder", "state": "ok" if key["installed"] else "todo", "kind": "hand", "link": portal, "go": "gog/keys/gog-tool",
          "detail": f"Download GOG's Pipeline Builder from the Developer Portal and unzip it into {key['toolFolder']}."},
-        {"title": "Build Creator project", "state": "ok" if not key["project"]["problem"] else "todo", "kind": "hand", "go": "keys//gog-project",
+        {"title": "Build Creator project", "state": "ok" if not key["project"]["problem"] else "todo", "kind": "hand", "go": "gog/keys/gog-project",
          "detail": f"Create the project once in GOG's Build Creator with the depot folder {BUILD_FOLDER} (inside the Unity project) and save it as {key['project']['path']}."},
         {"title": "Store page text", "state": "ok" if not any(f["problem"] for f in fields) else "todo", "kind": "copy", "go": "gog/listing/gog-text",
          "detail": "Description, system requirements and legal lines go to GOG with the assets."},

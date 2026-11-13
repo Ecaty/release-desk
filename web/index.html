@@ -71,6 +71,10 @@ th.sort{cursor:pointer;user-select:none}th.sort:hover{color:var(--ink)}th.sort[d
 .tabs{display:flex;gap:4px;border-bottom:1px solid var(--line)}
 .tabs button{border:none;background:none;padding:8px 12px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
 .tabs button[aria-selected=true]{color:var(--ink);border-bottom-color:var(--accent);font-weight:600}
+.tabs.sub{border:none;gap:6px;margin:12px 0 0;flex-wrap:wrap}.tabs.sub button{border:1px solid var(--line);border-radius:999px;padding:4px 12px;margin:0}
+.tabs.sub button[aria-selected=true]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent)}
+.tabs .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--bad);margin-left:6px;vertical-align:middle}
+.pane>.box:only-child>h3:first-child{display:none}
 .log{font-family:var(--f-mono);font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;max-height:420px;overflow:auto;margin:0}
 .note{font-size:12px;color:var(--muted)}
 .job{font-size:13px}
@@ -126,9 +130,6 @@ nav small.lvl{font-weight:600;padding:1px 7px;border-radius:999px}.lvl.done{back
     <a href="#microsoft"><span><i class="si microsoft"></i>Microsoft Store</span> <small id="nav-microsoft"></small></a>
     <a href="#play"><span><i class="si play"></i>Google Play</span> <small id="nav-play"></small></a>
     <a href="#samsung"><span><span class="ms" aria-hidden="true">storefront</span>Galaxy Store</span> <small id="nav-samsung"></small></a>
-    <div class="sep"></div>
-    <a href="#keys"><span><span class="ms" aria-hidden="true">key</span>Keys &amp; accounts</span></a>
-    <a href="#log"><span><span class="ms" aria-hidden="true">receipt_long</span>Log</span></a>
   </nav>
   <main id="main"></main>
 </div>
@@ -150,10 +151,26 @@ const chipIcon = {ok: "check", bad: "error", warn: "warning", auto: "bolt"};
 const chip = (state, label) => `<span class="chip ${state}">${chipIcon[state] ? ic(chipIcon[state]) : ""}${esc(label)}</span>`;
 const kindChip = k => ({hand: `<span class="chip hand">${ic("front_hand")}by hand</span>`, copy: `<span class="chip hand">${ic("content_copy")}copy</span>`, desk: chip("auto", "desk")})[k] || "";
 const mark = s => s === "ok" ? `<span class="mark ok">${ic("check_circle")}</span>` : `<span class="mark hand">${ic("radio_button_unchecked")}</span>`;
-let steamTab = "listing", playTab = "listing", epicTab = "listing";
-const otherTabs = {itch: "listing", gog: "listing", microsoft: "listing", samsung: "builds"};
+// Every page keeps its sections as tabs, and a tab's sections as subtabs. All panes render; one shows,
+// so switching keeps unsaved edits and goTo can open whichever panes hold its target.
+const tabState = {};
+const setTab = (key, id) => { tabState[key] = id; };
+function tabs(key, panes, sub = false) {
+  panes = panes.filter(p => p && p[2]);
+  if (!panes.length) return "";
+  if (sub && panes.length === 1) return panes[0][2];
+  if (!panes.some(p => p[0] === tabState[key])) tabState[key] = panes[0][0];
+  const cur = tabState[key];
+  const flag = html => /data-problem|chip bad/.test(html) ? `<i class="dot" title="Something to fix here"></i>` : "";
+  return `<div class="tabs${sub ? " sub" : ""}" role="tablist" data-tabkey="${key}">${panes.map(([id, label, html]) => `<button role="tab" aria-selected="${id === cur}" data-tab="${id}">${label}${flag(html)}</button>`).join("")}</div>`
+    + panes.map(([id, , html]) => `<div class="pane" data-owner="${key}" data-id="${id}" ${id === cur ? "" : "hidden"}>${html}</div>`).join("");
+}
+function selectTab(key, id) {
+  tabState[key] = id;
+  document.querySelectorAll(`[data-tabkey="${key}"] > button`).forEach(b => b.setAttribute("aria-selected", b.dataset.tab === id));
+  document.querySelectorAll(`.pane[data-owner="${key}"]`).forEach(p => p.hidden = p.dataset.id !== id);
+}
 const STORE_NAMES = {steam: "Steam", itch: "itch.io", epic: "Epic Games Store", gog: "GOG", microsoft: "Microsoft Store", play: "Google Play", samsung: "Galaxy Store"};
-const setTab = (store, tab) => { if (store === "play") playTab = tab; else if (store === "epic") epicTab = tab; else if (store in otherTabs) otherTabs[store] = tab; else steamTab = tab; };
 let stepFocus = {store: "", index: -1};
 // Progress for a store page header: bar, count (opens all steps), next open step, and arrows through the open steps.
 function progressHead(store, steps, label = "") {
@@ -173,6 +190,7 @@ async function goTo(target) {
   await render();
   const el = document.getElementById(anchor);
   if (!el) return;
+  for (let p = el.closest(".pane"); p; p = p.parentElement.closest(".pane")) selectTab(p.dataset.owner, p.dataset.id);
   el.scrollIntoView({block: "center", behavior: "smooth"});
   const field = el.matches("input,textarea,select") ? el : el.querySelector("[data-problem]");
   const mark = el.closest(".field") || el.closest("tr") || el;
@@ -231,93 +249,78 @@ const views = {
       ${start.recent.length ? `<div class="recent"><h3 class="note">Recent</h3>${start.recent.map(p => `<button class="copy" data-recent="${esc(p)}">${ic("folder")}${esc(p)}</button>`).join("")}</div>` : ""}</div>`;
   },
   async overview() {
-    const [o, r] = await Promise.all([api("/api/overview"), api("/api/release")]);
+    const [o, r, l, k] = await Promise.all([api("/api/overview"), api("/api/release"), api("/api/log"), api("/api/keys")]);
     const rows = o.sync.map(r => `<tr><td>${esc(r.label)}</td><td class="mono">${esc(r.desk)}</td><td class="mono">${esc(r.unity)}</td><td>${r.same ? chip("ok", "same") : chip("warn", "differs")}</td></tr>`).join("");
-    return `<div class="head"><div><h2>Overview</h2><p>Unity ${esc(o.editor)} · Store data ${o.hasStore ? "found" : "missing (add a Store/ folder with store.json)"}</p></div>
-</div>
-      ${releaseBox(r)}${perStore(r)}${buildAllBox(r)}
-      <div class="box"><h3>Synced to Unity</h3><table><tr><th>Setting</th><th>Desk</th><th>Unity</th><th></th></tr>${rows}</table>
-        <p class="note">Push to Unity writes these into PlayerSettings in the open Editor.</p><div class="actions"><button class="btn" data-act="push-unity">${ic("sync")}Push to Unity</button></div></div>
-      <div id="jobs"></div>`;
+    const unity = `<div class="box"><h3>Synced to Unity</h3><p>Unity CLI ${k.unityCli ? chip("ok", "found") : chip("bad", "missing")}</p><table><tr><th>Setting</th><th>Desk</th><th>Unity</th><th></th></tr>${rows}</table>
+        <p class="note">Push to Unity writes these into PlayerSettings in the open Editor.</p><div class="actions"><button class="btn" data-act="push-unity">${ic("sync")}Push to Unity</button></div></div>`;
+    const tools = Object.entries(l.tools).filter(([, t]) => t).map(([n, t]) => [n, esc(n), `<div class="box"><h3>${esc(n)}</h3><pre class="log">${esc(t)}</pre></div>`]);
+    const history = l.history.slice(1).map(h => `<pre class="log" style="margin-bottom:8px">${esc(h)}</pre>`).join("") || `<p class="note">No earlier runs.</p>`;
+    const log = tabs("overview/log", [
+      ["latest", "Latest run", `<div class="box"><h3>Latest run</h3><p class="note sub">Store/Logs/latest.txt, the summary to read first; history.txt keeps every run.</p><pre class="log" id="logtext">${esc(l.text || "No runs yet.")}</pre>
+        <div class="actions"><button class="btn" data-act="copy-log">${ic("content_copy")}Copy</button></div></div>`],
+      ...tools,
+      ["earlier", "Earlier runs", `<div class="box"><h3>Earlier runs</h3>${history}</div>`]], true);
+    return `<div class="head"><div><h2>Overview</h2><p>Unity ${esc(o.editor)} · Store data ${o.hasStore ? "found" : "missing (add a Store/ folder with store.json)"}</p></div></div>
+      <div id="jobs"></div>
+      ${tabs("overview", [
+        ["release", "Release", tabs("overview/release", [["shared", "Shared", releaseBox(r)], ["stores", "Per store", perStore(r)]], true)],
+        ["build", "Build all", buildAllBox(r)],
+        ["unity", "Unity", unity],
+        ["log", "Log", log]])}`;
   },
   async steam() {
-    const [s, r] = await Promise.all([api("/api/steam"), api("/api/release")]);
-    const tabs = ["listing", "builds", "steps"].map(t => `<button role="tab" aria-selected="${t === steamTab}" data-tab="${t}">${{listing: "Listing", builds: "Builds", steps: "Setup steps"}[t]}</button>`).join("");
-    let body = "";
-    if (steamTab === "listing") {
-      const fields = s.fields.map(f => `<div class="field"><label for="st-${f.key}">${esc(f.label)}</label>
-        ${f.multiline ? `<textarea id="st-${f.key}" class="in" rows="5" ${f.problem ? "data-problem" : ""} ${f.readonly ? "disabled" : ""}>${esc(f.value)}</textarea>` : `<input id="st-${f.key}" class="in" value="${esc(f.value)}" ${f.readonly ? "disabled" : ""} ${f.problem ? "data-problem" : ""}>`}
-        <div><span class="meta">${f.value.length}${f.max ? " / " + f.max : ""}</span> <button class="copy" data-copyfrom="st-${f.key}">${ic("content_copy")}Copy</button>${f.problem ? "<br>" + chip("bad", f.problem) : ""}</div></div>`).join("");
-      const shots = s.screenshots.items.map(x => `${esc(x.file)} ${x.ok ? "" : "(" + esc(x.size) + ", not usable)"}`).join(", ") || "none yet";
-      body = `${releaseBox(r, "steam")}<div class="box" id="steam-text"><h3>Text</h3>${fields}<div class="actions"><button class="btn primary" data-act="save-steam">${ic("save")}Save</button></div></div>
-        ${artBox("steam", s)}
-        ${await shotsBox("steam", s.screenshots)}`;
-    } else if (steamTab === "builds") {
-      const b = s.build;
-      body = `<div class="box" id="steam-builds">${buildTable("steam", b.history, [["uploaded", "Steam", h => h.uploaded ? chip("ok", h.uploaded) : h.exists ? chip("hand", "not uploaded") : chip("hand", "replaced")]])}
-        <p class="note mono">${esc(b.folder)}</p>
-        <div class="actions"><button class="btn" data-act="build" data-kind="steam-windows">${ic("build")}Build Windows</button><button class="btn" data-act="run-win" ${b.exists ? "" : "disabled"}>${ic("play_arrow")}Run</button><button class="btn" data-act="upload-preview">${ic("visibility")}Upload preview (nothing sent)</button><button class="btn primary" data-act="upload" id="steam-upload">${ic("cloud_upload")}Upload to ${esc(s.branch)}</button></div>
-        <p class="note">Unity opens on its own if it is closed. Uploads use the SteamCMD login cached by your one-time terminal login; the desk never sees the password.</p></div>`;
-    } else {
-      body = stepsBox(s.steps, "steam");
-    }
-    return `<div class="head"><div><h2>Steam</h2><p>Builds upload through SteamCMD. The store page has no public API, so copy each value into Steamworks.</p></div>
-</div>${progressHead("steam", s.steps)}
-      <div class="tabs" role="tablist">${tabs}</div><div id="jobs"></div>${body}`;
+    const [s, r, k] = await Promise.all([api("/api/steam"), api("/api/release"), api("/api/keys")]);
+    const fields = s.fields.map(f => `<div class="field"><label for="st-${f.key}">${esc(f.label)}</label>
+      ${f.multiline ? `<textarea id="st-${f.key}" class="in" rows="5" ${f.problem ? "data-problem" : ""} ${f.readonly ? "disabled" : ""}>${esc(f.value)}</textarea>` : `<input id="st-${f.key}" class="in" value="${esc(f.value)}" ${f.readonly ? "disabled" : ""} ${f.problem ? "data-problem" : ""}>`}
+      <div><span class="meta">${f.value.length}${f.max ? " / " + f.max : ""}</span> <button class="copy" data-copyfrom="st-${f.key}">${ic("content_copy")}Copy</button>${f.problem ? "<br>" + chip("bad", f.problem) : ""}</div></div>`).join("");
+    const b = s.build;
+    const builds = `<div class="box" id="steam-builds">${buildTable("steam", b.history, [["uploaded", "Steam", h => h.uploaded ? chip("ok", h.uploaded) : h.exists ? chip("hand", "not uploaded") : chip("hand", "replaced")]])}
+      <p class="note mono">${esc(b.folder)}</p>
+      <div class="actions"><button class="btn" data-act="build" data-kind="steam-windows">${ic("build")}Build Windows</button><button class="btn" data-act="run-win" ${b.exists ? "" : "disabled"}>${ic("play_arrow")}Run</button><button class="btn" data-act="upload-preview">${ic("visibility")}Upload preview (nothing sent)</button><button class="btn primary" data-act="upload" id="steam-upload">${ic("cloud_upload")}Upload to ${esc(s.branch)}</button></div>
+      <p class="note">Unity opens on its own if it is closed. Uploads use the SteamCMD login cached by your one-time terminal login; the desk never sees the password.</p></div>`;
+    return storePage("steam", "Steam", "Builds upload through SteamCMD. The store page has no public API, so copy each value into Steamworks.", s.steps, [
+      listingTabs("steam", r, `<div class="box" id="steam-text"><h3>Text</h3>${fields}<div class="actions"><button class="btn primary" data-act="save-steam">${ic("save")}Save</button></div></div>`, artBox("steam", s), await shotsBox("steam", s.screenshots)),
+      ["builds", "Builds", builds], ["keys", "Keys &amp; accounts", keysBox("steam", k)], ["steps", "Setup steps", stepsBox(s.steps, "steam")]]);
   },
   async epic() {
-    const [e, r] = await Promise.all([api("/api/epic"), api("/api/release")]);
-    let body = "";
-    if (epicTab === "listing") {
-      const fields = e.fields.map(f => `<div class="field"><label for="ep-${f.key}">${esc(f.label)}</label>
-        <div>${f.multiline ? `<textarea id="${f.readonly ? "ep-ro-" : "ep-"}${f.key}" class="in" rows="8" ${f.problem && !f.readonly ? "data-problem" : ""} ${f.readonly ? "disabled" : ""}>${esc(f.value)}</textarea>` : `<input id="${f.readonly ? "ep-ro-" : "ep-"}${f.key}" class="in" value="${esc(f.value)}" ${f.problem && !f.readonly ? "data-problem" : ""} ${f.readonly ? "disabled" : ""}>`}${f.note ? `<div class="note">${esc(f.note)}</div>` : ""}</div>
-        <div><span class="meta">${f.value.length}${f.max ? " / " + f.max : ""}</span> <button class="copy" data-copyfrom="${f.readonly ? "ep-ro-" : "ep-"}${f.key}">${ic("content_copy")}Copy</button>${f.problem ? "<br>" + chip("bad", f.problem) : ""}</div></div>`).join("");
-      body = `${releaseBox(r, "epic")}<div class="box" id="epic-text"><h3>Text</h3>${fields}<div class="actions"><button class="btn primary" data-act="save-epic">${ic("save")}Save</button></div>
-        <p class="note">Epic has no public API for the store page; copy each value into the Developer Portal.</p></div>
-        ${artBox("epic", e)}${await shotsBox("epic", e.screenshots)}`;
-    } else if (epicTab === "builds") {
-      const b = e.build, k = e.key;
-      body = `<div class="box" id="epic-builds">${buildTable("epic", b.history, [["uploaded", "Epic", h => h.uploaded ? chip("ok", h.uploaded) : h.exists ? chip("hand", "not uploaded") : chip("hand", "replaced")]])}
-        <p class="note mono">${esc(b.folder)}</p>
-        <div class="actions"><button class="btn" data-act="build" data-kind="epic-windows">${ic("build")}Build Windows</button><button class="btn" data-act="run-win" data-kind="epic-windows" ${b.exists ? "" : "disabled"}>${ic("play_arrow")}Run</button>
-          <button class="btn" data-act="epic-check" ${k.ready ? "" : "disabled"}>${ic("check")}Check connection</button><button class="btn primary" data-act="epic-upload" id="epic-upload" ${k.ready && b.exists ? "" : "disabled"}>${ic("cloud_upload")}Upload to Dev sandbox</button></div>
-        <p class="note">Unity opens on its own if it is closed. Check connection lists the binaries Epic has (changes nothing). Uploads use Epic's BuildPatch Tool with the client secret from Credential Manager; the desk never sees it. Attach the uploaded binary to the Windows platform in the Developer Portal.</p></div>`;
-    } else {
-      body = stepsBox(e.steps, "epic");
-    }
-    return `<div class="head"><div><h2>Epic Games Store</h2><p>Builds upload through Epic's BuildPatch Tool. The store page has no public API, so copy each value into the Developer Portal.</p></div></div>${progressHead("epic", e.steps)}
-      ${tabBar(epicTab, {listing: "Listing", builds: "Builds", steps: "Setup steps"})}<div id="jobs"></div>${body}`;
+    const [e, r, k] = await Promise.all([api("/api/epic"), api("/api/release"), api("/api/keys")]);
+    const fields = e.fields.map(f => `<div class="field"><label for="ep-${f.key}">${esc(f.label)}</label>
+      <div>${f.multiline ? `<textarea id="${f.readonly ? "ep-ro-" : "ep-"}${f.key}" class="in" rows="8" ${f.problem && !f.readonly ? "data-problem" : ""} ${f.readonly ? "disabled" : ""}>${esc(f.value)}</textarea>` : `<input id="${f.readonly ? "ep-ro-" : "ep-"}${f.key}" class="in" value="${esc(f.value)}" ${f.problem && !f.readonly ? "data-problem" : ""} ${f.readonly ? "disabled" : ""}>`}${f.note ? `<div class="note">${esc(f.note)}</div>` : ""}</div>
+      <div><span class="meta">${f.value.length}${f.max ? " / " + f.max : ""}</span> <button class="copy" data-copyfrom="${f.readonly ? "ep-ro-" : "ep-"}${f.key}">${ic("content_copy")}Copy</button>${f.problem ? "<br>" + chip("bad", f.problem) : ""}</div></div>`).join("");
+    const b = e.build, ek = e.key;
+    const builds = `<div class="box" id="epic-builds">${buildTable("epic", b.history, [["uploaded", "Epic", h => h.uploaded ? chip("ok", h.uploaded) : h.exists ? chip("hand", "not uploaded") : chip("hand", "replaced")]])}
+      <p class="note mono">${esc(b.folder)}</p>
+      <div class="actions"><button class="btn" data-act="build" data-kind="epic-windows">${ic("build")}Build Windows</button><button class="btn" data-act="run-win" data-kind="epic-windows" ${b.exists ? "" : "disabled"}>${ic("play_arrow")}Run</button>
+        <button class="btn" data-act="epic-check" ${ek.ready ? "" : "disabled"}>${ic("check")}Check connection</button><button class="btn primary" data-act="epic-upload" id="epic-upload" ${ek.ready && b.exists ? "" : "disabled"}>${ic("cloud_upload")}Upload to Dev sandbox</button></div>
+      <p class="note">Unity opens on its own if it is closed. Check connection lists the binaries Epic has (changes nothing). Uploads use Epic's BuildPatch Tool with the client secret from Credential Manager; the desk never sees it. Attach the uploaded binary to the Windows platform in the Developer Portal.</p></div>`;
+    return storePage("epic", "Epic Games Store", "Builds upload through Epic's BuildPatch Tool. The store page has no public API, so copy each value into the Developer Portal.", e.steps, [
+      listingTabs("epic", r, `<div class="box" id="epic-text"><h3>Text</h3>${fields}<div class="actions"><button class="btn primary" data-act="save-epic">${ic("save")}Save</button></div>
+        <p class="note">Epic has no public API for the store page; copy each value into the Developer Portal.</p></div>`, artBox("epic", e), await shotsBox("epic", e.screenshots)),
+      ["builds", "Builds", builds], ["keys", "Keys &amp; accounts", keysBox("epic", k)], ["steps", "Setup steps", stepsBox(e.steps, "epic")]]);
   },
   async play() {
-    const [p, r] = await Promise.all([api("/api/play"), api("/api/release")]);
-    let body = "";
-    if (playTab === "listing") {
-      const fields = p.fields.map(f => `<div class="field"><label for="pl-${f.key}">${esc(f.label)}</label>
-        <div>${f.multiline ? `<textarea id="${f.readonly ? "pl-ro-" : "pl-"}${f.key}" class="in" rows="6" ${f.problem && !f.readonly ? "data-problem" : ""} ${f.readonly ? "disabled" : ""}>${esc(f.value)}</textarea>` : `<input id="${f.readonly ? "pl-ro-" : "pl-"}${f.key}" class="in" value="${esc(f.value)}" ${f.problem && !f.readonly ? "data-problem" : ""} ${f.readonly ? "disabled" : ""}>`}${f.note ? `<div class="note">${esc(f.note)}</div>` : ""}</div>
-        <div><span class="meta">${f.value.length}${f.max ? " / " + f.max : ""}</span>${f.problem ? "<br>" + chip("bad", f.problem) : ""}</div></div>`).join("");
-      body = `${releaseBox(r, "play")}<div class="box" id="play-text"><h3>Text</h3><p class="note sub">Language: ${esc(p.language)}</p>${fields}<div class="actions"><button class="btn primary" data-act="save-play">${ic("save")}Save</button></div>
-        <p class="note">Uploaded with each publish through the Play Developer API.</p></div>
-        ${artBox("play", p)}${await shotsBox("play", p.screenshots)}`;
-    } else if (playTab === "builds") {
-      const phones = p.phones.devices.length ? p.phones.devices.map(d => `${esc(d.model)} ${d.state === "device" ? chip("ok", "ready") : chip("warn", d.state)}`).join(", ") : chip("hand", "no phone connected");
-      const apk = p.builds[0], key = p.key, account = p.account;
-      body = `<div class="box" id="play-builds">${buildTable("play", p.history, [["kind", "Type", h => esc(h.kind === "play-aab" ? "Release AAB" : "Phone test APK")], ["file", "File", h => `<span class="mono">${esc(h.path.split(/[\\/]/).pop())}</span>${h.exists ? "" : " " + chip("hand", "deleted")}`], ["uploaded", "Play", h => h.kind !== "play-aab" ? "" : h.uploaded ? chip("ok", h.uploaded) : chip("hand", "not uploaded")]])}
-        <p>Phone: ${phones}</p>
-        <div class="actions"><button class="btn" data-act="build" data-kind="play-dev-apk">${ic("build")}Build phone test APK</button><button class="btn" data-act="install" ${apk.exists ? "" : "disabled"}>${ic("install_mobile")}Install on phone</button>
-          <button class="btn" data-act="build" data-kind="play-aab" ${key.ready ? "" : 'disabled title="Create the upload key first (Keys & accounts)"'}>${ic("build")}Build release AAB</button></div>
-        <p class="note">Unity opens on its own if it is closed. An Android build switches Unity to Android and back, so the first one takes long. The release AAB is signed with the upload key; Unity reads its password from Credential Manager.</p></div>
-        <div class="box" id="play-publish"><h3>Publish</h3>
-        <div class="field"><label for="play-track">Track</label><span class="select"><select id="play-track" class="in">${Object.entries(p.tracks).map(([k, v]) => `<option value="${k}" ${k === p.play.track ? "selected" : ""}>${esc(v)}</option>`).join("")}</select></span><span></span></div>
-        <div class="field"><label for="play-status">Release</label><div><span class="select"><select id="play-status" class="in">${Object.entries(p.statuses).map(([k, v]) => `<option value="${k}" ${k === p.play.status ? "selected" : ""}>${esc(v)}</option>`).join("")}</select></span><div class="note">Draft waits for your click in Play Console and is the only kind Play accepts until the app's first release is published.</div></div><button class="btn" data-act="save-play-settings">${ic("save")}Save</button></div>
-        <p>Uploads the newest release AAB with What's new as release notes, the listing text, icon, feature graphic and phone screenshots in one edit.</p>
-        <div class="actions"><button class="btn" data-act="play-check" ${account.found && p.key.package ? "" : "disabled"}>${ic("check")}Check Play</button><button class="btn" data-act="play-preview" ${p.aab.exists && account.found ? "" : "disabled"}>${ic("visibility")}Publish preview (validated, nothing changes)</button><button class="btn primary" data-act="play-publish" ${p.aab.exists && account.found ? "" : "disabled"}>${ic("publish")}Publish to ${esc(p.play.track)}</button></div>
-        <p class="note">${account.found ? `Service account ${esc(account.email)}.` : `Set ${esc(account.env)} to the service account JSON (Setup steps).`} Check Play lists what each track holds and the highest version code (changes nothing). After a publish the build number goes up by one for the next upload.</p></div>`;
-    } else {
-      body = stepsBox(p.steps, "play");
-    }
-    return `<div class="head"><div><h2>Google Play</h2><p>Builds, listing and art publish through the Play Developer API. The first upload and the questionnaires are done once in Play Console.</p></div>
-</div>${progressHead("play", p.steps)}
-      ${tabBar(playTab, {listing: "Listing", builds: "Builds", steps: "Setup steps"})}<div id="jobs"></div>${body}`;
+    const [p, r, k] = await Promise.all([api("/api/play"), api("/api/release"), api("/api/keys")]);
+    const fields = p.fields.map(f => `<div class="field"><label for="pl-${f.key}">${esc(f.label)}</label>
+      <div>${f.multiline ? `<textarea id="${f.readonly ? "pl-ro-" : "pl-"}${f.key}" class="in" rows="6" ${f.problem && !f.readonly ? "data-problem" : ""} ${f.readonly ? "disabled" : ""}>${esc(f.value)}</textarea>` : `<input id="${f.readonly ? "pl-ro-" : "pl-"}${f.key}" class="in" value="${esc(f.value)}" ${f.problem && !f.readonly ? "data-problem" : ""} ${f.readonly ? "disabled" : ""}>`}${f.note ? `<div class="note">${esc(f.note)}</div>` : ""}</div>
+      <div><span class="meta">${f.value.length}${f.max ? " / " + f.max : ""}</span>${f.problem ? "<br>" + chip("bad", f.problem) : ""}</div></div>`).join("");
+    const phones = p.phones.devices.length ? p.phones.devices.map(d => `${esc(d.model)} ${d.state === "device" ? chip("ok", "ready") : chip("warn", d.state)}`).join(", ") : chip("hand", "no phone connected");
+    const apk = p.builds[0], key = p.key, account = p.account;
+    const builds = `<div class="box" id="play-builds">${buildTable("play", p.history, [["kind", "Type", h => esc(h.kind === "play-aab" ? "Release AAB" : "Phone test APK")], ["file", "File", h => `<span class="mono">${esc(h.path.split(/[\\/]/).pop())}</span>${h.exists ? "" : " " + chip("hand", "deleted")}`], ["uploaded", "Play", h => h.kind !== "play-aab" ? "" : h.uploaded ? chip("ok", h.uploaded) : chip("hand", "not uploaded")]])}
+      <p>Phone: ${phones}</p>
+      <div class="actions"><button class="btn" data-act="build" data-kind="play-dev-apk">${ic("build")}Build phone test APK</button><button class="btn" data-act="install" ${apk.exists ? "" : "disabled"}>${ic("install_mobile")}Install on phone</button>
+        <button class="btn" data-act="build" data-kind="play-aab" ${key.ready ? "" : 'disabled title="Create the upload key first (Keys & accounts)"'}>${ic("build")}Build release AAB</button></div>
+      <p class="note">Unity opens on its own if it is closed. An Android build switches Unity to Android and back, so the first one takes long. The release AAB is signed with the upload key; Unity reads its password from Credential Manager.</p></div>`;
+    const publish = `<div class="box" id="play-publish"><h3>Publish</h3>
+      <div class="field"><label for="play-track">Track</label><span class="select"><select id="play-track" class="in">${Object.entries(p.tracks).map(([k, v]) => `<option value="${k}" ${k === p.play.track ? "selected" : ""}>${esc(v)}</option>`).join("")}</select></span><span></span></div>
+      <div class="field"><label for="play-status">Release</label><div><span class="select"><select id="play-status" class="in">${Object.entries(p.statuses).map(([k, v]) => `<option value="${k}" ${k === p.play.status ? "selected" : ""}>${esc(v)}</option>`).join("")}</select></span><div class="note">Draft waits for your click in Play Console and is the only kind Play accepts until the app's first release is published.</div></div><button class="btn" data-act="save-play-settings">${ic("save")}Save</button></div>
+      <p>Uploads the newest release AAB with What's new as release notes, the listing text, icon, feature graphic and phone screenshots in one edit.</p>
+      <div class="actions"><button class="btn" data-act="play-check" ${account.found && p.key.package ? "" : "disabled"}>${ic("check")}Check Play</button><button class="btn" data-act="play-preview" ${p.aab.exists && account.found ? "" : "disabled"}>${ic("visibility")}Publish preview (validated, nothing changes)</button><button class="btn primary" data-act="play-publish" ${p.aab.exists && account.found ? "" : "disabled"}>${ic("publish")}Publish to ${esc(p.play.track)}</button></div>
+      <p class="note">${account.found ? `Service account ${esc(account.email)}.` : `Set ${esc(account.env)} to the service account JSON (Keys &amp; accounts).`} Check Play lists what each track holds and the highest version code (changes nothing). After a publish the build number goes up by one for the next upload.</p></div>`;
+    return storePage("play", "Google Play", "Builds, listing and art publish through the Play Developer API. The first upload and the questionnaires are done once in Play Console.", p.steps, [
+      listingTabs("play", r, `<div class="box" id="play-text"><h3>Text</h3><p class="note sub">Language: ${esc(p.language)}</p>${fields}<div class="actions"><button class="btn primary" data-act="save-play">${ic("save")}Save</button></div>
+        <p class="note">Uploaded with each publish through the Play Developer API.</p></div>`, artBox("play", p), await shotsBox("play", p.screenshots)),
+      ["builds", "Builds", tabs("play/builds", [["builds", "Builds", builds], ["publish", "Publish", publish]], true)],
+      ["keys", "Keys &amp; accounts", keysBox("play", k)], ["steps", "Setup steps", stepsBox(p.steps, "play")]]);
   },
   async itch() {
     const d = await api("/api/itch"), b = d.build, k = d.key;
@@ -343,104 +346,81 @@ const views = {
       <p class="note">Package MSIX wraps the Windows build as version ${esc(d.msixVersion)} (major.minor.build.0) with the identity from Keys &amp; accounts; the Store signs it. Publish update runs msstore publish with the newest MSIX in Build/Microsoft. Microsoft's CLI updates free products only for now.</p>`);
   },
   async samsung() {
-    const [g, r] = await Promise.all([api("/api/samsung"), api("/api/release")]);
-    const tab = otherTabs.samsung, k = g.key, a = g.aab;
-    let body = "";
-    if (tab === "listing") {
-      body = `${releaseBox(r, "samsung")}${artBox("samsung", g)}<div class="box"><p class="note">The store listing, screenshots, age rating and countries are kept in Seller Portal; What's new above goes with each update.</p></div>`;
-    } else if (tab === "builds") {
-      const rows = g.history.filter(h => h.kind === "play-aab");
-      body = `<div class="box" id="samsung-builds">${buildTable("samsung", rows, [["galaxy", "Galaxy Store", h => h.galaxy ? chip("ok", h.galaxy) : chip("hand", "not submitted")]])}
-        <p>Uses the newest release AAB from Google Play: ${a.exists ? `<span class="mono">${esc(a.path.split(/[\\/]/).pop())}</span>` : chip("hand", "none yet")}</p>
-        <div class="actions"><button class="btn" data-act="go" data-go="play/builds/play-builds">${ic("build")}Build release AAB</button>
-          <button class="btn" data-act="samsung-check" ${k.ready ? "" : "disabled"}>${ic("check")}Check Galaxy Store</button>
-          <button class="btn primary" data-act="samsung-submit" id="samsung-upload" ${k.ready && a.exists ? "" : "disabled"}>${ic("publish")}Submit update</button></div>
-        <p class="note">No Samsung device is needed; Samsung reviews the app on its own devices. Check Galaxy Store signs in and reads the app's status (changes nothing). Submit update uploads the AAB as a new binary with What's new and sends it to Samsung's review.</p></div>`;
-    } else {
-      body = stepsBox(g.steps, "samsung");
-    }
-    return `<div class="head"><div><h2>Galaxy Store</h2><p>Samsung's store for Galaxy phones, with the same release AAB as Google Play, submitted through the Galaxy Store Developer API.</p></div></div>${progressHead("samsung", g.steps)}
-      ${tabBar(tab, {listing: "Listing", builds: "Builds", steps: "Setup steps"})}<div id="jobs"></div>${body}`;
-  },
-  async keys() {
-    const k = await api("/api/keys");
-    // Arriving from a store's setup steps: keep that store's progress and arrows here.
-    const tour = stepFocus.store ? await api("/api/" + stepFocus.store).then(st => progressHead(stepFocus.store, st.steps, STORE_NAMES[stepFocus.store])).catch(() => "") : "";
-    const idField = (section, key, label, note) => `<div class="field"><label for="ids-${section}-${key}">${esc(label)}</label><div><input id="ids-${section}-${key}" class="in mono" value="${esc(k.ids[section][key])}" ${k.ids[section][key] ? "" : "data-problem"}>${note ? `<div class="note">${esc(note)}</div>` : ""}</div><span></span></div>`;
-    const idSave = section => `<div class="actions"><button class="btn primary" data-act="save-ids" data-section="${section}">${ic("save")}Save</button></div>`;
-    const c = k.steamcmd;
-    return `<div class="head"><div><h2>Keys &amp; accounts</h2><p>The desk never shows or stores passwords. It only checks that each login exists where it should.</p></div></div>${tour}
-      <div class="box"><h3>Steam</h3>
-        ${idField("steam", "appId", "App ID", "From Steamworks after paying the app fee.")}${idField("steam", "depot", "Windows depot ID")}${idField("steam", "branch", "Upload branch", "Set live on this branch; the default branch is always set live by hand.")}${idSave("steam")}
-        <div class="field"><label for="steam-user">Build account name</label><input id="steam-user" class="in" value="${esc(c.user)}" placeholder="not your main Steam account"><button class="btn" data-act="save-user">${ic("save")}Save</button></div>
-        <table><tr id="steamcmd"><td>SteamCMD</td><td class="mono">${esc(c.path)}</td><td>${c.installed ? chip("ok", "installed") : chip("bad", "missing")}</td></tr>
-        <tr><td>Cached login</td><td class="mono">"${esc(c.path)}" +login ${esc(c.user || "<account>")}</td><td>${c.loggedIn ? chip("ok", "logged in") : chip("bad", "not yet")} <button class="copy" data-text="&quot;${esc(c.path)}&quot; +login ${esc(c.user || "")}">${ic("content_copy")}Copy</button></td></tr></table>
-        <p class="note">To install SteamCMD, download the official zip from Valve (${esc("https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip")}) and unpack it into the folder above. Then run the login command once in a terminal and enter the password and Steam Guard code there.</p></div>
-      <div class="box"><h3>Epic Games Store</h3>
-        ${idField("epic", "organizationId", "Organization ID")}${idField("epic", "productId", "Product ID")}${idField("epic", "artifactId", "Artifact ID")}${idField("epic", "clientId", "BPT client ID", "Product Settings > BPT credentials. The secret goes to Credential Manager below, never here.")}${idSave("epic")}
-        <table><tr id="epic-bpt"><td>BuildPatch Tool</td><td class="mono">${esc(k.epic.bpt || k.epic.bptFolder)}</td><td>${k.epic.installed ? chip("ok", "found") : chip("bad", "missing")}</td></tr>
-        <tr id="epic-secret"><td>Client secret</td><td class="mono">Credential Manager: ${esc(k.epic.credential)}</td><td>${k.epic.stored ? chip("ok", "stored") : chip("bad", "missing")}</td></tr></table>
-        <div class="actions"><button class="btn" data-act="epic-secret" ${k.epic.ids.productId && k.epic.ids.clientId ? "" : "disabled"}>${ic("key")}Save BPT secret</button></div>
-        <p class="note">Download the BuildPatch Tool from the Developer Portal (Artifacts and Binaries) and unzip it into the folder above. Save BPT secret opens a console where cmdkey asks for the secret; the desk never sees it.</p></div>
-      <div class="box"><h3>itch.io</h3>
-        ${idField("itch", "project", "Project", "user/game from the page address, lower case (user.itch.io/game).")}${idField("itch", "channel", "Channel", "windows (the name tags the upload as a Windows download).")}${idSave("itch")}
-        <table><tr id="itch-butler"><td>butler</td><td class="mono">${esc(k.itch.butler || k.itch.toolFolder)}</td><td>${k.itch.installed ? chip("ok", "found") : chip("bad", "missing")}</td></tr>
-        <tr><td>Login</td><td class="mono">butler's own saved login</td><td>${k.itch.loggedIn ? chip("ok", "logged in") : chip("bad", "not yet")}</td></tr></table>
-        <div class="actions"><button class="btn" data-act="itch-login" ${k.itch.installed ? "" : "disabled"}>${ic("key")}Log in to itch.io</button></div>
-        <p class="note">Download butler from itch.io and unzip it into the folder above. Log in opens butler's sign-in in your browser; butler keeps the login itself.</p></div>
-      <div class="box"><h3>GOG</h3>
-        ${idField("gog", "productId", "Product ID", "From the GOG Developer Portal after GOG accepts the game.")}${idField("gog", "branch", "Upload branch", "Optional; Pipeline Builder cannot publish to master.")}${idSave("gog")}
-        <table><tr id="gog-tool"><td>Pipeline Builder</td><td class="mono">${esc(k.gog.tool || k.gog.toolFolder)}</td><td>${k.gog.installed ? chip("ok", "found") : chip("bad", "missing")}</td></tr>
-        <tr id="gog-project"><td>Build Creator project</td><td class="mono">${esc(k.gog.project.path)}</td><td>${k.gog.project.problem ? chip("bad", k.gog.project.problem) : chip("ok", "found")}</td></tr></table>
-        <p class="note">Download Pipeline Builder from the GOG Developer Portal and unzip it into the folder above. Make the project once in GOG's Build Creator with the depot folder Build/GOG/Windows and save it at the path above.</p></div>
-      <div class="box"><h3>Microsoft Store</h3>
-        ${idField("microsoft", "productId", "Store ID", "Partner Center > your app > Product identity.")}${idField("microsoft", "identityName", "Package identity name", "Package/Identity/Name")}${idField("microsoft", "publisher", "Publisher", "Package/Identity/Publisher, e.g. CN=…")}${idField("microsoft", "publisherName", "Publisher display name")}${idSave("microsoft")}
-        <table id="microsoft-tools"><tr><td>makeappx (Windows SDK)</td><td class="mono">${esc(k.microsoft.makeappx || "not found")}</td><td>${k.microsoft.makeappx ? chip("ok", "found") : chip("bad", "missing")}</td></tr>
-        <tr><td>msstore CLI</td><td class="mono">${esc(k.microsoft.msstore || "not installed")}</td><td>${k.microsoft.msstore ? chip("ok", "found") : chip("bad", "missing")}</td></tr></table>
-        <div class="actions"><button class="btn" data-act="ms-setup" ${k.microsoft.msstore ? "" : "disabled"}>${ic("key")}Set up msstore</button></div>
-        <p class="note">Install the Microsoft Store Developer CLI from Microsoft. Set up msstore opens its own console for the Partner Center API values (tenant, seller, client ID and secret); the desk never sees them.</p></div>
-      <div class="box"><h3>Google Play</h3>
-        ${idField("play", "package", "Android package", "Application id, e.g. com.studio.game. It cannot change after the first upload; Push to Unity afterwards.")}${idSave("play")}
-        <table><tr id="play-key"><td>Upload keystore</td><td class="mono">${esc(k.play.key.keystore)}</td><td>${k.play.key.exists ? chip("ok", "found") : chip("bad", "missing")}</td></tr>
-        <tr><td>Password</td><td class="mono">Credential Manager: ${esc(k.play.key.credential)}</td><td>${k.play.key.stored ? chip("ok", "stored") : chip("bad", "missing")}</td></tr>
-        <tr id="play-account"><td>Service account</td><td class="mono">${esc(k.play.account.env)}${k.play.account.email ? " · " + esc(k.play.account.email) : ""}</td><td>${k.play.account.found ? chip("ok", "found") : k.play.account.set ? chip("bad", "not readable") : chip("bad", "not set")}</td></tr></table>
-        <div class="actions"><button class="btn" data-act="play-key" ${k.play.key.ready || !k.play.key.package ? "disabled" : ""}>${ic("key")}Create upload key</button></div>
-        <p class="note">${k.play.key.package ? "Create upload key opens a console window: keytool creates the keystore and cmdkey stores the password; both ask for it there. Back up the keystore outside every repository; Play App Signing keeps the release key." : "Set android.package in Store/store.json first."}</p></div>
-      <div class="box"><h3>Galaxy Store</h3>
-        ${idField("samsung", "contentId", "Content ID", "12-digit app ID from Seller Portal, after the app is registered there.")}${idField("samsung", "serviceAccountId", "Service account ID", "Seller Portal > Assistance > API Service.")}${idSave("samsung")}
-        <table><tr id="samsung-key"><td>Service account key</td><td class="mono">${esc(k.samsung.env)}</td><td>${k.samsung.found ? chip("ok", "found") : k.samsung.set ? chip("bad", "not readable") : chip("bad", "not set")}</td></tr></table>
-        <p class="note">Save the private key from Seller Portal outside every repository and set ${esc(k.samsung.env)} to its path; the desk signs the token request with it and never shows it.</p></div>
-      <div class="box"><h3>Unity</h3><p>Unity CLI ${k.unityCli ? chip("ok", "found") : chip("bad", "missing")}</p></div>`;
-  },
-  async log() {
-    const l = await api("/api/log");
-    const tools = Object.entries(l.tools).filter(([, t]) => t).map(([n, t]) => `<div class="box"><h3>${esc(n)}</h3><pre class="log">${esc(t)}</pre></div>`).join("");
-    const history = l.history.slice(1).map(h => `<pre class="log" style="margin-bottom:8px">${esc(h)}</pre>`).join("") || `<p class="note">No earlier runs.</p>`;
-    return `<div class="head"><div><h2>Log</h2><p>Files in Store/Logs: latest.txt is the summary to read first; history.txt keeps every run.</p></div><div class="actions"><button class="btn" data-act="copy-log">${ic("content_copy")}Copy latest</button></div></div>
-      <div class="box"><h3>Latest run</h3><pre class="log" id="logtext">${esc(l.text || "No runs yet.")}</pre></div>
-      ${tools}
-      <div class="box"><h3>Earlier runs</h3>${history}</div>`;
+    const [g, r, k] = await Promise.all([api("/api/samsung"), api("/api/release"), api("/api/keys")]);
+    const gk = g.key, a = g.aab;
+    const rows = g.history.filter(h => h.kind === "play-aab");
+    const builds = `<div class="box" id="samsung-builds">${buildTable("samsung", rows, [["galaxy", "Galaxy Store", h => h.galaxy ? chip("ok", h.galaxy) : chip("hand", "not submitted")]])}
+      <p>Uses the newest release AAB from Google Play: ${a.exists ? `<span class="mono">${esc(a.path.split(/[\\/]/).pop())}</span>` : chip("hand", "none yet")}</p>
+      <div class="actions"><button class="btn" data-act="go" data-go="play/builds/play-builds">${ic("build")}Build release AAB</button>
+        <button class="btn" data-act="samsung-check" ${gk.ready ? "" : "disabled"}>${ic("check")}Check Galaxy Store</button>
+        <button class="btn primary" data-act="samsung-submit" id="samsung-upload" ${gk.ready && a.exists ? "" : "disabled"}>${ic("publish")}Submit update</button></div>
+      <p class="note">No Samsung device is needed; Samsung reviews the app on its own devices. Check Galaxy Store signs in and reads the app's status (changes nothing). Submit update uploads the AAB as a new binary with What's new and sends it to Samsung's review.</p></div>`;
+    return storePage("samsung", "Galaxy Store", "Samsung's store for Galaxy phones, with the same release AAB as Google Play, submitted through the Galaxy Store Developer API.", g.steps, [
+      listingTabs("samsung", r, `<div class="box"><p class="note">The store listing, screenshots, age rating and countries are kept in Seller Portal; What's new in Release goes with each update.</p></div>`, artBox("samsung", g), ""),
+      ["builds", "Builds", builds], ["keys", "Keys &amp; accounts", keysBox("samsung", k)], ["steps", "Setup steps", stepsBox(g.steps, "samsung")]]);
   },
 };
 
+// A store page: header, setup progress, runs, then its sections as tabs.
+const storePage = (id, title, intro, steps, panes) => `<div class="head"><div><h2>${esc(title)}</h2><p>${esc(intro)}</p></div></div>${progressHead(id, steps)}
+  <div id="jobs"></div>${tabs(id, panes)}`;
+const listingTabs = (id, r, text, art, shots) => ["listing", "Listing", tabs(id + "/listing",
+  [["release", "Release", releaseBox(r, id)], ["text", "Text", text], ["art", "Art", art], ["shots", "Screenshots", shots]], true)];
+
+// Each store's ids, tools and logins, shown in its Keys & accounts tab. The desk never shows or stores passwords.
+function keysBox(store, k) {
+  const idField = (section, key, label, note) => `<div class="field"><label for="ids-${section}-${key}">${esc(label)}</label><div><input id="ids-${section}-${key}" class="in mono" value="${esc(k.ids[section][key])}" ${k.ids[section][key] ? "" : "data-problem"}>${note ? `<div class="note">${esc(note)}</div>` : ""}</div><span></span></div>`;
+  const idSave = section => `<div class="actions"><button class="btn primary" data-act="save-ids" data-section="${section}">${ic("save")}Save</button></div>`;
+  const box = (h, body) => `<div class="box"><h3>${h}</h3>${body}</div>`;
+  const c = k.steamcmd;
+  const html = {
+    steam: () => box("IDs", `${idField("steam", "appId", "App ID", "From Steamworks after paying the app fee.")}${idField("steam", "depot", "Windows depot ID")}${idField("steam", "branch", "Upload branch", "Set live on this branch; the default branch is always set live by hand.")}${idSave("steam")}`)
+      + box("SteamCMD", `<div class="field"><label for="steam-user">Build account name</label><input id="steam-user" class="in" value="${esc(c.user)}" placeholder="not your main Steam account"><button class="btn" data-act="save-user">${ic("save")}Save</button></div>
+        <table><tr id="steamcmd"><td>SteamCMD</td><td class="mono">${esc(c.path)}</td><td>${c.installed ? chip("ok", "installed") : chip("bad", "missing")}</td></tr>
+        <tr><td>Cached login</td><td class="mono">"${esc(c.path)}" +login ${esc(c.user || "<account>")}</td><td>${c.loggedIn ? chip("ok", "logged in") : chip("bad", "not yet")} <button class="copy" data-text="&quot;${esc(c.path)}&quot; +login ${esc(c.user || "")}">${ic("content_copy")}Copy</button></td></tr></table>
+        <p class="note">To install SteamCMD, download the official zip from Valve (${esc("https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip")}) and unpack it into the folder above. Then run the login command once in a terminal and enter the password and Steam Guard code there.</p>`),
+    epic: () => box("IDs", `${idField("epic", "organizationId", "Organization ID")}${idField("epic", "productId", "Product ID")}${idField("epic", "artifactId", "Artifact ID")}${idField("epic", "clientId", "BPT client ID", "Product Settings > BPT credentials. The secret goes to Credential Manager below, never here.")}${idSave("epic")}`)
+      + box("BuildPatch Tool", `<table><tr id="epic-bpt"><td>BuildPatch Tool</td><td class="mono">${esc(k.epic.bpt || k.epic.bptFolder)}</td><td>${k.epic.installed ? chip("ok", "found") : chip("bad", "missing")}</td></tr>
+        <tr id="epic-secret"><td>Client secret</td><td class="mono">Credential Manager: ${esc(k.epic.credential)}</td><td>${k.epic.stored ? chip("ok", "stored") : chip("bad", "missing")}</td></tr></table>
+        <div class="actions"><button class="btn" data-act="epic-secret" ${k.epic.ids.productId && k.epic.ids.clientId ? "" : "disabled"}>${ic("key")}Save BPT secret</button></div>
+        <p class="note">Download the BuildPatch Tool from the Developer Portal (Artifacts and Binaries) and unzip it into the folder above. Save BPT secret opens a console where cmdkey asks for the secret; the desk never sees it.</p>`),
+    itch: () => box("Project", `${idField("itch", "project", "Project", "user/game from the page address, lower case (user.itch.io/game).")}${idField("itch", "channel", "Channel", "windows (the name tags the upload as a Windows download).")}${idSave("itch")}`)
+      + box("butler", `<table><tr id="itch-butler"><td>butler</td><td class="mono">${esc(k.itch.butler || k.itch.toolFolder)}</td><td>${k.itch.installed ? chip("ok", "found") : chip("bad", "missing")}</td></tr>
+        <tr><td>Login</td><td class="mono">butler's own saved login</td><td>${k.itch.loggedIn ? chip("ok", "logged in") : chip("bad", "not yet")}</td></tr></table>
+        <div class="actions"><button class="btn" data-act="itch-login" ${k.itch.installed ? "" : "disabled"}>${ic("key")}Log in to itch.io</button></div>
+        <p class="note">Download butler from itch.io and unzip it into the folder above. Log in opens butler's sign-in in your browser; butler keeps the login itself.</p>`),
+    gog: () => box("IDs", `${idField("gog", "productId", "Product ID", "From the GOG Developer Portal after GOG accepts the game.")}${idField("gog", "branch", "Upload branch", "Optional; Pipeline Builder cannot publish to master.")}${idSave("gog")}`)
+      + box("Pipeline Builder", `<table><tr id="gog-tool"><td>Pipeline Builder</td><td class="mono">${esc(k.gog.tool || k.gog.toolFolder)}</td><td>${k.gog.installed ? chip("ok", "found") : chip("bad", "missing")}</td></tr>
+        <tr id="gog-project"><td>Build Creator project</td><td class="mono">${esc(k.gog.project.path)}</td><td>${k.gog.project.problem ? chip("bad", k.gog.project.problem) : chip("ok", "found")}</td></tr></table>
+        <p class="note">Download Pipeline Builder from the GOG Developer Portal and unzip it into the folder above. Make the project once in GOG's Build Creator with the depot folder Build/GOG/Windows and save it at the path above.</p>`),
+    microsoft: () => box("Identity", `${idField("microsoft", "productId", "Store ID", "Partner Center > your app > Product identity.")}${idField("microsoft", "identityName", "Package identity name", "Package/Identity/Name")}${idField("microsoft", "publisher", "Publisher", "Package/Identity/Publisher, e.g. CN=…")}${idField("microsoft", "publisherName", "Publisher display name")}${idSave("microsoft")}`)
+      + box("Tools", `<table id="microsoft-tools"><tr><td>makeappx (Windows SDK)</td><td class="mono">${esc(k.microsoft.makeappx || "not found")}</td><td>${k.microsoft.makeappx ? chip("ok", "found") : chip("bad", "missing")}</td></tr>
+        <tr><td>msstore CLI</td><td class="mono">${esc(k.microsoft.msstore || "not installed")}</td><td>${k.microsoft.msstore ? chip("ok", "found") : chip("bad", "missing")}</td></tr></table>
+        <div class="actions"><button class="btn" data-act="ms-setup" ${k.microsoft.msstore ? "" : "disabled"}>${ic("key")}Set up msstore</button></div>
+        <p class="note">Install the Microsoft Store Developer CLI from Microsoft. Set up msstore opens its own console for the Partner Center API values (tenant, seller, client ID and secret); the desk never sees them.</p>`),
+    play: () => box("Package", `${idField("play", "package", "Android package", "Application id, e.g. com.studio.game. It cannot change after the first upload; Push to Unity afterwards.")}${idSave("play")}`)
+      + box("Keys", `<table><tr id="play-key"><td>Upload keystore</td><td class="mono">${esc(k.play.key.keystore)}</td><td>${k.play.key.exists ? chip("ok", "found") : chip("bad", "missing")}</td></tr>
+        <tr><td>Password</td><td class="mono">Credential Manager: ${esc(k.play.key.credential)}</td><td>${k.play.key.stored ? chip("ok", "stored") : chip("bad", "missing")}</td></tr>
+        <tr id="play-account"><td>Service account</td><td class="mono">${esc(k.play.account.env)}${k.play.account.email ? " · " + esc(k.play.account.email) : ""}</td><td>${k.play.account.found ? chip("ok", "found") : k.play.account.set ? chip("bad", "not readable") : chip("bad", "not set")}</td></tr></table>
+        <div class="actions"><button class="btn" data-act="play-key" ${k.play.key.ready || !k.play.key.package ? "disabled" : ""}>${ic("key")}Create upload key</button></div>
+        <p class="note">${k.play.key.package ? "Create upload key opens a console window: keytool creates the keystore and cmdkey stores the password; both ask for it there. Back up the keystore outside every repository; Play App Signing keeps the release key." : "Set the Android package above first."}</p>`),
+    samsung: () => box("Seller Portal", `${idField("samsung", "contentId", "Content ID", "12-digit app ID from Seller Portal, after the app is registered there.")}${idField("samsung", "serviceAccountId", "Service account ID", "Seller Portal > Assistance > API Service.")}${idSave("samsung")}
+        <table><tr id="samsung-key"><td>Service account key</td><td class="mono">${esc(k.samsung.env)}</td><td>${k.samsung.found ? chip("ok", "found") : k.samsung.set ? chip("bad", "not readable") : chip("bad", "not set")}</td></tr></table>
+        <p class="note">Save the private key from Seller Portal outside every repository and set ${esc(k.samsung.env)} to its path; the desk signs the token request with it and never shows it.</p>`),
+  }[store];
+  return html ? html() : "";
+}
+
 async function handStore(id, title, intro, d, buildActions) {
-  const r = await api("/api/release");
-  const tab = otherTabs[id];
-  let body = "";
-  if (tab === "listing") {
-    const fields = d.fields.map(f => `<div class="field"><label for="${id}-f-${f.key}">${esc(f.label)}</label>
-      <div>${f.multiline ? `<textarea id="${id}-f-${f.key}" class="in" rows="6" ${f.problem && !f.readonly ? "data-problem" : ""} ${f.readonly ? "disabled" : ""}>${esc(f.value)}</textarea>` : `<input id="${id}-f-${f.key}" class="in" value="${esc(f.value)}" ${f.readonly ? "disabled" : ""} ${f.problem && !f.readonly ? "data-problem" : ""}>`}${f.note ? `<div class="note">${esc(f.note)}</div>` : ""}</div>
-      <div><span class="meta">${f.value.length}${f.max ? " / " + f.max : ""}</span> <button class="copy" data-copyfrom="${id}-f-${f.key}">${ic("content_copy")}Copy</button>${f.problem ? "<br>" + chip("bad", f.problem) : ""}</div></div>`).join("");
-    body = `${releaseBox(r, id)}<div class="box" id="${id}-text"><h3>Text</h3>${fields}<div class="actions"><button class="btn primary" data-act="save-hand" data-store="${id}">${ic("save")}Save</button></div></div>
-      ${artBox(id, d)}${await shotsBox(id, d.screenshots)}`;
-  } else if (tab === "builds") {
-    body = `<div class="box" id="${id}-builds">${buildTable(id, d.build.history, [["uploaded", title, h => h.uploaded ? chip("ok", h.uploaded) : h.exists ? chip("hand", "not uploaded") : chip("hand", "replaced")]])}
-      <p class="note mono">${esc(d.build.folder)}</p>${buildActions}</div>`;
-  } else {
-    body = stepsBox(d.steps, id);
-  }
-  return `<div class="head"><div><h2>${esc(title)}</h2><p>${esc(intro)}</p></div></div>${progressHead(id, d.steps)}
-    ${tabBar(tab, {listing: "Listing", builds: "Builds", steps: "Setup steps"})}<div id="jobs"></div>${body}`;
+  const [r, k] = await Promise.all([api("/api/release"), api("/api/keys")]);
+  const fields = d.fields.map(f => `<div class="field"><label for="${id}-f-${f.key}">${esc(f.label)}</label>
+    <div>${f.multiline ? `<textarea id="${id}-f-${f.key}" class="in" rows="6" ${f.problem && !f.readonly ? "data-problem" : ""} ${f.readonly ? "disabled" : ""}>${esc(f.value)}</textarea>` : `<input id="${id}-f-${f.key}" class="in" value="${esc(f.value)}" ${f.readonly ? "disabled" : ""} ${f.problem && !f.readonly ? "data-problem" : ""}>`}${f.note ? `<div class="note">${esc(f.note)}</div>` : ""}</div>
+    <div><span class="meta">${f.value.length}${f.max ? " / " + f.max : ""}</span> <button class="copy" data-copyfrom="${id}-f-${f.key}">${ic("content_copy")}Copy</button>${f.problem ? "<br>" + chip("bad", f.problem) : ""}</div></div>`).join("");
+  const builds = `<div class="box" id="${id}-builds">${buildTable(id, d.build.history, [["uploaded", title, h => h.uploaded ? chip("ok", h.uploaded) : h.exists ? chip("hand", "not uploaded") : chip("hand", "replaced")]])}
+    <p class="note mono">${esc(d.build.folder)}</p>${buildActions}</div>`;
+  return storePage(id, title, intro, d.steps, [
+    listingTabs(id, r, `<div class="box" id="${id}-text"><h3>Text</h3>${fields}<div class="actions"><button class="btn primary" data-act="save-hand" data-store="${id}">${ic("save")}Save</button></div></div>`, artBox(id, d), await shotsBox(id, d.screenshots)),
+    ["builds", "Builds", builds], ["keys", "Keys &amp; accounts", keysBox(id, k)], ["steps", "Setup steps", stepsBox(d.steps, id)]]);
 }
 function artBox(store, s) {
   const rows = s.art.map(a => `<tr><td>${a.state !== "missing" && a.state !== "optional" && /\.(png|jpg)$/.test(a.file) ? `<img class="thumb" src="/store-file/${encodeURI(a.file)}?t=${Date.now()}" alt="">` : ""}${esc(a.label)}</td><td class="mono">${esc(a.expected)}</td><td class="mono">${esc(a.file)}</td><td>${
@@ -451,7 +431,6 @@ function artBox(store, s) {
     <p class="note">Make capsules crops the key art (Store/shots/art/key-art.png, from the key-art shot) to each size and places the logo (Store/art/logo.png); focus and logo boxes can be tuned per output in Store/art.json. Make icons resizes Store/art/icon.png (square, 1024×1024) to every store icon size. Both write every store's files.</p></div>`;
 }
 const stepsBox = (steps, store) => `<div class="box"><ol class="steps">${steps.map((x, i) => `<li data-step="${i}" class="${x.state === "ok" ? "is-ok" : "is-todo"} ${stepFocus.store === store && stepFocus.index === i ? "focus" : ""}">${mark(x.state)}<div><div class="t">${esc(x.title)}</div><div class="d">${esc(x.detail)}${x.link ? ` <a href="${esc(x.link)}" target="_blank" rel="noopener">Open ${ic("open_in_new")}</a>` : ""}</div></div><div class="side">${kindChip(x.kind)}${x.go ? `<button class="copy" data-act="go" data-go="${esc(x.go)}">${ic("arrow_forward")}Go</button>` : ""}</div></li>`).join("")}</ol></div>`;
-const tabBar = (current, names) => `<div class="tabs" role="tablist">${Object.entries(names).map(([t, label]) => `<button role="tab" aria-selected="${t === current}" data-tab="${t}">${label}</button>`).join("")}</div>`;
 async function shotsBox(store, summary) {
   const list = (await api("/api/shots")).shots.filter(x => (x.stores || []).includes(store));
   const cards = list.map(x => {
@@ -555,7 +534,7 @@ document.addEventListener("click", async e => {
   if (!t) return;
   try {
     if (t.dataset.sort) { const [id, key] = t.dataset.sort.split(":"); const cur = sorts[id] || {key: "finished", dir: -1}; sorts[id] = {key, dir: cur.key === key ? -cur.dir : -1}; return render(); }
-    if (t.dataset.tab) { setTab((location.hash || "#steam").slice(1), t.dataset.tab); return render(); }
+    if (t.dataset.tab) return selectTab(t.closest("[data-tabkey]").dataset.tabkey, t.dataset.tab);
     if (t.dataset.copyfrom) return copy($("#" + t.dataset.copyfrom).value);
     if (t.dataset.text !== undefined) return copy(t.dataset.text);
     if (t.dataset.recent) { await api("/api/open", {path: t.dataset.recent}); location.hash = "#overview"; return render(); }

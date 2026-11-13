@@ -127,9 +127,9 @@ def status(project):
     steps = [
         {"title": "Seller Portal account", "state": "ok" if s["contentId"] else "todo", "kind": "hand", "link": seller,
          "detail": "Register a free Galaxy Store seller account (no Samsung device needed)."},
-        {"title": "Register the app by hand", "state": "ok" if s["contentId"] else "todo", "kind": "hand", "link": seller, "go": "keys//ids-samsung-contentId",
+        {"title": "Register the app by hand", "state": "ok" if s["contentId"] else "todo", "kind": "hand", "link": seller, "go": "samsung/keys/ids-samsung-contentId",
          "detail": "Add the app once in Seller Portal with the release AAB, store listing, screenshots, age rating and countries; choose Galaxy Store's signing key or your own. Then put its 12-digit content ID in Keys & accounts."},
-        {"title": "Service account", "state": "ok" if key["found"] and s["serviceAccountId"] else "todo", "kind": "hand", "go": "keys//ids-samsung-serviceAccountId",
+        {"title": "Service account", "state": "ok" if key["found"] and s["serviceAccountId"] else "todo", "kind": "hand", "go": "samsung/keys/ids-samsung-serviceAccountId",
          "link": "https://developer.samsung.com/galaxy-store/galaxy-store-developer-api/create-an-access-token.html",
          "detail": f"Seller Portal > Assistance > API Service > Create Service Account (Publishing & ITEM). Save the private key outside every repository, set {ENV} to its path and put the service account ID in Keys & accounts."},
         {"title": "App icon", "state": "ok" if all(a["state"] in ("ok", "optional") for a in art_items) else "todo", "kind": "copy", "go": "samsung/listing/samsung-art",

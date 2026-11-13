@@ -138,11 +138,11 @@ def status(project):
     fields, art_items, shots, build, key = _fields(project), art.check(project, "epic"), _screenshots(project), _build(project), key_state(project)
     portal = "https://dev.epicgames.com/portal"
     steps = [
-        {"title": "Epic developer organization and product", "go": "keys//ids-epic-organizationId", "state": "ok" if key["ids"]["productId"] else "todo", "kind": "hand", "link": portal,
+        {"title": "Epic developer organization and product", "go": "epic/keys/ids-epic-organizationId", "state": "ok" if key["ids"]["productId"] else "todo", "kind": "hand", "link": portal,
          "detail": "Create the organization (one-time submission fee) and the product in the Developer Portal, then put organizationId, productId and artifactId under \"epic\" in Store/store.json."},
-        {"title": "BuildPatch Tool", "go": "keys//epic-bpt", "state": "ok" if key["installed"] else "todo", "kind": "hand", "link": portal,
+        {"title": "BuildPatch Tool", "go": "epic/keys/epic-bpt", "state": "ok" if key["installed"] else "todo", "kind": "hand", "link": portal,
          "detail": f"Developer Portal > your product > Epic Games Store > Artifacts and Binaries > Download build patch tool, and unzip it into {key['bptFolder']}."},
-        {"title": "BPT credentials", "go": "keys//epic-secret", "state": "ok" if key["ids"]["clientId"] and key["stored"] else "todo", "kind": "desk",
+        {"title": "BPT credentials", "go": "epic/keys/epic-secret", "state": "ok" if key["ids"]["clientId"] and key["stored"] else "todo", "kind": "desk",
          "detail": "Product Settings > BPT credentials: put the client ID under \"epic\" in Store/store.json, then Save BPT secret (Keys & accounts) stores the secret in Credential Manager."},
         {"title": "Store page text", "go": "epic/listing/epic-text", "state": "ok" if not any(f["problem"] for f in fields) else "todo", "kind": "copy",
          "detail": "Paste the Listing fields into the Developer Portal (Store Settings and Pages)."},

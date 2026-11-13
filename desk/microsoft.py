@@ -65,9 +65,9 @@ def status(project):
     partner = "https://partner.microsoft.com/dashboard"
     steps = [
         {"title": "Partner Center account and app name", "state": "ok" if key["ids"]["productId"] else "todo", "kind": "hand", "link": partner,
-         "go": "keys//ids-microsoft-productId",
+         "go": "microsoft/keys/ids-microsoft-productId",
          "detail": "Register as a Windows app developer, reserve the game's name, then copy the Store ID and the Product identity values (Package/Identity/Name, Publisher, Publisher display name) into Keys & accounts."},
-        {"title": "Packaging tool", "state": "ok" if key["makeappx"] else "todo", "kind": "hand", "go": "keys//microsoft-tools",
+        {"title": "Packaging tool", "state": "ok" if key["makeappx"] else "todo", "kind": "hand", "go": "microsoft/keys/microsoft-tools",
          "link": "https://developer.microsoft.com/windows/downloads/windows-sdk/",
          "detail": "makeappx comes with the Windows SDK."},
         {"title": "Store listing text", "state": "ok" if not any(f["problem"] for f in fields) else "todo", "kind": "copy", "go": "microsoft/listing/microsoft-text",
@@ -80,7 +80,7 @@ def status(project):
          "detail": "Built by Unity into Build/Microsoft/Windows; Package MSIX wraps it with the Store identity."},
         {"title": "First submission by hand", "state": "todo", "kind": "hand", "link": partner,
          "detail": "Upload the first MSIX, age ratings questionnaire, pricing and listing in Partner Center and submit for certification. The CLI only publishes updates after this."},
-        {"title": "msstore CLI signed in", "state": "ok" if key["msstore"] else "todo", "kind": "desk", "go": "keys//microsoft-tools",
+        {"title": "msstore CLI signed in", "state": "ok" if key["msstore"] else "todo", "kind": "desk", "go": "microsoft/keys/microsoft-tools",
          "link": "https://learn.microsoft.com/en-us/windows/apps/publish/msstore-dev-cli/overview",
          "detail": "Install the Microsoft Store Developer CLI, then Set up msstore (Keys & accounts) and enter the Microsoft Entra app's tenant, seller, client ID and secret in its own console."},
         {"title": "Publish updates", "state": "ok" if any(h.get("uploaded") for h in build["history"][:1]) else "todo", "kind": "desk",

@@ -46,10 +46,10 @@ def status(project):
     page = f"https://itch.io/game/edit/{key['project']}" if key["project"] else "https://itch.io/game/new"
     steps = [
         {"title": "itch.io account and project page", "state": "ok" if "/" in key["project"] else "todo", "kind": "hand",
-         "link": "https://itch.io/game/new", "go": "keys//ids-itch-project",
+         "link": "https://itch.io/game/new", "go": "itch/keys/ids-itch-project",
          "detail": "Create the project page on itch.io (free, no review), then put user/game (the page address, lower case) in Keys & accounts."},
         {"title": "butler installed and logged in", "state": "ok" if key["installed"] and key["loggedIn"] else "todo", "kind": "desk",
-         "link": "https://itchio.itch.io/butler", "go": "keys//itch-butler",
+         "link": "https://itchio.itch.io/butler", "go": "itch/keys/itch-butler",
          "detail": f"Download butler and unzip it into {key['toolFolder']} (or put it on PATH), then Log in to itch.io (Keys & accounts)."},
         {"title": "AI disclosure", "state": "todo", "kind": "hand", "link": "https://itch.io/docs/creators/quality-guidelines#ai-disclosure",
          "detail": "On the Edit game page, disclose generative AI use: Code (shipped code includes generated contributions), and describe optional live generation and manual creation in the description."},

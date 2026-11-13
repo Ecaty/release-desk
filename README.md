@@ -19,12 +19,12 @@ Status: seven stores are wired up: Steam (upload with SteamCMD), itch.io (butler
 ## itch.io
 
 - Open to everyone, no review or fee. Create the project page on itch.io and put `user/game` (and the channel, `windows` by default) in Keys & accounts. Disclose generative AI use on the Edit game page (Code), as itch.io's quality guidelines ask.
-- **Upload:** unzip butler (itch.io's official tool) into `%APPDATA%elease-deskutler` or put it on PATH; **Log in to itch.io** runs `butler login` in its own console and butler keeps the login. **Push** runs `butler push Build/Itch/Windows user/game:windows --userversion <version>+<build> --if-changed` with debug files ignored; only changes are sent. **Push preview** runs `butler push-preview` and sends nothing.
+- **Upload:** unzip butler (itch.io's official tool) into `%APPDATA%\release-desk\butler` or put it on PATH; **Log in to itch.io** runs `butler login` in its own console and butler keeps the login. **Push** runs `butler push Build/Itch/Windows user/game:windows --userversion <version>+<build> --if-changed` with debug files ignored; only changes are sent. **Push preview** runs `butler push-preview` and sends nothing.
 - **Page:** tagline and description (Copy), 630×500 cover (Make capsules) and 3 to 5 screenshots in `Store/shots/itch`, added on Edit game.
 
 ## Epic Games Store
 
-- **Setup:** put `organizationId`, `productId`, `artifactId` and the BPT `clientId` under `"epic"` in `Store/store.json`; unzip the BuildPatch Tool (Developer Portal > Artifacts and Binaries) into `%APPDATA%elease-desk\BuildPatchTool`; **Save BPT secret** (Keys & accounts) opens a console where `cmdkey` stores the client secret as `release-desk/epic/<productId>/bpt-secret`.
+- **Setup:** put `organizationId`, `productId`, `artifactId` and the BPT `clientId` under `"epic"` in `Store/store.json`; unzip the BuildPatch Tool (Developer Portal > Artifacts and Binaries) into `%APPDATA%\release-desk\BuildPatchTool`; **Save BPT secret** (Keys & accounts) opens a console where `cmdkey` stores the client secret as `release-desk/epic/<productId>/bpt-secret`.
 - **Upload:** **Build Windows** (Epic tab) builds into `Build/Epic/Windows`; **Upload to Dev sandbox** runs BPT `UploadBinary` with build version `<version>-b<build>-<commit>` and an ignore list for debug files. A PowerShell helper reads the secret from Credential Manager into BPT's own environment (`-ClientSecretEnvVar`), so the desk never holds it. **Check connection** runs `ListBinaries` and changes nothing. Output goes to `Store/Logs/buildpatchtool.txt`.
 - **Listing and art:** no public store-page API, so each field has Copy. Sizes from Epic's Storefront Media Guide: product logo 960×540 PNG (made from the logo), offer images 2560×1440 and 1200×1600 and social preview 1200×1200 (made from key art + logo), media carousel screenshots 1920×1080 in `Store/shots/epic` (add `"epic"` to a shot's stores).
 - **By hand:** organization and product, attaching the binary to the artifact's Windows platform, regions and age ratings, price, review submission and Release Management.
@@ -33,7 +33,7 @@ Status: seven stores are wired up: Steam (upload with SteamCMD), itch.io (butler
 
 - GOG curates its catalogue: submit the game first. After signing, put the product ID (and an optional upload branch) in Keys & accounts.
 - **Build:** Build Windows (GOG tab) builds into `Build/GOG/Windows`; GOG builds must run without another store's client or DRM.
-- **Upload:** unzip Pipeline Builder (Developer Portal) into `%APPDATA%elease-desk\GOGGalaxyPipelineBuilder`, make the project once in GOG's Build Creator with depot folder `Build/GOG/Windows` and save it as `Store/gog/project.json`. **Upload with Pipeline Builder** runs `build-game` with the release version, an ignore list for debug files and the branch, in its own console so the tool can ask for the GOG login the first time (it caches it). Publish the uploaded build to a branch in the Developer Portal.
+- **Upload:** unzip Pipeline Builder (Developer Portal) into `%APPDATA%\release-desk\GOGGalaxyPipelineBuilder`, make the project once in GOG's Build Creator with depot folder `Build/GOG/Windows` and save it as `Store/gog/project.json`. **Upload with Pipeline Builder** runs `build-game` with the release version, an ignore list for debug files and the branch, in its own console so the tool can ask for the GOG login the first time (it caches it). Publish the uploaded build to a branch in the Developer Portal.
 - **Store page:** description, system requirements and legal lines (Copy), key art and logo (Make capsules; GOG asks for 1920×1080 or larger) and screenshots go to GOG through their Assets Manager.
 
 ## Microsoft Store
@@ -76,12 +76,12 @@ Put one square icon at `Store/art/icon.png` (1024×1024 PNG, transparent backgro
 
 ## What it does
 
-- **Progress you can walk.** Each store page shows its setup progress; the arrows step through the open steps and land on the exact field, box or button that finishes each one (Setup steps has a Go button per step). Store IDs (Steam app and depot, Epic IDs, Android package) are edited on Keys & accounts.
+- **Progress you can walk.** Each store page shows its setup progress; the arrows step through the open steps and land on the exact field, box or button that finishes each one (Setup steps has a Go button per step). Each page keeps its sections as tabs (Listing, Builds, Keys & accounts, Setup steps), with subtabs such as Release, Text, Art and Screenshots; a red dot marks a tab with something to fix. Store IDs, tools and logins are in each store's Keys & accounts tab.
 - **One page per store.** Each store page has its own Listing (text and art in that store's sizes), Builds and Setup steps, so a release focuses on one store at a time. The game name is the shared default each page starts from.
 - **Unity stays in sync.** Product Name, version, icon and Android package are pushed into the Unity project through the Unity CLI.
 - **Automates what the stores allow.** Set up / Refresh runs every step it can and lists the rest as short manual steps with links.
 - **Copy-paste for the rest.** Where a store has no API for its page, each field has a Copy button (text or file path).
-- **Log for humans and agents.** Every run writes a short summary to the project's `Logs/latest.txt`: what passed, what is missing, what blocks a release.
+- **Log for humans and agents.** Every run writes a short summary to the project's `Logs/latest.txt`: what passed, what is missing, what blocks a release. Overview > Log shows it with each tool's log and earlier runs.
 
 ## What each store allows (to verify when implementing)
 
@@ -98,8 +98,7 @@ Store rules (field limits, image sizes, required assets) live in one rules file 
 - **release-desk (this repo, public):** the desk's code and the Unity package. No game data.
 - **Store data (one private repo per game):** listing text, art, screenshots, capture list. Private because unreleased text and art should not sit in a public game repo.
 - **The game's Unity project:** references the desk's Unity package by Git URL (`.../release-desk.git?path=/unity`), which adds the Editor entry points the desk calls (apply PlayerSettings, capture screenshots, build). The game repo holds no store data.
-- **Linking:** the desk takes only the Unity project folder and finds `Store/` inside it. In this setup `Store/` is a private submodule of the game repo; public clones of the game simply skip it. Recent projects are remembered in `%APPDATA%
-elease-desk\config.json`.
+- **Linking:** the desk takes only the Unity project folder and finds `Store/` inside it. In this setup `Store/` is a private submodule of the game repo; public clones of the game simply skip it. Recent projects are remembered in `%APPDATA%\release-desk\config.json`.
 - **Traceability:** each upload records the game's commit and the store-data commit in the log.
 
 ```

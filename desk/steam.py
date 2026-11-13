@@ -77,12 +77,12 @@ def status(project, config):
     cmd = steamcmd_state(config)
     app_id, depot = str(steam.get("appId", "")), str(steam.get("depots", {}).get("windows", ""))
     steps = [
-        {"title": "Steamworks account and app", "go": "keys//ids-steam-appId", "state": "ok" if app_id else "todo", "kind": "hand",
+        {"title": "Steamworks account and app", "go": "steam/keys/ids-steam-appId", "state": "ok" if app_id else "todo", "kind": "hand",
          "detail": "Pay the app fee in Steamworks, then put the App ID and Windows depot ID in Store/store.json.",
          "link": "https://partner.steamgames.com/"},
-        {"title": "Build account", "go": "keys//steam-user", "state": "ok" if cmd["user"] else "todo", "kind": "hand",
+        {"title": "Build account", "go": "steam/keys/steam-user", "state": "ok" if cmd["user"] else "todo", "kind": "hand",
          "detail": "Create a separate Steam account with only 'Edit App Metadata' and 'Publish App Changes To Steam', and enter its name in Keys & accounts."},
-        {"title": "SteamCMD installed and logged in once", "go": "keys//steamcmd", "state": "ok" if cmd["installed"] and cmd["loggedIn"] else "todo", "kind": "hand",
+        {"title": "SteamCMD installed and logged in once", "go": "steam/keys/steamcmd", "state": "ok" if cmd["installed"] and cmd["loggedIn"] else "todo", "kind": "hand",
          "detail": f"Install SteamCMD, then log in once in a terminal so Steam Guard is remembered: \"{cmd['path']}\" +login {cmd['user'] or '<build account>'}"},
         {"title": "Store page text", "go": "steam/listing/steam-text", "state": "ok" if not any(f["problem"] for f in fields) else "todo", "kind": "copy",
          "detail": "Paste the Listing fields into the Steamworks store page editor."},
