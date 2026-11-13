@@ -50,6 +50,7 @@ Put one square icon at `Store/art/icon.png` (1024×1024 PNG, transparent backgro
 
 ## What it does
 
+- **Progress you can walk.** Each store page shows its setup progress; the arrows step through the open steps and land on the exact field, box or button that finishes each one (Setup steps has a Go button per step). Store IDs (Steam app and depot, Epic IDs, Android package) are edited on Keys & accounts.
 - **One page per store.** Each store page has its own Listing (text and art in that store's sizes), Builds and Setup steps, so a release focuses on one store at a time. The game name is the shared default each page starts from.
 - **Unity stays in sync.** Product Name, version, icon and Android package are pushed into the Unity project through the Unity CLI.
 - **Automates what the stores allow.** Set up / Refresh runs every step it can and lists the rest as short manual steps with links.

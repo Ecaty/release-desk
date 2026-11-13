@@ -51,6 +51,33 @@ def overview():
             "stores": progress(p), "jobs": STATE["jobs"]}
 
 
+IDS = {"steam": ("appId", "depot", "branch"), "epic": ("organizationId", "productId", "artifactId", "clientId"), "play": ("package",)}
+
+
+def save_ids(p, data):
+    """Store ids from Keys & accounts into Store/store.json (no secrets)."""
+    store = p.read("store.json", {}) or {}
+    for section, keys in IDS.items():
+        for key, value in (data.get(section) or {}).items():
+            if key not in keys:
+                continue
+            value = str(value).strip()
+            if section == "steam" and key == "depot":
+                store.setdefault("steam", {}).setdefault("depots", {})["windows"] = value
+            elif section == "play":
+                store.setdefault("android", {})["package"] = value
+            else:
+                store.setdefault(section, {})[key] = value
+    p.write("store.json", store)
+
+
+def ids(p):
+    store = p.read("store.json", {}) or {}
+    steam, epic_ids = store.get("steam", {}) or {}, store.get("epic", {}) or {}
+    return {"steam": {"appId": steam.get("appId", ""), "depot": (steam.get("depots", {}) or {}).get("windows", ""), "branch": steam.get("branch", "beta")},
+            "epic": {k: epic_ids.get(k, "") for k in IDS["epic"]}, "play": {"package": (store.get("android", {}) or {}).get("package", "")}}
+
+
 def progress(p):
     """Setup steps done per store, for the overview cards and the counts in the left menu."""
     out = []
@@ -165,7 +192,7 @@ class Handler(BaseHTTPRequestHandler):
                 config = load_config()
                 return self.send(200, {"steamcmd": steam.steamcmd_state(config), "unityCli": bool(unity.cli()),
                                        "play": {"key": play.key_state(project()), "account": play.playapi.account_state()},
-                                       "epic": epic.key_state(project())})
+                                       "epic": epic.key_state(project()), "ids": ids(project())})
             if self.path == "/api/shots":
                 return self.send(200, {"shots": shots.shot_list(project())})
             if self.path == "/api/epic":
@@ -197,6 +224,9 @@ class Handler(BaseHTTPRequestHandler):
         try:
             data = self.body()
             p = STATE["project"]
+            if self.path == "/api/ids":
+                save_ids(project(), data)
+                return self.send(200, {"ok": True})
             if self.path == "/api/jobs/cancel":
                 job = RUNNING.get(str(data.get("name", "")))
                 if not job:
