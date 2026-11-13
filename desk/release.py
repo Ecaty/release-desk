@@ -10,8 +10,8 @@ FIELDS = {
     "whatsNew": {"label": "What's new", "multiline": True, "max": 500,
                  "note": "What players notice, not technical work. Leave it empty and each build records the 'Release-note:' lines committed since the previous build; Fill from commits shows them here to edit. Play shows it as “What’s new” (500 characters). On Steam, paste it into an update event in Steamworks (players see events, not build descriptions)."},
 }
-STORES = {"steam": "Steam", "epic": "Epic Games Store", "play": "Google Play"}
-BUILD_STORE = {"Steam": "steam", "Epic": "epic", "GooglePlay": "play"}
+STORES = {"steam": "Steam", "epic": "Epic Games Store", "gog": "GOG", "microsoft": "Microsoft Store", "play": "Google Play"}
+BUILD_STORE = {"Steam": "steam", "Epic": "epic", "GOG": "gog", "Microsoft": "microsoft", "GooglePlay": "play"}
 NOTES = {"steam": {"name": "Cannot be changed after Valve's pre-release review."}}
 
 

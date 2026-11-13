@@ -1,0 +1,23 @@
+{
+  "store": "microsoft",
+  "checked": "2026-11-13",
+  "sources": [
+    "https://learn.microsoft.com/en-us/windows/apps/publish/publish-your-app/msix/screenshots-and-images",
+    "https://learn.microsoft.com/en-us/windows/apps/publish/msstore-dev-cli/overview"
+  ],
+  "text": {
+    "description": { "label": "Description", "required": true, "max": 10000, "multiline": true }
+  },
+  "art": [
+    { "file": "poster_art", "label": "2:3 poster art", "width": 1440, "height": 2160, "required": true, "formats": ["png"], "make": "capsule", "logo": { "x": 0.5, "y": 0.24, "w": 0.82, "h": 0.3 }, "note": "Main logo image for games; title in the top two-thirds" },
+    { "file": "box_art", "label": "1:1 box art", "width": 2160, "height": 2160, "required": true, "formats": ["png"], "make": "capsule", "logo": { "x": 0.5, "y": 0.3, "w": 0.75, "h": 0.36 }, "note": "Title in the top two-thirds" },
+    { "file": "tile_icon", "label": "1:1 app tile icon", "width": 300, "height": 300, "required": false, "formats": ["png"], "make": "icon", "note": "Recommended; otherwise the Store uses the package logo" },
+    { "file": "super_hero_art", "label": "16:9 super hero art", "width": 3840, "height": 2160, "required": false, "formats": ["png"], "make": "hero", "note": "No title or other text" }
+  ],
+  "package": [
+    { "file": "Square44x44Logo", "size": 44 },
+    { "file": "Square150x150Logo", "size": 150 },
+    { "file": "StoreLogo", "size": 50 }
+  ],
+  "screenshots": { "folder": "shots/microsoft", "minWidth": 1366, "minHeight": 768, "min": 1, "max": 10, "note": "Desktop: 1366×768 or larger (4K supported), PNG up to 50 MB, up to 10." }
+}

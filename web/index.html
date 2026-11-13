@@ -82,7 +82,7 @@ th.sort{cursor:pointer;user-select:none}th.sort:hover{color:var(--ink)}th.sort[d
 .shot figcaption .copy{margin-left:auto}
 .thumb{display:block;max-width:120px;max-height:60px;margin-bottom:4px;border-radius:4px;background:repeating-conic-gradient(var(--line) 0 25%,transparent 0 50%) 0 0/12px 12px}
 .si{display:inline-block;width:16px;height:16px;background:currentColor;-webkit-mask:var(--i) center/contain no-repeat;mask:var(--i) center/contain no-repeat;vertical-align:-3px;margin-right:7px;flex:none}
-.si.steam{--i:url(/icons/steam.svg)}.si.epic{--i:url(/icons/epicgames.svg)}.si.play{--i:url(/icons/googleplay.svg)}
+.si.steam{--i:url(/icons/steam.svg)}.si.epic{--i:url(/icons/epicgames.svg)}.si.play{--i:url(/icons/googleplay.svg)}.si.gog{--i:url(/icons/gogdotcom.svg)}.si.microsoft{--i:url(/icons/microsoftstore.svg)}
 nav a span{display:flex;align-items:center}
 .ov{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--muted);white-space:nowrap}
 .in:disabled{opacity:.6}
@@ -121,6 +121,8 @@ nav small.lvl{font-weight:600;padding:1px 7px;border-radius:999px}.lvl.done{back
     <div class="sep"></div>
     <a href="#steam"><span><i class="si steam"></i>Steam</span> <small id="nav-steam"></small></a>
     <a href="#epic"><span><i class="si epic"></i>Epic Games Store</span> <small id="nav-epic"></small></a>
+    <a href="#gog"><span><i class="si gog"></i>GOG</span> <small id="nav-gog"></small></a>
+    <a href="#microsoft"><span><i class="si microsoft"></i>Microsoft Store</span> <small id="nav-microsoft"></small></a>
     <a href="#play"><span><i class="si play"></i>Google Play</span> <small id="nav-play"></small></a>
     <div class="sep"></div>
     <a href="#keys"><span><span class="ms" aria-hidden="true">key</span>Keys &amp; accounts</span></a>
@@ -147,7 +149,9 @@ const chip = (state, label) => `<span class="chip ${state}">${chipIcon[state] ? 
 const kindChip = k => ({hand: `<span class="chip hand">${ic("front_hand")}by hand</span>`, copy: `<span class="chip hand">${ic("content_copy")}copy</span>`, desk: chip("auto", "desk")})[k] || "";
 const mark = s => s === "ok" ? `<span class="mark ok">${ic("check_circle")}</span>` : `<span class="mark hand">${ic("radio_button_unchecked")}</span>`;
 let steamTab = "listing", playTab = "listing", epicTab = "listing";
-const setTab = (store, tab) => { if (store === "play") playTab = tab; else if (store === "epic") epicTab = tab; else steamTab = tab; };
+const otherTabs = {gog: "listing", microsoft: "listing"};
+const STORE_NAMES = {steam: "Steam", epic: "Epic Games Store", gog: "GOG", microsoft: "Microsoft Store", play: "Google Play"};
+const setTab = (store, tab) => { if (store === "play") playTab = tab; else if (store === "epic") epicTab = tab; else if (store in otherTabs) otherTabs[store] = tab; else steamTab = tab; };
 let stepFocus = {store: "", index: -1};
 // Progress for a store page header: bar, count (opens all steps), next open step, and arrows through the open steps.
 function progressHead(store, steps, label = "") {
@@ -306,10 +310,25 @@ const views = {
 </div>${progressHead("play", p.steps)}
       ${tabBar(playTab, {listing: "Listing", builds: "Builds", steps: "Setup steps"})}<div id="jobs"></div>${body}`;
   },
+  async gog() {
+    const d = await api("/api/gog"), b = d.build, k = d.key;
+    return handStore("gog", "GOG", "GOG curates its catalogue. Builds upload through GOG's Pipeline Builder; the store assets go to GOG through their Assets Manager.", d,
+      `<div class="actions"><button class="btn" data-act="build" data-kind="gog-windows">${ic("build")}Build Windows</button><button class="btn" data-act="run-win" data-kind="gog-windows" ${b.exists ? "" : "disabled"}>${ic("play_arrow")}Run</button>
+        <button class="btn primary" data-act="gog-upload" id="gog-upload" ${k.ready && b.exists ? "" : "disabled"}>${ic("cloud_upload")}Upload with Pipeline Builder</button></div>
+      <p class="note">Unity opens on its own if it is closed. The upload runs in its own window so Pipeline Builder can ask for the GOG login there the first time (it keeps it); the desk never sees it. Publish the build to a branch in the Developer Portal afterwards.</p>`);
+  },
+  async microsoft() {
+    const d = await api("/api/microsoft"), b = d.build, k = d.key;
+    return handStore("microsoft", "Microsoft Store", "The first release is submitted by hand in Partner Center; after that the desk packages an MSIX and publishes updates with Microsoft's msstore CLI.", d,
+      `<div class="actions"><button class="btn" data-act="build" data-kind="microsoft-windows">${ic("build")}Build Windows</button><button class="btn" data-act="run-win" data-kind="microsoft-windows" ${b.exists ? "" : "disabled"}>${ic("play_arrow")}Run</button>
+        <button class="btn" data-act="ms-package" ${b.exists && k.makeappx ? "" : "disabled"}>${ic("apps")}Package MSIX</button>
+        <button class="btn primary" data-act="ms-publish" id="microsoft-upload" ${k.ready ? "" : "disabled"}>${ic("publish")}Publish update</button></div>
+      <p class="note">Package MSIX wraps the Windows build as version ${esc(d.msixVersion)} (major.minor.build.0) with the identity from Keys &amp; accounts; the Store signs it. Publish update runs msstore publish with the newest MSIX in Build/Microsoft. Microsoft's CLI updates free products only for now.</p>`);
+  },
   async keys() {
     const k = await api("/api/keys");
     // Arriving from a store's setup steps: keep that store's progress and arrows here.
-    const tour = stepFocus.store ? await api("/api/" + stepFocus.store).then(st => progressHead(stepFocus.store, st.steps, {steam: "Steam", epic: "Epic Games Store", play: "Google Play"}[stepFocus.store])).catch(() => "") : "";
+    const tour = stepFocus.store ? await api("/api/" + stepFocus.store).then(st => progressHead(stepFocus.store, st.steps, STORE_NAMES[stepFocus.store])).catch(() => "") : "";
     const idField = (section, key, label, note) => `<div class="field"><label for="ids-${section}-${key}">${esc(label)}</label><div><input id="ids-${section}-${key}" class="in mono" value="${esc(k.ids[section][key])}" ${k.ids[section][key] ? "" : "data-problem"}>${note ? `<div class="note">${esc(note)}</div>` : ""}</div><span></span></div>`;
     const idSave = section => `<div class="actions"><button class="btn primary" data-act="save-ids" data-section="${section}">${ic("save")}Save</button></div>`;
     const c = k.steamcmd;
@@ -326,6 +345,17 @@ const views = {
         <tr id="epic-secret"><td>Client secret</td><td class="mono">Credential Manager: ${esc(k.epic.credential)}</td><td>${k.epic.stored ? chip("ok", "stored") : chip("bad", "missing")}</td></tr></table>
         <div class="actions"><button class="btn" data-act="epic-secret" ${k.epic.ids.productId && k.epic.ids.clientId ? "" : "disabled"}>${ic("key")}Save BPT secret</button></div>
         <p class="note">Download the BuildPatch Tool from the Developer Portal (Artifacts and Binaries) and unzip it into the folder above. Save BPT secret opens a console where cmdkey asks for the secret; the desk never sees it.</p></div>
+      <div class="box"><h3>GOG</h3>
+        ${idField("gog", "productId", "Product ID", "From the GOG Developer Portal after GOG accepts the game.")}${idField("gog", "branch", "Upload branch", "Optional; Pipeline Builder cannot publish to master.")}${idSave("gog")}
+        <table><tr id="gog-tool"><td>Pipeline Builder</td><td class="mono">${esc(k.gog.tool || k.gog.toolFolder)}</td><td>${k.gog.installed ? chip("ok", "found") : chip("bad", "missing")}</td></tr>
+        <tr id="gog-project"><td>Build Creator project</td><td class="mono">${esc(k.gog.project.path)}</td><td>${k.gog.project.problem ? chip("bad", k.gog.project.problem) : chip("ok", "found")}</td></tr></table>
+        <p class="note">Download Pipeline Builder from the GOG Developer Portal and unzip it into the folder above. Make the project once in GOG's Build Creator with the depot folder Build/GOG/Windows and save it at the path above.</p></div>
+      <div class="box"><h3>Microsoft Store</h3>
+        ${idField("microsoft", "productId", "Store ID", "Partner Center > your app > Product identity.")}${idField("microsoft", "identityName", "Package identity name", "Package/Identity/Name")}${idField("microsoft", "publisher", "Publisher", "Package/Identity/Publisher, e.g. CN=…")}${idField("microsoft", "publisherName", "Publisher display name")}${idSave("microsoft")}
+        <table id="microsoft-tools"><tr><td>makeappx (Windows SDK)</td><td class="mono">${esc(k.microsoft.makeappx || "not found")}</td><td>${k.microsoft.makeappx ? chip("ok", "found") : chip("bad", "missing")}</td></tr>
+        <tr><td>msstore CLI</td><td class="mono">${esc(k.microsoft.msstore || "not installed")}</td><td>${k.microsoft.msstore ? chip("ok", "found") : chip("bad", "missing")}</td></tr></table>
+        <div class="actions"><button class="btn" data-act="ms-setup" ${k.microsoft.msstore ? "" : "disabled"}>${ic("key")}Set up msstore</button></div>
+        <p class="note">Install the Microsoft Store Developer CLI from Microsoft. Set up msstore opens its own console for the Partner Center API values (tenant, seller, client ID and secret); the desk never sees them.</p></div>
       <div class="box"><h3>Google Play</h3>
         ${idField("play", "package", "Android package", "Application id, e.g. com.studio.game. It cannot change after the first upload; Push to Unity afterwards.")}${idSave("play")}
         <table><tr id="play-key"><td>Upload keystore</td><td class="mono">${esc(k.play.key.keystore)}</td><td>${k.play.key.exists ? chip("ok", "found") : chip("bad", "missing")}</td></tr>
@@ -346,6 +376,25 @@ const views = {
   },
 };
 
+async function handStore(id, title, intro, d, buildActions) {
+  const r = await api("/api/release");
+  const tab = otherTabs[id];
+  let body = "";
+  if (tab === "listing") {
+    const fields = d.fields.map(f => `<div class="field"><label for="${id}-f-${f.key}">${esc(f.label)}</label>
+      <div>${f.multiline ? `<textarea id="${id}-f-${f.key}" class="in" rows="6" ${f.problem ? "data-problem" : ""}>${esc(f.value)}</textarea>` : `<input id="${id}-f-${f.key}" class="in" value="${esc(f.value)}" ${f.readonly ? "disabled" : ""} ${f.problem && !f.readonly ? "data-problem" : ""}>`}${f.note ? `<div class="note">${esc(f.note)}</div>` : ""}</div>
+      <div><span class="meta">${f.value.length}${f.max ? " / " + f.max : ""}</span> <button class="copy" data-copyfrom="${id}-f-${f.key}">${ic("content_copy")}Copy</button>${f.problem ? "<br>" + chip("bad", f.problem) : ""}</div></div>`).join("");
+    body = `${releaseBox(r, id)}<div class="box" id="${id}-text"><h3>Text</h3>${fields}<div class="actions"><button class="btn primary" data-act="save-hand" data-store="${id}">${ic("save")}Save</button></div></div>
+      ${artBox(id, d)}${await shotsBox(id, d.screenshots)}`;
+  } else if (tab === "builds") {
+    body = `<div class="box" id="${id}-builds">${buildTable(id, d.build.history, [["uploaded", title, h => h.uploaded ? chip("ok", h.uploaded) : h.exists ? chip("hand", "not uploaded") : chip("hand", "replaced")]])}
+      <p class="note mono">${esc(d.build.folder)}</p>${buildActions}</div>`;
+  } else {
+    body = stepsBox(d.steps, id);
+  }
+  return `<div class="head"><div><h2>${esc(title)}</h2><p>${esc(intro)}</p></div></div>${progressHead(id, d.steps)}
+    ${tabBar(tab, {listing: "Listing", builds: "Builds", steps: "Setup steps"})}<div id="jobs"></div>${body}`;
+}
 function artBox(store, s) {
   const rows = s.art.map(a => `<tr><td>${a.state !== "missing" && a.state !== "optional" && /\.(png|jpg)$/.test(a.file) ? `<img class="thumb" src="/store-file/${encodeURI(a.file)}?t=${Date.now()}" alt="">` : ""}${esc(a.label)}</td><td class="mono">${esc(a.expected)}</td><td class="mono">${esc(a.file)}</td><td>${
     a.state === "ok" ? chip("ok", "ok") : a.state === "optional" ? chip("hand", "optional") : a.state === "missing" ? chip("bad", "missing") : chip("bad", a.problem)}</td></tr>`).join("");
@@ -459,7 +508,7 @@ document.addEventListener("click", async e => {
   if (!t) return;
   try {
     if (t.dataset.sort) { const [id, key] = t.dataset.sort.split(":"); const cur = sorts[id] || {key: "finished", dir: -1}; sorts[id] = {key, dir: cur.key === key ? -cur.dir : -1}; return render(); }
-    if (t.dataset.tab) { if (location.hash === "#play") playTab = t.dataset.tab; else if (location.hash === "#epic") epicTab = t.dataset.tab; else steamTab = t.dataset.tab; return render(); }
+    if (t.dataset.tab) { setTab((location.hash || "#steam").slice(1), t.dataset.tab); return render(); }
     if (t.dataset.copyfrom) return copy($("#" + t.dataset.copyfrom).value);
     if (t.dataset.text !== undefined) return copy(t.dataset.text);
     if (t.dataset.recent) { await api("/api/open", {path: t.dataset.recent}); location.hash = "#overview"; return render(); }
@@ -494,6 +543,8 @@ document.addEventListener("click", async e => {
       await api("/api/ids", {[section]: values}); toast("Saved to Store/store.json"); return render();
     }
     if (act === "cancel-job") { await api("/api/jobs/cancel", {name: t.dataset.job}); toast("Cancelling"); return updateJobs(); }
+    if (act === "save-hand") { const id = t.dataset.store, d = {}; document.querySelectorAll(`[id^=${id}-f-]`).forEach(el => { if (!el.disabled) d[el.id.slice(id.length + 3)] = el.value; }); await api(`/api/${id}/listing`, d); toast(`Saved to Store/${id}/listing.json`); return render(); }
+    if (act === "ms-setup") { const m = await api("/api/microsoft/setup", {}); return toast(m.message); }
     if (act === "save-epic") { const d = {}; document.querySelectorAll("[id^=ep-]").forEach(el => { if (!el.id.startsWith("ep-ro-")) d[el.id.slice(3)] = el.value; }); await api("/api/epic/listing", d); toast("Saved to Store/epic/listing.json"); return render(); }
     if (act === "epic-secret") { const k = await api("/api/epic/secret", {}); return toast(k.message); }
     if (act === "save-play-settings") { await api("/api/play/settings", {track: $("#play-track").value, status: $("#play-status").value}); toast("Saved to Store/store.json"); return render(); }
@@ -501,7 +552,7 @@ document.addEventListener("click", async e => {
     if (act === "save-user") { await api("/api/keys/steam-user", {user: $("#steam-user").value}); toast("Saved"); return render(); }
     if (act === "copy-log") return copy($("#logtext").textContent);
     if (act === "run-win") { const r = await api("/api/run/windows", {kind: t.dataset.kind || "steam-windows"}); return toast(r.message); }
-    const jobs = {"push-unity": ["/api/unity/apply", {}], "build": ["/api/build", {kind: t.dataset.kind}], "install": ["/api/play/install", {}], "capture": ["/api/shots/capture", {only: t.dataset.only || ""}], "icons": ["/api/art/icons", {}], "capsules": ["/api/art/capsules", {}], "play-preview": ["/api/play/publish", {preview: true}], "play-check": ["/api/play/check", {}], "epic-check": ["/api/epic/check", {}], "epic-upload": ["/api/epic/upload", {}], "play-publish": ["/api/play/publish", {preview: false}], "upload-preview": ["/api/steam/upload", {preview: true}], "upload": ["/api/steam/upload", {preview: false}]};
+    const jobs = {"push-unity": ["/api/unity/apply", {}], "build": ["/api/build", {kind: t.dataset.kind}], "install": ["/api/play/install", {}], "capture": ["/api/shots/capture", {only: t.dataset.only || ""}], "icons": ["/api/art/icons", {}], "capsules": ["/api/art/capsules", {}], "play-preview": ["/api/play/publish", {preview: true}], "play-check": ["/api/play/check", {}], "epic-check": ["/api/epic/check", {}], "gog-upload": ["/api/gog/upload", {}], "ms-package": ["/api/microsoft/package", {}], "ms-publish": ["/api/microsoft/publish", {}], "epic-upload": ["/api/epic/upload", {}], "play-publish": ["/api/play/publish", {preview: false}], "upload-preview": ["/api/steam/upload", {preview: true}], "upload": ["/api/steam/upload", {preview: false}]};
     if (jobs[act]) { await api(...jobs[act]); toast("Started; progress shows under Runs"); updateJobs(); }
   } catch (err) { toast(err.message); }
 });

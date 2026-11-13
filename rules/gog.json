@@ -1,0 +1,19 @@
+{
+  "store": "gog",
+  "checked": "2026-11-13",
+  "sources": [
+    "https://docs.gog.com/basic-game-assets/",
+    "https://docs.gog.com/pb-build-game/",
+    "https://docs.gog.com/build-delivery/"
+  ],
+  "text": {
+    "description": { "label": "Store description", "required": true, "multiline": true, "note": "GOG supports EN, DE, FR, CN, PL and RU descriptions." },
+    "systemRequirements": { "label": "System requirements", "required": true, "multiline": true },
+    "legal": { "label": "Legal lines", "required": true, "multiline": true, "note": "Copyright and trademark lines shown on the store page." }
+  },
+  "art": [
+    { "file": "key_art", "label": "Key art (no logo)", "width": 3840, "height": 2160, "required": true, "formats": ["png"], "make": "hero", "note": "GOG asks for key art and logo in high resolution (at least 1920×1080), ideally as a layered PSD; send these two layers" },
+    { "file": "logo", "label": "Logo", "width": 1920, "height": 1080, "required": true, "formats": ["png"], "fit": "either", "make": "logo", "note": "Transparent PNG, 1920 wide and/or 1080 tall" }
+  ],
+  "screenshots": { "folder": "shots/gog", "minWidth": 1920, "minHeight": 1080, "min": 1, "note": "Screenshots go to GOG through their Assets Manager with the other store assets." }
+}

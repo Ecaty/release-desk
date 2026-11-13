@@ -9,7 +9,7 @@ import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from . import art, builds, epic, jobs, play, release, shots, steam, unity
+from . import art, builds, epic, gog, jobs, microsoft, play, release, shots, steam, unity
 from .project import Project, load_config, save_config
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -51,7 +51,8 @@ def overview():
             "stores": progress(p), "jobs": STATE["jobs"]}
 
 
-IDS = {"steam": ("appId", "depot", "branch"), "epic": ("organizationId", "productId", "artifactId", "clientId"), "play": ("package",)}
+IDS = {"steam": ("appId", "depot", "branch"), "epic": ("organizationId", "productId", "artifactId", "clientId"), "gog": ("productId", "branch"),
+       "microsoft": ("productId", "identityName", "publisher", "publisherName"), "play": ("package",)}
 
 
 def save_ids(p, data):
@@ -75,13 +76,16 @@ def ids(p):
     store = p.read("store.json", {}) or {}
     steam, epic_ids = store.get("steam", {}) or {}, store.get("epic", {}) or {}
     return {"steam": {"appId": steam.get("appId", ""), "depot": (steam.get("depots", {}) or {}).get("windows", ""), "branch": steam.get("branch", "beta")},
-            "epic": {k: epic_ids.get(k, "") for k in IDS["epic"]}, "play": {"package": (store.get("android", {}) or {}).get("package", "")}}
+            "epic": {k: epic_ids.get(k, "") for k in IDS["epic"]},
+            "gog": {k: (store.get("gog", {}) or {}).get(k, "") for k in IDS["gog"]},
+            "microsoft": {k: (store.get("microsoft", {}) or {}).get(k, "") for k in IDS["microsoft"]}, "play": {"package": (store.get("android", {}) or {}).get("package", "")}}
 
 
 def progress(p):
     """Setup steps done per store, for the overview cards and the counts in the left menu."""
     out = []
     for sid, name, steps in (("steam", "Steam", steam.status(p, load_config())["steps"]), ("epic", "Epic Games Store", epic.status(p)["steps"]),
+                             ("gog", "GOG", gog.status(p)["steps"]), ("microsoft", "Microsoft Store", microsoft.status(p)["steps"]),
                              ("play", "Google Play", play.status(p)["steps"])):
         open_steps = [x for x in steps if x["state"] != "ok"]
         out.append({"id": sid, "name": name, "done": len(steps) - len(open_steps), "total": len(steps),
@@ -113,6 +117,7 @@ def run_job(name, fn):
         minutes = round((time.time() - started) / 60, 1)
         p.log(f"{name}: {'ok' if state == 'done' else state} ({minutes} min)", str(message).splitlines()[:12]
               + (play.summary_lines(p) if "Play" in name or "AAB" in name else epic.summary_lines(p) if "Epic" in name
+                 else gog.summary_lines(p) if "GOG" in name else microsoft.summary_lines(p) if "Microsoft" in name
                  else steam.summary_lines(p, load_config())))
 
     threading.Thread(target=work, daemon=True).start()
@@ -192,9 +197,14 @@ class Handler(BaseHTTPRequestHandler):
                 config = load_config()
                 return self.send(200, {"steamcmd": steam.steamcmd_state(config), "unityCli": bool(unity.cli()),
                                        "play": {"key": play.key_state(project()), "account": play.playapi.account_state()},
-                                       "epic": epic.key_state(project()), "ids": ids(project())})
+                                       "epic": epic.key_state(project()), "gog": gog.key_state(project()),
+                                       "microsoft": microsoft.key_state(project()), "ids": ids(project())})
             if self.path == "/api/shots":
                 return self.send(200, {"shots": shots.shot_list(project())})
+            if self.path == "/api/gog":
+                return self.send(200, gog.status(project()))
+            if self.path == "/api/microsoft":
+                return self.send(200, microsoft.status(project()))
             if self.path == "/api/epic":
                 return self.send(200, epic.status(project()))
             if self.path == "/api/play":
@@ -249,6 +259,20 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(200, {"ok": True})
             if self.path == "/api/play/check":
                 return self.send(200, run_job("Google Play: check", lambda: play.check(project())))
+            if self.path in ("/api/gog/listing", "/api/microsoft/listing"):
+                module = gog if "gog" in self.path else microsoft
+                from . import storekit
+                storekit.save_listing(project(), "gog" if module is gog else "microsoft", module.RULES, data)
+                return self.send(200, {"ok": True})
+            if self.path == "/api/gog/upload":
+                return self.send(200, run_job("GOG: upload", lambda: gog.upload(project())))
+            if self.path == "/api/microsoft/package":
+                return self.send(200, run_job("Microsoft Store: package MSIX", lambda: microsoft.package(project())))
+            if self.path == "/api/microsoft/publish":
+                return self.send(200, run_job("Microsoft Store: publish", lambda: microsoft.publish(project())))
+            if self.path == "/api/microsoft/setup":
+                ok, message = microsoft.setup_cli(project())
+                return self.send(200 if ok else 400, {"ok": ok, "error": message, "message": message})
             if self.path == "/api/epic/listing":
                 epic.save_listing(project(), data)
                 return self.send(200, {"ok": True})
@@ -280,7 +304,8 @@ class Handler(BaseHTTPRequestHandler):
                 save_config(config)
                 return self.send(200, {"ok": True})
             if self.path == "/api/refresh":
-                text = project().log("Refresh", steam.summary_lines(project(), load_config()) + epic.summary_lines(project()) + play.summary_lines(project()))
+                text = project().log("Refresh", steam.summary_lines(project(), load_config()) + epic.summary_lines(project()) + gog.summary_lines(project())
+                                    + microsoft.summary_lines(project()) + play.summary_lines(project()))
                 return self.send(200, {"text": text})
             if self.path == "/api/unity/apply":
                 return self.send(200, run_job("Push to Unity", apply_to_unity))

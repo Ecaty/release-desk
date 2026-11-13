@@ -2,7 +2,7 @@
 
 A local dashboard that keeps everything a game needs for its stores in one place: the listing text and art, builds, per-store setup steps, key status and a run log. It is reusable across projects; each project keeps its own data in a `Store/` folder.
 
-Status: all three stores are wired up. Steam works end to end up to the upload (listing, art, icons and capsules, screenshots, Unity settings sync, Windows build, SteamPipe upload with preview). Google Play has listing, art, upload key, signed release AAB, track and release-status choice, a read-only track check and publishing through the Play Developer API. Epic has listing and art checks, a Windows build and Dev-sandbox upload through Epic's BuildPatch Tool. Real Play and Epic uploads wait for their developer accounts. Design mockup: `prototypes/dashboard.html`.
+Status: five stores are wired up: Steam (upload with SteamCMD), Epic Games Store (BuildPatch Tool), GOG (Pipeline Builder), Microsoft Store (MSIX + msstore CLI) and Google Play (Play Developer API). Each has listing and art checks, its own Windows or Android build and setup steps that jump to the field that finishes them. Real uploads to Epic, GOG, Microsoft and Play wait for their developer accounts. Design mockup: `prototypes/dashboard.html`.
 
 ## Use
 
@@ -22,6 +22,20 @@ Status: all three stores are wired up. Steam works end to end up to the upload (
 - **Upload:** **Build Windows** (Epic tab) builds into `Build/Epic/Windows`; **Upload to Dev sandbox** runs BPT `UploadBinary` with build version `<version>-b<build>-<commit>` and an ignore list for debug files. A PowerShell helper reads the secret from Credential Manager into BPT's own environment (`-ClientSecretEnvVar`), so the desk never holds it. **Check connection** runs `ListBinaries` and changes nothing. Output goes to `Store/Logs/buildpatchtool.txt`.
 - **Listing and art:** no public store-page API, so each field has Copy. Sizes from Epic's Storefront Media Guide: product logo 960×540 PNG (made from the logo), offer images 2560×1440 and 1200×1600 and social preview 1200×1200 (made from key art + logo), media carousel screenshots 1920×1080 in `Store/shots/epic` (add `"epic"` to a shot's stores).
 - **By hand:** organization and product, attaching the binary to the artifact's Windows platform, regions and age ratings, price, review submission and Release Management.
+
+## GOG
+
+- GOG curates its catalogue: submit the game first. After signing, put the product ID (and an optional upload branch) in Keys & accounts.
+- **Build:** Build Windows (GOG tab) builds into `Build/GOG/Windows`; GOG builds must run without another store's client or DRM.
+- **Upload:** unzip Pipeline Builder (Developer Portal) into `%APPDATA%elease-desk\GOGGalaxyPipelineBuilder`, make the project once in GOG's Build Creator with depot folder `Build/GOG/Windows` and save it as `Store/gog/project.json`. **Upload with Pipeline Builder** runs `build-game` with the release version, an ignore list for debug files and the branch, in its own console so the tool can ask for the GOG login the first time (it caches it). Publish the uploaded build to a branch in the Developer Portal.
+- **Store page:** description, system requirements and legal lines (Copy), key art and logo (Make capsules; GOG asks for 1920×1080 or larger) and screenshots go to GOG through their Assets Manager.
+
+## Microsoft Store
+
+- **First release by hand** in Partner Center (the CLI cannot create it): reserve the name, copy the Store ID and Product identity values into Keys & accounts, upload the first MSIX, age ratings, pricing and listing.
+- **Package MSIX:** copies the Windows build (`Build/Microsoft/Windows`) to a staging folder with a generated `AppxManifest.xml` (full-trust desktop app, identity from Keys & accounts, version `major.minor.build.0`, microphone capability) and logos made from the icon, then runs `makeappx` from the Windows SDK. The Store signs packages it distributes.
+- **Publish update:** `msstore publish <msix> -id <Store ID>` with the Microsoft Store Developer CLI; **Set up msstore** opens its own console for the Partner Center API values, so the desk never sees them. Microsoft's CLI currently updates free products only.
+- **Listing:** description (Copy), 2:3 poster art 1440×2160 and 1:1 box art 2160×2160 (key art + logo), 300×300 tile icon (from the icon), 16:9 super hero art 3840×2160 without text, screenshots 1366×768 or larger in `Store/shots/microsoft`.
 
 ## Google Play
 
@@ -104,6 +118,9 @@ The desk never shows or stores secret values; it only checks that each one exist
 - Implementation order: Google Play first end to end (fully automatable, matches the Android test phone), then Steam builds, then Epic builds.
 
 ## Later
+
+- **Apple App Store:** needs a Mac with Xcode to build and sign, and review of the downloaded-recipe question (guideline 2.5.2); see the game's distribution notes.
+- **Samsung Galaxy Store:** same AAB as Google Play, uploaded through Samsung's Seller Portal; small extra Android reach.
 
 - **Branch builds:** a Refresh that lists the game's branches (a small branch view) with a Build button per branch. The branch is checked out in place in the game project: the desk refuses when there are uncommitted changes or unsaved scenes, waits for Unity to reimport, builds, and switches back to the previous branch afterwards.
 - **Build machine:** if the main PC should stay free during builds (candidate: a laptop with an i7-4500U, 2 cores, 16 GB, so expect builds a few times slower than the main PC), a GitHub Actions self-hosted runner on a second machine can build a chosen branch; the desk would start the run and collect the result. Only manual runs and the owner's pushes may trigger it (the game repo is public).
