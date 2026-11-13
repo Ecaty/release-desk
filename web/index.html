@@ -95,6 +95,13 @@ nav .ms{margin-right:7px}.mark .ms{font-size:18px}.mark.ok .ms{font-variation-se
 .select{position:relative;display:block}.select select{appearance:none;-webkit-appearance:none;padding-left:12px;padding-right:40px;cursor:pointer}
 .select::after{content:"expand_more";font-family:"Material Symbols Outlined";font-feature-settings:"liga";font-size:20px;line-height:1;position:absolute;right:12px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--muted)}
 .box h3:has(+.sub){display:inline-block;margin-right:10px}.box h3+.sub{display:inline-block;margin:0 0 12px}
+.phead{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:center}
+.phead .meter{grid-column:1/-1;height:8px}.phead .row{font-size:13px;color:var(--muted);min-width:0}
+.link{border:none;background:none;padding:0;color:var(--accent);cursor:pointer;font:inherit;text-align:left}.link:hover{text-decoration:underline}
+.iconbtn{border:1px solid var(--line);background:var(--panel);border-radius:6px;width:30px;height:28px;display:inline-grid;place-items:center;cursor:pointer;color:var(--ink)}
+.iconbtn:hover{border-color:var(--accent)}.iconbtn .ms{margin:0}
+.steps li.focus{background:var(--soft);border-radius:8px;box-shadow:inset 3px 0 0 var(--accent);padding-left:8px;padding-right:8px}
+nav small.lvl{font-weight:600;padding:1px 7px;border-radius:999px}.lvl.done{background:var(--ok-bg);color:var(--ok)}.lvl.part{background:var(--warn-bg);color:var(--warn)}.lvl.none{background:var(--bad-bg);color:var(--bad)}
 .toast{position:fixed;right:16px;bottom:16px;background:var(--ink);color:var(--bg);padding:8px 12px;border-radius:8px;font-size:13px;max-width:60ch}
 @media (max-width:820px){.wrap{grid-template-columns:minmax(0,1fr)}nav{flex-direction:row;flex-wrap:wrap}nav .sep{display:none}.cards{grid-template-columns:minmax(0,1fr)}.field{grid-template-columns:minmax(0,1fr) auto}.field label{grid-column:1/-1}}
 </style>
@@ -133,6 +140,26 @@ const chip = (state, label) => `<span class="chip ${state}">${chipIcon[state] ? 
 const kindChip = k => ({hand: `<span class="chip hand">${ic("front_hand")}by hand</span>`, copy: `<span class="chip hand">${ic("content_copy")}copy</span>`, desk: chip("auto", "desk")})[k] || "";
 const mark = s => s === "ok" ? `<span class="mark ok">${ic("check_circle")}</span>` : `<span class="mark hand">${ic("radio_button_unchecked")}</span>`;
 let steamTab = "listing", playTab = "listing", epicTab = "listing";
+const setTab = (store, tab) => { if (store === "play") playTab = tab; else if (store === "epic") epicTab = tab; else steamTab = tab; };
+let stepFocus = {store: "", index: -1};
+// Progress for a store page header: bar, count (opens all steps), next open step, and arrows through the open steps.
+function progressHead(store, steps) {
+  const done = steps.filter(x => x.state === "ok").length;
+  const open = steps.map((x, i) => [x, i]).filter(([x]) => x.state !== "ok");
+  const shown = stepFocus.store === store && steps[stepFocus.index] && steps[stepFocus.index].state !== "ok" ? [steps[stepFocus.index], stepFocus.index] : open[0];
+  return `<div class="phead"><div class="meter"><i style="width:${Math.round(100 * done / Math.max(1, steps.length))}%"></i></div>
+    <div class="row"><button class="link" data-act="steps-all" data-store="${store}">${done} of ${steps.length} done</button>${shown
+      ? ` · ${stepFocus.store === store ? "" : "next: "}<button class="link" data-act="step-go" data-store="${store}" data-index="${shown[1]}">${esc(shown[0].title)}</button>` : " · all done"}</div>
+    ${open.length ? `<span class="actions"><button class="iconbtn" data-act="step-prev" data-store="${store}" aria-label="Previous open step" title="Previous open step">${ic("chevron_left")}</button><button class="iconbtn" data-act="step-next" data-store="${store}" aria-label="Next open step" title="Next open step">${ic("chevron_right")}</button></span>` : ""}</div>`;
+}
+async function goToStep(store, index) {
+  stepFocus = {store, index};
+  setTab(store, "steps");
+  if (location.hash !== "#" + store) location.hash = "#" + store;
+  await render();
+  document.querySelector(`[data-step="${index}"]`)?.scrollIntoView({block: "center", behavior: "smooth"});
+}
+const levelOf = (done, total) => done >= total ? "done" : done > 0 ? "part" : "none";
 const storeIcon = id => `<i class="si ${id}"></i>`;
 const fieldInput = (id, f, value, disabled) => f.multiline
   ? `<textarea id="${id}" class="in" rows="4" ${disabled ? "disabled" : ""}>${esc(value)}</textarea>`
@@ -185,8 +212,6 @@ const views = {
   },
   async steam() {
     const [s, r] = await Promise.all([api("/api/steam"), api("/api/release")]);
-    const done = s.steps.filter(x => x.state === "ok").length;
-    $("#nav-steam").textContent = `${done}/${s.steps.length}`;
     const tabs = ["listing", "builds", "steps"].map(t => `<button role="tab" aria-selected="${t === steamTab}" data-tab="${t}">${{listing: "Listing", builds: "Builds", steps: "Setup steps"}[t]}</button>`).join("");
     let body = "";
     if (steamTab === "listing") {
@@ -204,16 +229,14 @@ const views = {
         <div class="actions"><button class="btn" data-act="build" data-kind="steam-windows">${ic("build")}Build Windows</button><button class="btn" data-act="run-win" ${b.exists ? "" : "disabled"}>${ic("play_arrow")}Run</button><button class="btn" data-act="upload-preview">${ic("visibility")}Upload preview (nothing sent)</button><button class="btn primary" data-act="upload">${ic("cloud_upload")}Upload to ${esc(s.branch)}</button></div>
         <p class="note">Unity opens on its own if it is closed. Uploads use the SteamCMD login cached by your one-time terminal login; the desk never sees the password.</p></div>`;
     } else {
-      body = stepsBox(s.steps);
+      body = stepsBox(s.steps, "steam");
     }
     return `<div class="head"><div><h2>Steam</h2><p>Builds upload through SteamCMD. The store page has no public API, so copy each value into Steamworks.</p></div>
-</div>
+</div>${progressHead("steam", s.steps)}
       <div class="tabs" role="tablist">${tabs}</div><div id="jobs"></div>${body}`;
   },
   async epic() {
     const [e, r] = await Promise.all([api("/api/epic"), api("/api/release")]);
-    const done = e.steps.filter(x => x.state === "ok").length;
-    $("#nav-epic").textContent = `${done}/${e.steps.length}`;
     let body = "";
     if (epicTab === "listing") {
       const fields = e.fields.map(f => `<div class="field"><label for="ep-${f.key}">${esc(f.label)}</label>
@@ -230,15 +253,13 @@ const views = {
           <button class="btn" data-act="epic-check" ${k.ready ? "" : "disabled"}>${ic("check")}Check connection</button><button class="btn primary" data-act="epic-upload" ${k.ready && b.exists ? "" : "disabled"}>${ic("cloud_upload")}Upload to Dev sandbox</button></div>
         <p class="note">Unity opens on its own if it is closed. Check connection lists the binaries Epic has (changes nothing). Uploads use Epic's BuildPatch Tool with the client secret from Credential Manager; the desk never sees it. Attach the uploaded binary to the Windows platform in the Developer Portal.</p></div>`;
     } else {
-      body = stepsBox(e.steps);
+      body = stepsBox(e.steps, "epic");
     }
-    return `<div class="head"><div><h2>Epic Games Store</h2><p>Builds upload through Epic's BuildPatch Tool. The store page has no public API, so copy each value into the Developer Portal.</p></div></div>
+    return `<div class="head"><div><h2>Epic Games Store</h2><p>Builds upload through Epic's BuildPatch Tool. The store page has no public API, so copy each value into the Developer Portal.</p></div></div>${progressHead("epic", e.steps)}
       ${tabBar(epicTab, {listing: "Listing", builds: "Builds", steps: "Setup steps"})}<div id="jobs"></div>${body}`;
   },
   async play() {
     const [p, r] = await Promise.all([api("/api/play"), api("/api/release")]);
-    const done = p.steps.filter(x => x.state === "ok").length;
-    $("#nav-play").textContent = `${done}/${p.steps.length}`;
     let body = "";
     if (playTab === "listing") {
       const fields = p.fields.map(f => `<div class="field"><label for="pl-${f.key}">${esc(f.label)}</label>
@@ -262,10 +283,10 @@ const views = {
         <div class="actions"><button class="btn" data-act="play-check" ${account.found && p.key.package ? "" : "disabled"}>${ic("check")}Check Play</button><button class="btn" data-act="play-preview" ${p.aab.exists && account.found ? "" : "disabled"}>${ic("visibility")}Publish preview (validated, nothing changes)</button><button class="btn primary" data-act="play-publish" ${p.aab.exists && account.found ? "" : "disabled"}>${ic("publish")}Publish to ${esc(p.play.track)}</button></div>
         <p class="note">${account.found ? `Service account ${esc(account.email)}.` : `Set ${esc(account.env)} to the service account JSON (Setup steps).`} Check Play lists what each track holds and the highest version code (changes nothing). After a publish the build number goes up by one for the next upload.</p></div>`;
     } else {
-      body = stepsBox(p.steps);
+      body = stepsBox(p.steps, "play");
     }
     return `<div class="head"><div><h2>Google Play</h2><p>Builds, listing and art publish through the Play Developer API. The first upload and the questionnaires are done once in Play Console.</p></div>
-</div>
+</div>${progressHead("play", p.steps)}
       ${tabBar(playTab, {listing: "Listing", builds: "Builds", steps: "Setup steps"})}<div id="jobs"></div>${body}`;
   },
   async keys() {
@@ -310,7 +331,7 @@ function artBox(store, s) {
     <div class="actions"><button class="btn" data-act="capsules">${ic("view_quilt")}Make capsules</button><button class="btn" data-act="icons">${ic("apps")}Make icons</button></div>
     <p class="note">Make capsules crops the key art (Store/shots/art/key-art.png, from the key-art shot) to each size and places the logo (Store/art/logo.png); focus and logo boxes can be tuned per output in Store/art.json. Make icons resizes Store/art/icon.png (square, 1024×1024) to every store icon size. Both write every store's files.</p></div>`;
 }
-const stepsBox = steps => `<div class="box"><ol class="steps">${steps.map(x => `<li>${mark(x.state)}<div><div class="t">${esc(x.title)}</div><div class="d">${esc(x.detail)}${x.link ? ` <a href="${esc(x.link)}" target="_blank" rel="noopener">Open ${ic("open_in_new")}</a>` : ""}</div></div>${kindChip(x.kind)}</li>`).join("")}</ol></div>`;
+const stepsBox = (steps, store) => `<div class="box"><ol class="steps">${steps.map((x, i) => `<li data-step="${i}" class="${stepFocus.store === store && stepFocus.index === i ? "focus" : ""}">${mark(x.state)}<div><div class="t">${esc(x.title)}</div><div class="d">${esc(x.detail)}${x.link ? ` <a href="${esc(x.link)}" target="_blank" rel="noopener">Open ${ic("open_in_new")}</a>` : ""}</div></div>${kindChip(x.kind)}</li>`).join("")}</ol></div>`;
 const tabBar = (current, names) => `<div class="tabs" role="tablist">${Object.entries(names).map(([t, label]) => `<button role="tab" aria-selected="${t === current}" data-tab="${t}">${label}</button>`).join("")}</div>`;
 async function shotsBox(store, summary) {
   const list = (await api("/api/shots")).shots.filter(x => (x.stores || []).includes(store));
@@ -363,6 +384,10 @@ async function render() {
   const view = (location.hash || "#overview").slice(1);
   document.querySelectorAll("#nav a").forEach(a => a.getAttribute("href") === "#" + view ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current"));
   const start = await api("/api/start").catch(() => ({project: "", recent: []}));
+  if (start.project) api("/api/progress").then(list => list.forEach(s => {
+    const el = $("#nav-" + s.id);
+    if (el) { el.textContent = `${s.done}/${s.total}`; el.className = "lvl " + levelOf(s.done, s.total); el.title = `${s.done} of ${s.total} setup steps done`; }
+  })).catch(() => {});
   let html;
   try { html = start.project ? await (views[view] || views.overview)() : await views.start(start); }
   catch (e) { html = `<div class="box">${chip("bad", "error")} ${esc(e.message)}</div>`; }
@@ -428,6 +453,16 @@ document.addEventListener("click", async e => {
     if (act === "build-all") { const kinds = [...document.querySelectorAll("[data-kind-pick]:checked")].map(el => el.dataset.kindPick); await api("/api/build/all", {kinds}); toast("Started; progress shows under Runs"); return updateJobs(); }
     if (act === "save-steam") { const d = {}; document.querySelectorAll("[id^=st-]").forEach(el => d[el.id.slice(3)] = el.value); await api("/api/steam/listing", d); toast("Saved to Store/steam/listing.json"); return render(); }
     if (act === "save-play") { const d = {}; document.querySelectorAll("[id^=pl-]").forEach(el => { if (!el.id.startsWith("pl-ro-")) d[el.id.slice(3)] = el.value; }); await api("/api/play/listing", d); toast("Saved to Store/play/listing.json"); return render(); }
+    if (act === "steps-all") { stepFocus = {store: "", index: -1}; setTab(t.dataset.store, "steps"); return render(); }
+    if (act === "step-go") return goToStep(t.dataset.store, +t.dataset.index);
+    if (act === "step-next" || act === "step-prev") {
+      const store = t.dataset.store, s = await api("/api/" + store);
+      const open = s.steps.map((x, i) => x.state !== "ok" ? i : -1).filter(i => i >= 0);
+      if (!open.length) return;
+      const cur = stepFocus.store === store ? stepFocus.index : (act === "step-next" ? -1 : s.steps.length);
+      const index = act === "step-next" ? (open.find(i => i > cur) ?? open[0]) : ([...open].reverse().find(i => i < cur) ?? open[open.length - 1]);
+      return goToStep(store, index);
+    }
     if (act === "cancel-job") { await api("/api/jobs/cancel", {name: t.dataset.job}); toast("Cancelling"); return updateJobs(); }
     if (act === "save-epic") { const d = {}; document.querySelectorAll("[id^=ep-]").forEach(el => { if (!el.id.startsWith("ep-ro-")) d[el.id.slice(3)] = el.value; }); await api("/api/epic/listing", d); toast("Saved to Store/epic/listing.json"); return render(); }
     if (act === "epic-secret") { const k = await api("/api/epic/secret", {}); return toast(k.message); }

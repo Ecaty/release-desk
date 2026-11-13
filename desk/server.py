@@ -47,21 +47,19 @@ def overview():
         sync.append({"label": "Android package", "desk": shared["android"]["package"], "unity": unity_settings["androidPackage"]})
     for row in sync:
         row["same"] = row["desk"] == row["unity"]
-    config = load_config()
-    s = steam.status(p, config)
-    open_steps = [x for x in s["steps"] if x["state"] != "ok"]
-    g = play.status(p)
-    play_open = [x for x in g["steps"] if x["state"] != "ok"]
-    e = epic.status(p)
-    epic_open = [x for x in e["steps"] if x["state"] != "ok"]
     return {"project": str(p.root), "editor": unity_settings["editor"], "hasStore": p.has_store(), "shared": shared, "sync": sync,
-            "stores": [{"id": "steam", "name": "Steam", "done": len(s["steps"]) - len(open_steps), "total": len(s["steps"]),
-                        "next": open_steps[0]["title"] if open_steps else "Ready"},
-                       {"id": "epic", "name": "Epic Games Store", "done": len(e["steps"]) - len(epic_open), "total": len(e["steps"]),
-                        "next": epic_open[0]["title"] if epic_open else "Ready"},
-                       {"id": "play", "name": "Google Play", "done": len(g["steps"]) - len(play_open), "total": len(g["steps"]),
-                        "next": play_open[0]["title"] if play_open else "Ready"}],
-            "jobs": STATE["jobs"]}
+            "stores": progress(p), "jobs": STATE["jobs"]}
+
+
+def progress(p):
+    """Setup steps done per store, for the overview cards and the counts in the left menu."""
+    out = []
+    for sid, name, steps in (("steam", "Steam", steam.status(p, load_config())["steps"]), ("epic", "Epic Games Store", epic.status(p)["steps"]),
+                             ("play", "Google Play", play.status(p)["steps"])):
+        open_steps = [x for x in steps if x["state"] != "ok"]
+        out.append({"id": sid, "name": name, "done": len(steps) - len(open_steps), "total": len(steps),
+                    "next": open_steps[0]["title"] if open_steps else "Ready"})
+    return out
 
 
 def run_job(name, fn):
@@ -157,6 +155,8 @@ class Handler(BaseHTTPRequestHandler):
                 if p:
                     title = release.shared(p)["name"] or p.unity_settings()["productName"] or p.root.name
                 return self.send(200, {"project": str(p.root) if p else "", "title": title, "recent": load_config().get("recent", [])})
+            if self.path == "/api/progress":
+                return self.send(200, progress(project()))
             if self.path == "/api/overview":
                 return self.send(200, overview())
             if self.path == "/api/steam":
