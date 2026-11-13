@@ -82,7 +82,7 @@ th.sort{cursor:pointer;user-select:none}th.sort:hover{color:var(--ink)}th.sort[d
 .shot figcaption .copy{margin-left:auto}
 .thumb{display:block;max-width:120px;max-height:60px;margin-bottom:4px;border-radius:4px;background:repeating-conic-gradient(var(--line) 0 25%,transparent 0 50%) 0 0/12px 12px}
 .si{display:inline-block;width:16px;height:16px;background:currentColor;-webkit-mask:var(--i) center/contain no-repeat;mask:var(--i) center/contain no-repeat;vertical-align:-3px;margin-right:7px;flex:none}
-.si.steam{--i:url(/icons/steam.svg)}.si.epic{--i:url(/icons/epicgames.svg)}.si.play{--i:url(/icons/googleplay.svg)}.si.gog{--i:url(/icons/gogdotcom.svg)}.si.microsoft{--i:url(/icons/microsoftstore.svg)}
+.si.steam{--i:url(/icons/steam.svg)}.si.epic{--i:url(/icons/epicgames.svg)}.si.play{--i:url(/icons/googleplay.svg)}.si.gog{--i:url(/icons/gogdotcom.svg)}.si.microsoft{--i:url(/icons/microsoftstore.svg)}.si.itch{--i:url(/icons/itchdotio.svg)}
 nav a span{display:flex;align-items:center}
 .ov{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--muted);white-space:nowrap}
 .in:disabled{opacity:.6}
@@ -120,6 +120,7 @@ nav small.lvl{font-weight:600;padding:1px 7px;border-radius:999px}.lvl.done{back
     <a href="#overview"><span><span class="ms" aria-hidden="true">space_dashboard</span>Overview</span></a>
     <div class="sep"></div>
     <a href="#steam"><span><i class="si steam"></i>Steam</span> <small id="nav-steam"></small></a>
+    <a href="#itch"><span><i class="si itch"></i>itch.io</span> <small id="nav-itch"></small></a>
     <a href="#epic"><span><i class="si epic"></i>Epic Games Store</span> <small id="nav-epic"></small></a>
     <a href="#gog"><span><i class="si gog"></i>GOG</span> <small id="nav-gog"></small></a>
     <a href="#microsoft"><span><i class="si microsoft"></i>Microsoft Store</span> <small id="nav-microsoft"></small></a>
@@ -150,8 +151,8 @@ const chip = (state, label) => `<span class="chip ${state}">${chipIcon[state] ? 
 const kindChip = k => ({hand: `<span class="chip hand">${ic("front_hand")}by hand</span>`, copy: `<span class="chip hand">${ic("content_copy")}copy</span>`, desk: chip("auto", "desk")})[k] || "";
 const mark = s => s === "ok" ? `<span class="mark ok">${ic("check_circle")}</span>` : `<span class="mark hand">${ic("radio_button_unchecked")}</span>`;
 let steamTab = "listing", playTab = "listing", epicTab = "listing";
-const otherTabs = {gog: "listing", microsoft: "listing", samsung: "builds"};
-const STORE_NAMES = {steam: "Steam", epic: "Epic Games Store", gog: "GOG", microsoft: "Microsoft Store", play: "Google Play", samsung: "Galaxy Store"};
+const otherTabs = {itch: "listing", gog: "listing", microsoft: "listing", samsung: "builds"};
+const STORE_NAMES = {steam: "Steam", itch: "itch.io", epic: "Epic Games Store", gog: "GOG", microsoft: "Microsoft Store", play: "Google Play", samsung: "Galaxy Store"};
 const setTab = (store, tab) => { if (store === "play") playTab = tab; else if (store === "epic") epicTab = tab; else if (store in otherTabs) otherTabs[store] = tab; else steamTab = tab; };
 let stepFocus = {store: "", index: -1};
 // Progress for a store page header: bar, count (opens all steps), next open step, and arrows through the open steps.
@@ -312,6 +313,14 @@ const views = {
 </div>${progressHead("play", p.steps)}
       ${tabBar(playTab, {listing: "Listing", builds: "Builds", steps: "Setup steps"})}<div id="jobs"></div>${body}`;
   },
+  async itch() {
+    const d = await api("/api/itch"), b = d.build, k = d.key;
+    return handStore("itch", "itch.io", "Open to everyone, no review or fee. Builds upload with butler, itch.io's own tool, which only sends what changed; the page is edited on itch.io.", d,
+      `<div class="actions"><button class="btn" data-act="build" data-kind="itch-windows">${ic("build")}Build Windows</button><button class="btn" data-act="run-win" data-kind="itch-windows" ${b.exists ? "" : "disabled"}>${ic("play_arrow")}Run</button>
+        <button class="btn" data-act="itch-preview" ${k.ready && b.exists ? "" : "disabled"}>${ic("visibility")}Push preview (nothing sent)</button>
+        <button class="btn primary" data-act="itch-push" id="itch-upload" ${k.ready && b.exists ? "" : "disabled"}>${ic("cloud_upload")}Push to ${esc(k.channel)}</button></div>
+      <p class="note">Unity opens on its own if it is closed. Push preview lists what would change against the channel's previous build. butler uses its own saved login; the desk never sees it.</p>`);
+  },
   async gog() {
     const d = await api("/api/gog"), b = d.build, k = d.key;
     return handStore("gog", "GOG", "GOG curates its catalogue. Builds upload through GOG's Pipeline Builder; the store assets go to GOG through their Assets Manager.", d,
@@ -367,6 +376,12 @@ const views = {
         <tr id="epic-secret"><td>Client secret</td><td class="mono">Credential Manager: ${esc(k.epic.credential)}</td><td>${k.epic.stored ? chip("ok", "stored") : chip("bad", "missing")}</td></tr></table>
         <div class="actions"><button class="btn" data-act="epic-secret" ${k.epic.ids.productId && k.epic.ids.clientId ? "" : "disabled"}>${ic("key")}Save BPT secret</button></div>
         <p class="note">Download the BuildPatch Tool from the Developer Portal (Artifacts and Binaries) and unzip it into the folder above. Save BPT secret opens a console where cmdkey asks for the secret; the desk never sees it.</p></div>
+      <div class="box"><h3>itch.io</h3>
+        ${idField("itch", "project", "Project", "user/game from the page address, lower case (user.itch.io/game).")}${idField("itch", "channel", "Channel", "windows (the name tags the upload as a Windows download).")}${idSave("itch")}
+        <table><tr id="itch-butler"><td>butler</td><td class="mono">${esc(k.itch.butler || k.itch.toolFolder)}</td><td>${k.itch.installed ? chip("ok", "found") : chip("bad", "missing")}</td></tr>
+        <tr><td>Login</td><td class="mono">butler's own saved login</td><td>${k.itch.loggedIn ? chip("ok", "logged in") : chip("bad", "not yet")}</td></tr></table>
+        <div class="actions"><button class="btn" data-act="itch-login" ${k.itch.installed ? "" : "disabled"}>${ic("key")}Log in to itch.io</button></div>
+        <p class="note">Download butler from itch.io and unzip it into the folder above. Log in opens butler's sign-in in your browser; butler keeps the login itself.</p></div>
       <div class="box"><h3>GOG</h3>
         ${idField("gog", "productId", "Product ID", "From the GOG Developer Portal after GOG accepts the game.")}${idField("gog", "branch", "Upload branch", "Optional; Pipeline Builder cannot publish to master.")}${idSave("gog")}
         <table><tr id="gog-tool"><td>Pipeline Builder</td><td class="mono">${esc(k.gog.tool || k.gog.toolFolder)}</td><td>${k.gog.installed ? chip("ok", "found") : chip("bad", "missing")}</td></tr>
@@ -570,6 +585,7 @@ document.addEventListener("click", async e => {
     }
     if (act === "cancel-job") { await api("/api/jobs/cancel", {name: t.dataset.job}); toast("Cancelling"); return updateJobs(); }
     if (act === "save-hand") { const id = t.dataset.store, d = {}; document.querySelectorAll(`[id^=${id}-f-]`).forEach(el => { if (!el.disabled) d[el.id.slice(id.length + 3)] = el.value; }); await api(`/api/${id}/listing`, d); toast(`Saved to Store/${id}/listing.json`); return render(); }
+    if (act === "itch-login") { const m = await api("/api/itch/login", {}); return toast(m.message); }
     if (act === "ms-setup") { const m = await api("/api/microsoft/setup", {}); return toast(m.message); }
     if (act === "save-epic") { const d = {}; document.querySelectorAll("[id^=ep-]").forEach(el => { if (!el.id.startsWith("ep-ro-")) d[el.id.slice(3)] = el.value; }); await api("/api/epic/listing", d); toast("Saved to Store/epic/listing.json"); return render(); }
     if (act === "epic-secret") { const k = await api("/api/epic/secret", {}); return toast(k.message); }
@@ -578,7 +594,7 @@ document.addEventListener("click", async e => {
     if (act === "save-user") { await api("/api/keys/steam-user", {user: $("#steam-user").value}); toast("Saved"); return render(); }
     if (act === "copy-log") return copy($("#logtext").textContent);
     if (act === "run-win") { const r = await api("/api/run/windows", {kind: t.dataset.kind || "steam-windows"}); return toast(r.message); }
-    const jobs = {"push-unity": ["/api/unity/apply", {}], "build": ["/api/build", {kind: t.dataset.kind}], "install": ["/api/play/install", {}], "capture": ["/api/shots/capture", {only: t.dataset.only || ""}], "icons": ["/api/art/icons", {}], "capsules": ["/api/art/capsules", {}], "play-preview": ["/api/play/publish", {preview: true}], "play-check": ["/api/play/check", {}], "epic-check": ["/api/epic/check", {}], "gog-upload": ["/api/gog/upload", {}], "samsung-check": ["/api/samsung/check", {}], "samsung-submit": ["/api/samsung/submit", {}], "ms-package": ["/api/microsoft/package", {}], "ms-publish": ["/api/microsoft/publish", {}], "epic-upload": ["/api/epic/upload", {}], "play-publish": ["/api/play/publish", {preview: false}], "upload-preview": ["/api/steam/upload", {preview: true}], "upload": ["/api/steam/upload", {preview: false}]};
+    const jobs = {"push-unity": ["/api/unity/apply", {}], "build": ["/api/build", {kind: t.dataset.kind}], "install": ["/api/play/install", {}], "capture": ["/api/shots/capture", {only: t.dataset.only || ""}], "icons": ["/api/art/icons", {}], "capsules": ["/api/art/capsules", {}], "play-preview": ["/api/play/publish", {preview: true}], "play-check": ["/api/play/check", {}], "epic-check": ["/api/epic/check", {}], "gog-upload": ["/api/gog/upload", {}], "itch-preview": ["/api/itch/preview", {}], "itch-push": ["/api/itch/push", {}], "samsung-check": ["/api/samsung/check", {}], "samsung-submit": ["/api/samsung/submit", {}], "ms-package": ["/api/microsoft/package", {}], "ms-publish": ["/api/microsoft/publish", {}], "epic-upload": ["/api/epic/upload", {}], "play-publish": ["/api/play/publish", {preview: false}], "upload-preview": ["/api/steam/upload", {preview: true}], "upload": ["/api/steam/upload", {preview: false}]};
     if (jobs[act]) { await api(...jobs[act]); toast("Started; progress shows under Runs"); updateJobs(); }
   } catch (err) { toast(err.message); }
 });

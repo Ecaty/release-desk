@@ -2,7 +2,7 @@
 
 A local dashboard that keeps everything a game needs for its stores in one place: the listing text and art, builds, per-store setup steps, key status and a run log. It is reusable across projects; each project keeps its own data in a `Store/` folder.
 
-Status: six stores are wired up: Steam (upload with SteamCMD), Epic Games Store (BuildPatch Tool), GOG (Pipeline Builder), Microsoft Store (MSIX + msstore CLI), Google Play (Play Developer API) and Samsung Galaxy Store (Galaxy Store Developer API, same AAB as Play). Each has listing and art checks, its own Windows or Android build and setup steps that jump to the field that finishes them. Real uploads to Epic, GOG, Microsoft, Play and Galaxy Store wait for their developer accounts. Design mockup: `prototypes/dashboard.html`.
+Status: seven stores are wired up: Steam (upload with SteamCMD), itch.io (butler), Epic Games Store (BuildPatch Tool), GOG (Pipeline Builder), Microsoft Store (MSIX + msstore CLI), Google Play (Play Developer API) and Samsung Galaxy Store (Galaxy Store Developer API, same AAB as Play). Each has listing and art checks, its own Windows or Android build and setup steps that jump to the field that finishes them. Real uploads to itch.io, Epic, GOG, Microsoft, Play and Galaxy Store wait for their developer accounts. Design mockup: `prototypes/dashboard.html`.
 
 ## Use
 
@@ -15,6 +15,12 @@ Status: six stores are wired up: Steam (upload with SteamCMD), Epic Games Store 
 ## Screenshots
 
 `Store/shots.json` lists shots (`name`, `stores`, `width`, `height`, `wait`, `setup`). The desk asks Unity to enter Play mode; for each shot it calls the game's `IShotStage.Prepare(shot)` (the game decides what `setup` means, for example Flecs Script), renders that camera off-screen at the exact size (no UI) and writes `Store/shots/<store>/<name>.png`. The game implements `ReleaseDesk.Editor.IShotStage` once.
+
+## itch.io
+
+- Open to everyone, no review or fee. Create the project page on itch.io and put `user/game` (and the channel, `windows` by default) in Keys & accounts. Disclose generative AI use on the Edit game page (Code), as itch.io's quality guidelines ask.
+- **Upload:** unzip butler (itch.io's official tool) into `%APPDATA%elease-deskutler` or put it on PATH; **Log in to itch.io** runs `butler login` in its own console and butler keeps the login. **Push** runs `butler push Build/Itch/Windows user/game:windows --userversion <version>+<build> --if-changed` with debug files ignored; only changes are sent. **Push preview** runs `butler push-preview` and sends nothing.
+- **Page:** tagline and description (Copy), 630×500 cover (Make capsules) and 3 to 5 screenshots in `Store/shots/itch`, added on Edit game.
 
 ## Epic Games Store
 

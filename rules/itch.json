@@ -1,0 +1,17 @@
+{
+  "store": "itch",
+  "checked": "2026-11-13",
+  "sources": [
+    "https://itch.io/docs/butler/pushing.html",
+    "https://itch.io/docs/butler/login.html",
+    "https://itch.io/docs/creators/quality-guidelines"
+  ],
+  "text": {
+    "tagline": { "label": "Short description or tagline", "required": true, "note": "Shown in browse listings." },
+    "description": { "label": "Description", "required": true, "multiline": true }
+  },
+  "art": [
+    { "file": "cover", "label": "Cover image", "width": 630, "height": 500, "required": true, "formats": ["png", "jpg"], "make": "capsule", "logo": { "x": 0.5, "y": 0.42, "w": 0.8, "h": 0.45 }, "note": "Recommended size; shown in browse and on the page" }
+  ],
+  "screenshots": { "folder": "shots/itch", "minWidth": 1280, "minHeight": 720, "min": 3, "note": "Add 3 to 5 screenshots on the itch.io page (Edit game)." }
+}

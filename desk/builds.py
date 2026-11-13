@@ -18,6 +18,7 @@ from . import jobs, release, unity
 KINDS = {
     "steam-windows": {"store": "Steam", "target": "windows", "label": "Windows", "folder": True, "development": False},
     "epic-windows": {"store": "Epic", "target": "windows", "label": "Windows (Epic)", "folder": True, "development": False},
+    "itch-windows": {"store": "Itch", "target": "windows", "label": "Windows (itch.io)", "folder": True, "development": False},
     "gog-windows": {"store": "GOG", "target": "windows", "label": "Windows (GOG)", "folder": True, "development": False},
     "microsoft-windows": {"store": "Microsoft", "target": "windows", "label": "Windows (Microsoft Store)", "folder": True, "development": False},
     "play-dev-apk": {"store": "GooglePlay", "target": "android", "label": "Phone test APK", "ext": "-dev.apk", "development": True},
