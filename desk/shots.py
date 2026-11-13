@@ -3,7 +3,7 @@ and writes Store/shots/<store>/<name>.png at the exact size."""
 import json
 import time
 
-from . import builds, unity
+from . import builds, jobs, unity
 
 
 def shot_list(project):
@@ -35,7 +35,7 @@ def capture(project, only=""):
         return False, message
     deadline = time.time() + 1800
     while not result.exists() and time.time() < deadline:
-        time.sleep(3)
+        jobs.sleep(3)
     try:
         data = json.loads(result.read_text(encoding="utf-8"))
     except (OSError, ValueError):

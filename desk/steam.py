@@ -5,7 +5,7 @@ import re
 import subprocess
 from pathlib import Path
 
-from . import art, builds, images, release, unity
+from . import art, builds, images, jobs, release, unity
 from .project import CONFIG_DIR
 
 RULES = json.loads((Path(__file__).resolve().parent.parent / "rules" / "steam.json").read_text(encoding="utf-8"))
@@ -167,8 +167,8 @@ def upload(project, config, preview=True):
     except ValueError as error:
         return False, str(error)
     # The password is never handled here: SteamCMD reuses the login cached by the one-time terminal login.
-    run = subprocess.run([str(STEAMCMD), "+login", cmd["user"], "+run_app_build", str(script), "+quit"],
-                         capture_output=True, text=True, timeout=3600, stdin=subprocess.DEVNULL)
+    run = jobs.run([str(STEAMCMD), "+login", cmd["user"], "+run_app_build", str(script), "+quit"],
+                         timeout=3600)
     output = run.stdout + run.stderr
     (project.store / "Logs").mkdir(parents=True, exist_ok=True)
     (project.store / "Logs" / "steamcmd.txt").write_text(output, encoding="utf-8")

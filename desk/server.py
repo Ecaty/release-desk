@@ -9,12 +9,13 @@ import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from . import art, builds, epic, play, release, shots, steam, unity
+from . import art, builds, epic, jobs, play, release, shots, steam, unity
 from .project import Project, load_config, save_config
 
 ROOT = Path(__file__).resolve().parent.parent
 PORT = 27760
 STATE = {"project": None, "jobs": {}}
+RUNNING = {}  # job name -> jobs.Job, for Cancel
 LOCK = threading.Lock()
 
 
@@ -69,17 +70,23 @@ def run_job(name, fn):
         if STATE["jobs"].get(name, {}).get("state") == "running":
             return {"state": "running"}
         STATE["jobs"][name] = {"state": "running", "message": "", "started": time.time()}
+        RUNNING[name] = job = jobs.Job(name)
 
     def work():
-        started = time.time()
+        jobs.start(job)
+        started, state = time.time(), "failed"
         try:
             ok, message = fn()
+            state = "done" if ok else "failed"
+        except jobs.Cancelled as error:
+            message, state = str(error) or "Cancelled.", "cancelled"
         except Exception as error:  # report any failure to the page and the log
-            ok, message = False, f"{type(error).__name__}: {error}"
-        STATE["jobs"][name] = {"state": "done" if ok else "failed", "message": str(message)[:1500], "started": started, "ended": time.time()}
+            message = f"{type(error).__name__}: {error}"
+        RUNNING.pop(name, None)
+        STATE["jobs"][name] = {"state": state, "message": str(message)[:1500], "started": started, "ended": time.time()}
         p = STATE["project"]
         minutes = round((time.time() - started) / 60, 1)
-        p.log(f"{name}: {'ok' if ok else 'failed'} ({minutes} min)", str(message).splitlines()[:12]
+        p.log(f"{name}: {'ok' if state == 'done' else state} ({minutes} min)", str(message).splitlines()[:12]
               + (play.summary_lines(p) if "Play" in name or "AAB" in name else epic.summary_lines(p) if "Epic" in name
                  else steam.summary_lines(p, load_config())))
 
@@ -190,6 +197,12 @@ class Handler(BaseHTTPRequestHandler):
         try:
             data = self.body()
             p = STATE["project"]
+            if self.path == "/api/jobs/cancel":
+                job = RUNNING.get(str(data.get("name", "")))
+                if not job:
+                    return self.send(400, {"error": "That run is not running."})
+                job.stop()
+                return self.send(200, {"ok": True})
             if self.path == "/api/browse":
                 return self.send(200, {"path": browse(str(data.get("start", "")))})
             if self.path == "/api/open":

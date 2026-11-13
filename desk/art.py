@@ -2,7 +2,7 @@
 import json
 from pathlib import Path
 
-from . import images, raster
+from . import images, jobs, raster
 
 RULES_DIR = Path(__file__).resolve().parent.parent / "rules"
 ICO_SIZES = (256, 48, 32, 16)
@@ -76,6 +76,7 @@ def make_icons(project):
     if icon.width < 1024:
         lines.append(f"Note: Store/{rel} is {icon.width}×{icon.width}; 1024×1024 keeps every size sharp.")
     for store, spec in _outputs("icon"):
+        jobs.check()
         size, fmt = spec["width"], spec.get("formats", ["png"])[0]
         out = project.store / store / "art" / f"{spec['file']}.{fmt}"
         out.parent.mkdir(parents=True, exist_ok=True)
@@ -143,6 +144,7 @@ def make_capsules(project, only=""):
     if logo and not logo.has_alpha():
         lines.append(f"Note: Store/{src['logo']} has no transparency; the logo will cover the art as a rectangle.")
     for store, spec in wanted:
+        jobs.check()
         width, height = spec["width"], spec["height"]
         fmt = spec.get("formats", ["png"])[0]
         out = project.store / store / "art" / f"{spec['file']}.{fmt}"

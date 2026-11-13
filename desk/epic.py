@@ -8,7 +8,7 @@ import re
 import subprocess
 from pathlib import Path
 
-from . import art, builds, images, release
+from . import art, builds, images, jobs, release
 from .project import CONFIG_DIR
 
 RULES = art.rules("epic")
@@ -196,9 +196,9 @@ def _run(project, args):
     arg_file.write_text("\n".join(full) + "\n", encoding="utf-8")
     runner = scripts / "run-bpt.ps1"
     runner.write_text(_RUNNER, encoding="utf-8")
-    run = subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(runner),
+    run = jobs.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(runner),
                           "-Target", key["credential"], "-Exe", key["bpt"], "-ArgFile", str(arg_file), "-EnvName", SECRET_ENV],
-                         capture_output=True, text=True, timeout=6 * 3600, stdin=subprocess.DEVNULL, encoding="utf-8", errors="replace")
+                         timeout=6 * 3600, encoding="utf-8", errors="replace")
     output = run.stdout + run.stderr
     (project.store / "Logs").mkdir(parents=True, exist_ok=True)
     (project.store / "Logs" / "buildpatchtool.txt").write_text(output, encoding="utf-8")

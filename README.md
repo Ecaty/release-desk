@@ -10,7 +10,7 @@ Status: all three stores are wired up. Steam works end to end up to the upload (
    `"com.release-desk.unity": "https://github.com/Ecaty/release-desk.git?path=/unity"`
 2. Add the game's private store data as a `Store/` folder (or submodule) in the project root with a `store.json`.
 3. Run `Start-Desk.cmd [path-to-unity-project]` (Python 3.10+, no packages needed) and open http://127.0.0.1:27760/.
-4. Keep the Unity Editor open on the project for Push to Unity, builds and screenshots.
+4. Push to Unity, builds and screenshots use the project's Unity Editor; if it is closed, the desk opens the project's Unity version and waits until it is ready (never a second Editor on the same project). Every run has **Cancel**: it stops waiting and ends the desk's own child processes (SteamCMD, BuildPatch Tool, adb); a build already running inside Unity is cancelled in Unity's progress window.
 
 ## Screenshots
 

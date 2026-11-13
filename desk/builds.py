@@ -13,7 +13,7 @@ import subprocess
 import time
 from pathlib import Path
 
-from . import release, unity
+from . import jobs, release, unity
 
 KINDS = {
     "steam-windows": {"store": "Steam", "target": "windows", "label": "Windows", "folder": True, "development": False},
@@ -141,8 +141,11 @@ def build(project, kind):
     if not ok and not still_running and not record.exists():
         return False, message
     deadline = time.time() + 4 * 3600
-    while not record.exists() and time.time() < deadline:
-        time.sleep(10)
+    try:
+        while not record.exists() and time.time() < deadline:
+            jobs.sleep(10)
+    except jobs.Cancelled:
+        raise jobs.Cancelled("Stopped waiting for Unity. If it is still building, press Cancel in Unity's build progress window.") from None
     try:
         data = json.loads(record.read_text(encoding="utf-8"))
     except (OSError, ValueError):
@@ -259,10 +262,10 @@ def install(project, package):
     ready = [d for d in devices()["devices"] if d["state"] == "device"]
     if not ready:
         return False, "No phone connected. Plug it in by USB, enable USB debugging and accept the prompt on the phone."
-    run = subprocess.run([exe, "-s", ready[0]["serial"], "install", "-r", info["path"]], capture_output=True, text=True, timeout=900)
+    run = jobs.run([exe, "-s", ready[0]["serial"], "install", "-r", info["path"]], timeout=900)
     if "Success" not in run.stdout:
         return False, (run.stdout + run.stderr).strip()[-400:]
     if package:
-        subprocess.run([exe, "-s", ready[0]["serial"], "shell", "monkey", "-p", package, "-c", "android.intent.category.LAUNCHER", "1"],
-                       capture_output=True, text=True, timeout=60)
+        jobs.run([exe, "-s", ready[0]["serial"], "shell", "monkey", "-p", package, "-c", "android.intent.category.LAUNCHER", "1"],
+                       timeout=60)
     return True, f"Installed {Path(info['path']).name} on {ready[0]['model']}" + (" and started it" if package else "")

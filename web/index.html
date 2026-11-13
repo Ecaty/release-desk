@@ -92,6 +92,8 @@ ul.changes{margin:0;padding-left:16px;font-size:12px;color:var(--muted)}
 .ms{font-family:"Material Symbols Outlined";font-weight:normal;font-style:normal;font-size:18px;line-height:1;letter-spacing:normal;text-transform:none;display:inline-block;white-space:nowrap;direction:ltr;-webkit-font-feature-settings:"liga";font-feature-settings:"liga";-webkit-font-smoothing:antialiased;font-variation-settings:"FILL" 0,"opsz" 20;vertical-align:-4px;flex:none}
 .btn .ms,.copy .ms{margin-right:6px}.copy .ms{font-size:15px;vertical-align:-3px}.chip .ms{font-size:14px;vertical-align:-2px;margin-right:3px}
 nav .ms{margin-right:7px}.mark .ms{font-size:18px}.mark.ok .ms{font-variation-settings:"FILL" 1,"opsz" 20}
+.select{position:relative;display:block}.select select{appearance:none;-webkit-appearance:none;padding-left:12px;padding-right:40px;cursor:pointer}
+.select::after{content:"expand_more";font-family:"Material Symbols Outlined";font-feature-settings:"liga";font-size:20px;line-height:1;position:absolute;right:12px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--muted)}
 .toast{position:fixed;right:16px;bottom:16px;background:var(--ink);color:var(--bg);padding:8px 12px;border-radius:8px;font-size:13px;max-width:60ch}
 @media (max-width:820px){.wrap{grid-template-columns:minmax(0,1fr)}nav{flex-direction:row;flex-wrap:wrap}nav .sep{display:none}.cards{grid-template-columns:minmax(0,1fr)}.field{grid-template-columns:minmax(0,1fr) auto}.field label{grid-column:1/-1}}
 </style>
@@ -199,7 +201,7 @@ const views = {
       body = `<div class="box">${buildTable("steam", b.history, [["uploaded", "Steam", h => h.uploaded ? chip("ok", h.uploaded) : h.exists ? chip("hand", "not uploaded") : chip("hand", "replaced")]])}
         <p class="note mono">${esc(b.folder)}</p>
         <div class="actions"><button class="btn" data-act="build" data-kind="steam-windows">${ic("build")}Build Windows</button><button class="btn" data-act="run-win" ${b.exists ? "" : "disabled"}>${ic("play_arrow")}Run</button><button class="btn" data-act="upload-preview">${ic("visibility")}Upload preview (nothing sent)</button><button class="btn primary" data-act="upload">${ic("cloud_upload")}Upload to ${esc(s.branch)}</button></div>
-        <p class="note">Unity must be open on this project. Uploads use the SteamCMD login cached by your one-time terminal login; the desk never sees the password.</p></div>`;
+        <p class="note">Unity opens on its own if it is closed. Uploads use the SteamCMD login cached by your one-time terminal login; the desk never sees the password.</p></div>`;
     } else {
       body = stepsBox(s.steps);
     }
@@ -225,7 +227,7 @@ const views = {
         <p class="note mono">${esc(b.folder)}</p>
         <div class="actions"><button class="btn" data-act="build" data-kind="epic-windows">${ic("build")}Build Windows</button><button class="btn" data-act="run-win" data-kind="epic-windows" ${b.exists ? "" : "disabled"}>${ic("play_arrow")}Run</button>
           <button class="btn" data-act="epic-check" ${k.ready ? "" : "disabled"}>${ic("check")}Check connection</button><button class="btn primary" data-act="epic-upload" ${k.ready && b.exists ? "" : "disabled"}>${ic("cloud_upload")}Upload to Dev sandbox</button></div>
-        <p class="note">Unity must be open on this project. Check connection lists the binaries Epic has (changes nothing). Uploads use Epic's BuildPatch Tool with the client secret from Credential Manager; the desk never sees it. Attach the uploaded binary to the Windows platform in the Developer Portal.</p></div>`;
+        <p class="note">Unity opens on its own if it is closed. Check connection lists the binaries Epic has (changes nothing). Uploads use Epic's BuildPatch Tool with the client secret from Credential Manager; the desk never sees it. Attach the uploaded binary to the Windows platform in the Developer Portal.</p></div>`;
     } else {
       body = stepsBox(e.steps);
     }
@@ -251,10 +253,10 @@ const views = {
         <p>Phone: ${phones}</p>
         <div class="actions"><button class="btn" data-act="build" data-kind="play-dev-apk">${ic("build")}Build phone test APK</button><button class="btn" data-act="install" ${apk.exists ? "" : "disabled"}>${ic("install_mobile")}Install on phone</button>
           <button class="btn" data-act="build" data-kind="play-aab" ${key.ready ? "" : 'disabled title="Create the upload key first (Keys & accounts)"'}>${ic("build")}Build release AAB</button></div>
-        <p class="note">Unity must be open on this project. An Android build switches Unity to Android and back, so the first one takes long. The release AAB is signed with the upload key; Unity reads its password from Credential Manager.</p></div>
+        <p class="note">Unity opens on its own if it is closed. An Android build switches Unity to Android and back, so the first one takes long. The release AAB is signed with the upload key; Unity reads its password from Credential Manager.</p></div>
         <div class="box"><h3>Publish</h3>
-        <div class="field"><label for="play-track">Track</label><select id="play-track" class="in">${Object.entries(p.tracks).map(([k, v]) => `<option value="${k}" ${k === p.play.track ? "selected" : ""}>${esc(v)}</option>`).join("")}</select><span></span></div>
-        <div class="field"><label for="play-status">Release</label><div><select id="play-status" class="in">${Object.entries(p.statuses).map(([k, v]) => `<option value="${k}" ${k === p.play.status ? "selected" : ""}>${esc(v)}</option>`).join("")}</select><div class="note">Draft waits for your click in Play Console and is the only kind Play accepts until the app's first release is published.</div></div><button class="btn" data-act="save-play-settings">${ic("save")}Save</button></div>
+        <div class="field"><label for="play-track">Track</label><span class="select"><select id="play-track" class="in">${Object.entries(p.tracks).map(([k, v]) => `<option value="${k}" ${k === p.play.track ? "selected" : ""}>${esc(v)}</option>`).join("")}</select></span><span></span></div>
+        <div class="field"><label for="play-status">Release</label><div><span class="select"><select id="play-status" class="in">${Object.entries(p.statuses).map(([k, v]) => `<option value="${k}" ${k === p.play.status ? "selected" : ""}>${esc(v)}</option>`).join("")}</select></span><div class="note">Draft waits for your click in Play Console and is the only kind Play accepts until the app's first release is published.</div></div><button class="btn" data-act="save-play-settings">${ic("save")}Save</button></div>
         <p>Uploads the newest release AAB with What's new as release notes, the listing text, icon, feature graphic and phone screenshots in one edit.</p>
         <div class="actions"><button class="btn" data-act="play-check" ${account.found && p.key.package ? "" : "disabled"}>${ic("check")}Check Play</button><button class="btn" data-act="play-preview" ${p.aab.exists && account.found ? "" : "disabled"}>${ic("visibility")}Publish preview (validated, nothing changes)</button><button class="btn primary" data-act="play-publish" ${p.aab.exists && account.found ? "" : "disabled"}>${ic("publish")}Publish to ${esc(p.play.track)}</button></div>
         <p class="note">${account.found ? `Service account ${esc(account.email)}.` : `Set ${esc(account.env)} to the service account JSON (Setup steps).`} Check Play lists what each track holds and the highest version code (changes nothing). After a publish the build number goes up by one for the next upload.</p></div>`;
@@ -329,9 +331,9 @@ function jobsBox(jobs) {
   return `<div class="box"><h3>Runs</h3>${names.map(n => {
     const j = jobs[n];
     if (j.state === "running")
-      return `<div class="job"><b>${esc(n)}</b> ${chip("warn", "running " + mmss(j.elapsed || 0))}<div class="progress"><i></i></div><span class="note">${esc(j.activity || "Working…")}</span></div>`;
+      return `<div class="job"><b>${esc(n)}</b> ${chip("warn", "running " + mmss(j.elapsed || 0))} <button class="copy" data-act="cancel-job" data-job="${esc(n)}">${ic("close")}Cancel</button><div class="progress"><i></i></div><span class="note">${esc(j.activity || "Working…")}</span></div>`;
     const took = j.ended && j.started ? " · " + mmss(Math.round(j.ended - j.started)) : "";
-    return `<div class="job"><b>${esc(n)}</b> ${chip(j.state === "done" ? "ok" : "bad", j.state + took)} <span class="mono">${esc(j.message)}</span></div>`;
+    return `<div class="job"><b>${esc(n)}</b> ${chip(j.state === "done" ? "ok" : j.state === "cancelled" ? "hand" : "bad", j.state + took)} <span class="mono">${esc(j.message)}</span></div>`;
   }).join("")}</div>`;
 }
 
@@ -425,6 +427,7 @@ document.addEventListener("click", async e => {
     if (act === "build-all") { const kinds = [...document.querySelectorAll("[data-kind-pick]:checked")].map(el => el.dataset.kindPick); await api("/api/build/all", {kinds}); toast("Started; progress shows under Runs"); return updateJobs(); }
     if (act === "save-steam") { const d = {}; document.querySelectorAll("[id^=st-]").forEach(el => d[el.id.slice(3)] = el.value); await api("/api/steam/listing", d); toast("Saved to Store/steam/listing.json"); return render(); }
     if (act === "save-play") { const d = {}; document.querySelectorAll("[id^=pl-]").forEach(el => { if (!el.id.startsWith("pl-ro-")) d[el.id.slice(3)] = el.value; }); await api("/api/play/listing", d); toast("Saved to Store/play/listing.json"); return render(); }
+    if (act === "cancel-job") { await api("/api/jobs/cancel", {name: t.dataset.job}); toast("Cancelling"); return updateJobs(); }
     if (act === "save-epic") { const d = {}; document.querySelectorAll("[id^=ep-]").forEach(el => { if (!el.id.startsWith("ep-ro-")) d[el.id.slice(3)] = el.value; }); await api("/api/epic/listing", d); toast("Saved to Store/epic/listing.json"); return render(); }
     if (act === "epic-secret") { const k = await api("/api/epic/secret", {}); return toast(k.message); }
     if (act === "save-play-settings") { await api("/api/play/settings", {track: $("#play-track").value, status: $("#play-status").value}); toast("Saved to Store/store.json"); return render(); }

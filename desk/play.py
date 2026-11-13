@@ -8,7 +8,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from . import art, builds, images, playapi, release
+from . import art, builds, images, jobs, playapi, release
 
 RULES = art.rules("play")
 KEY_DIR = Path(os.environ.get("USERPROFILE", Path.home())) / ".release-keys"
@@ -208,30 +208,36 @@ def publish(project, preview=True):
         entry = {"versionCodes": [code], "status": play["status"], "name": f"{rel['version']} ({code})"}
         if notes:
             entry["releaseNotes"] = [{"language": lang, "text": notes}]
+        jobs.check()
         api.call("PUT", f"/edits/{edit}/tracks/{play['track']}", {"track": play["track"], "releases": [entry]})
         lines.append(f"Track {play['track']}: {play['status']}")
         text = {f["key"]: f["value"] for f in s["fields"]}
+        jobs.check()
         api.call("PUT", f"/edits/{edit}/listings/{lang}", {"language": lang, "title": text["title"],
                                                           "shortDescription": text["shortDescription"], "fullDescription": text["fullDescription"]})
         lines.append(f"Listing {lang}: title, short and full description")
+        jobs.check()
         for item in s["art"]:
             kind = IMAGE_TYPES.get(Path(item["file"]).stem)
             if kind and item["state"] == "ok":
                 api.call("DELETE", f"/edits/{edit}/listings/{lang}/{kind}")
                 api.upload(f"/edits/{edit}/listings/{lang}/{kind}", project.store / item["file"], _mime(item["file"]))
                 lines.append(f"Image {kind}: {item['file']}")
+        jobs.check()
         shots = [x for x in s["screenshots"]["items"] if x["ok"]][:RULES["screenshots"]["max"]]
         if shots:
             api.call("DELETE", f"/edits/{edit}/listings/{lang}/phoneScreenshots")
             for shot in shots:
                 api.upload(f"/edits/{edit}/listings/{lang}/phoneScreenshots", shot["path"], _mime(shot["file"]))
             lines.append(f"Phone screenshots: {len(shots)}")
+        jobs.check()
         api.call("POST", f"/edits/{edit}:validate")
         lines.append("Validated by Play")
         if preview:
             api.call("DELETE", f"/edits/{edit}")
             lines.append("Preview: edit deleted, nothing changed in Play Console")
             return True, "\n".join(lines)
+        jobs.check()
         api.call("POST", f"/edits/{edit}:commit")
     except Exception:
         try:
