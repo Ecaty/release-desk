@@ -9,7 +9,7 @@ import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from . import art, builds, epic, gog, itch, jobs, microsoft, play, release, samsung, shots, steam, unity
+from . import art, builds, epic, gog, itch, jobs, laptop, microsoft, play, release, samsung, shots, steam, unity
 from .project import Project, load_config, save_config
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -122,7 +122,7 @@ def run_job(name, fn):
         p.log(f"{name}: {'ok' if state == 'done' else state} ({minutes} min)", str(message).splitlines()[:12]
               + (play.summary_lines(p) if "Play" in name or "AAB" in name else epic.summary_lines(p) if "Epic" in name
                  else gog.summary_lines(p) if "GOG" in name else microsoft.summary_lines(p) if "Microsoft" in name
-                 else samsung.summary_lines(p) if "Galaxy" in name else itch.summary_lines(p) if "itch" in name
+                 else samsung.summary_lines(p) if "Galaxy" in name else laptop.summary_lines(p) if "Release check" in name else itch.summary_lines(p) if "itch" in name
                  else steam.summary_lines(p, load_config())))
 
     threading.Thread(target=work, daemon=True).start()
@@ -206,6 +206,8 @@ class Handler(BaseHTTPRequestHandler):
                                        "microsoft": microsoft.key_state(project()), "samsung": samsung.key_state(project()), "itch": itch.key_state(project()), "ids": ids(project())})
             if self.path == "/api/shots":
                 return self.send(200, {"shots": shots.shot_list(project())})
+            if self.path == "/api/check":
+                return self.send(200, laptop.state(project()))
             if self.path == "/api/itch":
                 return self.send(200, itch.status(project()))
             if self.path == "/api/samsung":
@@ -232,8 +234,10 @@ class Handler(BaseHTTPRequestHandler):
                     v["elapsed"] = round(time.time() - v["started"])
                 if running:
                     activity = builds.unity_activity()
-                    for v in running:
-                        v["activity"] = activity
+                    for name, v in jobs.items():
+                        if v["state"] == "running":
+                            own = getattr(RUNNING.get(name), "activity", "")
+                            v["activity"] = own or activity
                 return self.send(200, jobs)
             self.send(404, {"error": "not found"})
         except ValueError as error:
@@ -273,6 +277,9 @@ class Handler(BaseHTTPRequestHandler):
                 from . import storekit
                 storekit.save_listing(project(), store_id, {"gog": gog, "microsoft": microsoft, "itch": itch}[store_id].RULES, data)
                 return self.send(200, {"ok": True})
+            if self.path == "/api/check":
+                steps, seed = data.get("steps") or [], data.get("seed") or None
+                return self.send(200, run_job("Release check", lambda: laptop.check(project(), steps, seed)))
             if self.path == "/api/itch/login":
                 ok, message = itch.login(project())
                 return self.send(200 if ok else 400, {"ok": ok, "error": message, "message": message})

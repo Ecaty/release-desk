@@ -18,6 +18,7 @@ class Job:
         self.cancel = threading.Event()
         self.procs = []
         self.lock = threading.Lock()
+        self.activity = ""
 
     def stop(self):
         self.cancel.set()
@@ -38,6 +39,13 @@ def start(job):
 
 def current():
     return getattr(_local, "job", None)
+
+
+def say(text):
+    """What the current job is doing, shown under its progress bar."""
+    job = current()
+    if job:
+        job.activity = text
 
 
 def check():
