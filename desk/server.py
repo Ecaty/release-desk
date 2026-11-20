@@ -9,7 +9,7 @@ import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from . import art, builds, epic, gog, itch, jobs, laptop, microsoft, play, release, samsung, shots, steam, unity
+from . import art, builds, epic, evaluate, gog, itch, jobs, laptop, microsoft, play, release, samsung, shots, steam, unity
 from .project import Project, load_config, save_config
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -208,6 +208,10 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(200, {"shots": shots.shot_list(project())})
             if self.path == "/api/check":
                 return self.send(200, laptop.state(project()))
+            if self.path == "/api/evaluate":
+                return self.send(200, evaluate.stores())
+            if self.path.startswith("/api/evaluate/"):
+                return self.send(200, evaluate.store(project(), self.path.split("/")[3]))
             if self.path == "/api/itch":
                 return self.send(200, itch.status(project()))
             if self.path == "/api/samsung":
@@ -276,6 +280,9 @@ class Handler(BaseHTTPRequestHandler):
                 store_id = self.path.split("/")[2]
                 from . import storekit
                 storekit.save_listing(project(), store_id, {"gog": gog, "microsoft": microsoft, "itch": itch}[store_id].RULES, data)
+                return self.send(200, {"ok": True})
+            if self.path.startswith("/api/evaluate/"):
+                evaluate.save(project(), self.path.split("/")[3], data)
                 return self.send(200, {"ok": True})
             if self.path == "/api/check":
                 steps, seed = data.get("steps") or [], data.get("seed") or None
