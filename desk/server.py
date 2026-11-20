@@ -208,6 +208,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(200, {"shots": shots.shot_list(project())})
             if self.path == "/api/check":
                 return self.send(200, laptop.state(project()))
+            if self.path == "/api/compare":
+                return self.send(200, json.loads((ROOT / "rules" / "compare.json").read_text(encoding="utf-8")))
             if self.path == "/api/evaluate":
                 return self.send(200, evaluate.stores())
             if self.path.startswith("/api/evaluate/"):

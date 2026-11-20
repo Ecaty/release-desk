@@ -57,6 +57,10 @@ Status: seven stores are wired up: Steam (upload with SteamCMD), itch.io (butler
 - **By hand once:** seller account, registering the app with its listing, screenshots, age rating, countries and signing choice in Seller Portal (the API cannot register apps). Put the 12-digit content ID and the service account ID in Keys & accounts; save the service account's private key outside every repository with its path in `SAMSUNG_SERVICE_ACCOUNT_KEY`.
 - **Submit update:** signs a JWT with the key (desk's own RS256), uploads the AAB in an upload session, opens an update with What's new, registers the binary with the previous binary's device targeting, and submits for review. **Check Galaxy Store** only reads the app's status.
 
+## Stores side by side
+
+Overview > Stores is one table of every store: own-account age, play from 8 through a parent's account, AI-only creation, runtime Flecs Script, the player's own AI account and AI credits. Click a cell for the detail and its source; below the table is what the game must do to be usable from 8 (child-friendly UX, AI filter, report and block, consent, store payments only). Data: `rules/compare.json`, checked 2026-11-20.
+
 ## Stores to evaluate
 
 - Below the seven wired-up stores, the menu lists stores that are not set up yet: Apple App Store (iPhone, iPad, Mac, Vision Pro), Android XR, Meta Horizon Store, PICO, Viveport, Nintendo, PlayStation and Xbox. A dot shows how well each fits the game's AI and runtime Flecs Script: green allowed, amber with conditions, red likely not, grey unknown or under NDA.

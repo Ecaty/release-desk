@@ -88,6 +88,7 @@ details.check{border-top:1px solid var(--line);padding:8px 0}details.check summa
 .thumb{display:block;max-width:120px;max-height:60px;margin-bottom:4px;border-radius:4px;background:repeating-conic-gradient(var(--line) 0 25%,transparent 0 50%) 0 0/12px 12px}
 .si{display:inline-block;width:16px;height:16px;background:currentColor;-webkit-mask:var(--i) center/contain no-repeat;mask:var(--i) center/contain no-repeat;vertical-align:-3px;margin-right:7px;flex:none}
 .si.steam{--i:url(/icons/steam.svg)}.si.epic{--i:url(/icons/epicgames.svg)}.si.play{--i:url(/icons/googleplay.svg)}.si.gog{--i:url(/icons/gogdotcom.svg)}.si.microsoft{--i:url(/icons/microsoftstore.svg)}.si.itch{--i:url(/icons/itchdotio.svg)}.si.apple{--i:url(/icons/apple.svg)}.si.meta{--i:url(/icons/meta.svg)}.si.nintendoswitch{--i:url(/icons/nintendoswitch.svg)}.si.playstation{--i:url(/icons/playstation.svg)}.si.xbox{--i:url(/icons/xbox.svg)}
+.tablewrap{overflow-x:auto}table.compare td,table.compare th{vertical-align:top}table.compare td:first-child a{white-space:nowrap;display:inline-flex;align-items:center}.cellbtn{border:none;background:none;padding:0;cursor:pointer;text-align:left}.cellbtn[aria-expanded=true] .chip{outline:2px solid var(--accent)}.celldetail td{background:var(--soft)}
 .navhead{font-size:12px;color:var(--muted);padding:2px 10px}#nav-eval{display:flex;flex-direction:column;gap:4px}
 .fit{width:9px;height:9px;border-radius:50%;flex:none}.fit.ok{background:var(--ok)}.fit.warn{background:var(--warn)}.fit.bad{background:var(--bad)}.fit.unknown{background:var(--muted)}
 .disclaimer{border-left:4px solid var(--muted)}.disclaimer.ok{border-left-color:var(--ok)}.disclaimer.warn{border-left-color:var(--warn)}.disclaimer.bad{border-left-color:var(--bad)}
@@ -257,7 +258,7 @@ const views = {
       ${start.recent.length ? `<div class="recent"><h3 class="note">Recent</h3>${start.recent.map(p => `<button class="copy" data-recent="${esc(p)}">${ic("folder")}${esc(p)}</button>`).join("")}</div>` : ""}</div>`;
   },
   async overview() {
-    const [o, r, l, k, ck] = await Promise.all([api("/api/overview"), api("/api/release"), api("/api/log"), api("/api/keys"), api("/api/check")]);
+    const [o, r, l, k, ck, cmp] = await Promise.all([api("/api/overview"), api("/api/release"), api("/api/log"), api("/api/keys"), api("/api/check"), api("/api/compare")]);
     const rows = o.sync.map(r => `<tr><td>${esc(r.label)}</td><td class="mono">${esc(r.desk)}</td><td class="mono">${esc(r.unity)}</td><td>${r.same ? chip("ok", "same") : chip("warn", "differs")}</td></tr>`).join("");
     const unity = `<div class="box"><h3>Synced to Unity</h3><p>Unity CLI ${k.unityCli ? chip("ok", "found") : chip("bad", "missing")}</p><table><tr><th>Setting</th><th>Desk</th><th>Unity</th><th></th></tr>${rows}</table>
         <p class="note">Push to Unity writes these into PlayerSettings in the open Editor.</p><div class="actions"><button class="btn" data-act="push-unity">${ic("sync")}Push to Unity</button></div></div>`;
@@ -272,6 +273,7 @@ const views = {
       <div id="jobs"></div>
       ${tabs("overview", [
         ["release", "Release", tabs("overview/release", [["shared", "Shared", releaseBox(r)], ["stores", "Per store", perStore(r)]], true)],
+        ["stores", "Stores", compareBox(cmp)],
         ["build", "Build all", buildAllBox(r)],
         ["check", "Release check", checkBox(ck)],
         ["unity", "Unity", unity],
@@ -369,6 +371,31 @@ const views = {
       ["builds", "Builds", builds], ["keys", "Keys &amp; accounts", keysBox("samsung", k)], ["steps", "Setup steps", stepsBox(g.steps, "samsung")]]);
   },
 };
+
+// Stores side by side: age, AI and runtime script, own AI account, credits. A cell opens its details under the row.
+const LVL = {ok: "ok", warn: "warn", bad: "bad", unknown: "hand"};
+function compareBox(c) {
+  const head = `<tr><th>Store</th>${c.columns.map(col => `<th>${esc(col.label)}</th>`).join("")}</tr>`;
+  const rows = c.stores.map(s => `<tr><td><a href="${esc(s.page)}">${s.icon ? `<i class="si ${esc(s.icon)}"></i>` : ""}${esc(s.name)}</a>${s.planned ? "" : ` <span class="note">to evaluate</span>`}</td>${c.columns.map(col => {
+      const cell = s.cells[col.key] || {short: "?", level: "unknown"};
+      return `<td><button class="cellbtn" data-cell="${esc(s.id)}:${esc(col.key)}" aria-expanded="false">${chip(LVL[cell.level] || "hand", cell.short)}</button></td>`;
+    }).join("")}</tr><tr class="celldetail" data-detail-for="${esc(s.id)}" hidden><td colspan="${c.columns.length + 1}"></td></tr>`).join("");
+  const must = `<div class="box"><h3>For players from 8, through a parent's account</h3><ul>${c.product.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>`;
+  return `<div class="box" id="compare"><h3>Stores</h3><p class="note sub">Click a cell for details and the source. Checked ${esc(c.checked)}; store rules change, so verify before release.</p>
+    <div class="tablewrap"><table class="compare">${head}${rows}</table></div></div>${must}`;
+}
+let COMPARE = null;
+async function openCell(btn) {
+  COMPARE = COMPARE || await api("/api/compare");
+  const [sid, key] = btn.dataset.cell.split(":");
+  const s = COMPARE.stores.find(x => x.id === sid), cell = s.cells[key] || {}, col = COMPARE.columns.find(x => x.key === key);
+  const row = document.querySelector(`[data-detail-for="${sid}"]`), open = btn.getAttribute("aria-expanded") === "true";
+  document.querySelectorAll(`[data-cell^="${sid}:"]`).forEach(b => b.setAttribute("aria-expanded", "false"));
+  if (open) { row.hidden = true; return; }
+  btn.setAttribute("aria-expanded", "true");
+  row.firstElementChild.innerHTML = `<b>${esc(s.name)} · ${esc(col.label)}</b><p>${esc(cell.detail || "No details yet.")}</p>${cell.source ? `<p class="note"><a href="${esc(cell.source)}" target="_blank" rel="noopener">${esc(cell.source)} ${ic("open_in_new")}</a></p>` : ""}`;
+  row.hidden = false;
+}
 
 // Release check: the build laptop builds, tests and explores one pushed commit (Tools/Test-On-Laptop.ps1 over SSH).
 const stateChip = st => chip(st === "passed" ? "ok" : st === "failed" ? "bad" : "hand", st || "unknown");
@@ -586,7 +613,7 @@ document.addEventListener("change", e => {
   if (ov) { const input = $("#rel-" + ov.dataset.ov); input.disabled = !ov.checked; if (ov.checked) input.focus(); }
 });
 document.addEventListener("click", async e => {
-  const t = e.target.closest("[data-act],[data-tab],[data-copyfrom],[data-text],[data-recent],[data-sort]");
+  const t = e.target.closest("[data-act],[data-tab],[data-copyfrom],[data-text],[data-recent],[data-sort],[data-cell]");
   if (!t) return;
   try {
     if (t.dataset.sort) { const [id, key] = t.dataset.sort.split(":"); const cur = sorts[id] || {key: "finished", dir: -1}; sorts[id] = {key, dir: cur.key === key ? -cur.dir : -1}; return render(); }
@@ -604,6 +631,7 @@ document.addEventListener("click", async e => {
       await api("/api/release", {store: t.dataset.store, values, override}); toast("Saved to Store/store.json"); return render();
     }
     if (act === "draft") { const d = await api("/api/release/draft", {}); $("#rel-whatsNew").value = d.text || ""; $("#rel-whatsNew").dispatchEvent(new Event("input", {bubbles: true})); return toast(d.text ? "Release notes from commits; edit, then Save" : "No Release-note lines in commits since the last build"); }
+    if (t.dataset.cell) return openCell(t);
     if (act === "save-eval") { const id = t.dataset.store; await api("/api/evaluate/" + id, {notes: $("#eval-notes").value}); toast("Saved to Store/evaluate.json"); return render(); }
     if (act === "release-check") { const steps = [...document.querySelectorAll("[data-check-step]:checked")].map(el => el.dataset.checkStep); if (!steps.length) return toast("Pick at least one step"); await api("/api/check", {steps, seed: $("#check-seed").value.trim()}); toast("Started; progress shows under Runs"); return updateJobs(); }
     if (act === "build-all") { const kinds = [...document.querySelectorAll("[data-kind-pick]:checked")].map(el => el.dataset.kindPick); await api("/api/build/all", {kinds}); toast("Started; progress shows under Runs"); return updateJobs(); }
