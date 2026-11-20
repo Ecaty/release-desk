@@ -67,7 +67,7 @@ Overview > Stores is one table of every store: own-account age, play from 8 thro
 
 ## Stores to evaluate
 
-- Below the seven wired-up stores, the menu lists stores that are not set up yet: Apple App Store (iPhone, iPad, Mac, Vision Pro), Android XR, Meta Horizon Store, PICO, Viveport, Nintendo, PlayStation and Xbox. A dot shows how well each fits the game's AI and runtime Flecs Script: green allowed, amber with conditions, red likely not, grey unknown or under NDA.
+- The menu groups stores as PC, Android, XR, Console and Apple. Besides the seven wired-up stores it lists stores that are not set up yet: Android XR, Meta Horizon Store and Viveport (XR), Nintendo, PlayStation and Xbox (Console), and the Apple App Store (iPhone, iPad, Mac, Vision Pro). A dot shows how well each fits the game's AI and runtime Flecs Script: green allowed, amber with conditions, red likely not, grey unknown or under NDA.
 - Each page opens with that disclaimer (rule names and quotes), then Evaluate (account, devices, review, Unity, AI rules), Setup steps you tick by hand, Notes and Sources. Facts live in `rules/evaluate.json` with the date they were checked; ticks and notes in `Store/evaluate.json`.
 
 ## Release check

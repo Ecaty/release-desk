@@ -1,12 +1,30 @@
 {
   "checked": "2026-11-20",
   "columns": [
-    {"key": "age", "label": "Own account"},
-    {"key": "kids", "label": "From 8 via a parent"},
-    {"key": "ai", "label": "AI-only creation"},
-    {"key": "script", "label": "Runtime Flecs Script"},
-    {"key": "account", "label": "Player's own AI account"},
-    {"key": "credits", "label": "AI credits sold"}
+    {
+      "key": "age",
+      "label": "Own account"
+    },
+    {
+      "key": "kids",
+      "label": "From 8 via a parent"
+    },
+    {
+      "key": "ai",
+      "label": "AI-only creation"
+    },
+    {
+      "key": "script",
+      "label": "Runtime Flecs Script"
+    },
+    {
+      "key": "account",
+      "label": "Player's own AI account"
+    },
+    {
+      "key": "credits",
+      "label": "AI credits sold"
+    }
   ],
   "product": [
     "Usable at 8: short words or icons, no reading-heavy menus, big touch targets, nothing that needs typing to make progress (voice or picking works).",
@@ -19,125 +37,616 @@
     "The store's age rating questionnaire answered honestly for AI-generated content."
   ],
   "stores": [
-    {"id": "steam", "name": "Steam", "icon": "steam", "page": "#steam", "planned": true, "cells": {
-      "age": {"short": "13+", "level": "ok", "detail": "13, or higher where the local consent age is higher; then Valve needs a parent's consent.", "source": "https://help.steampowered.com/faqs/view/054C-3167-DD7F-49D4"},
-      "kids": {"short": "unclear", "level": "unknown", "detail": "Steam Families lets a parent create child accounts; whether Valve allows them under 13, and from what age, is unverified. Purchases go to an adult for approval.", "source": "https://help.steampowered.com/faqs/view/054C-3167-DD7F-49D4"},
-      "ai": {"short": "yes, with guardrails", "level": "warn", "detail": "Content Survey: live-generated AI must describe its guardrails against illegal content; no adult sexual live AI. Local models count as live generation too.", "source": "https://partner.steamgames.com/doc/gettingstarted/contentsurvey"},
-      "script": {"short": "no rule found", "level": "ok", "detail": "No Valve rule against runtime scripts; the output is judged as game content."},
-      "account": {"short": "ask Valve", "level": "warn", "detail": "Valve's FAQ on games using external AI services mentions managing player access and Steam-supported payment: confirm the own-account approach with Valve before release."},
-      "credits": {"short": "Steam payment", "level": "warn", "detail": "Expect Steam's own in-game purchase system for anything sold in the game (not verified for AI credits)."}
-    }},
-    {"id": "itch", "name": "itch.io", "icon": "itch", "page": "#itch", "planned": true, "cells": {
-      "age": {"short": "13+", "level": "ok", "detail": "13 per the terms as quoted on forums (clause not read directly). Selling needs 18 or an adult running the finances.", "source": "https://itch.io/about/terms"},
-      "kids": {"short": "no family accounts", "level": "bad", "detail": "No parent-managed accounts found. Children could only play a downloaded build on a parent's computer."},
-      "ai": {"short": "yes, disclose", "level": "ok", "detail": "Tag generated content in AI Disclosure (Code for generated code); no mass-produced AI pages.", "source": "https://itch.io/docs/creators/quality-guidelines"},
-      "script": {"short": "yes", "level": "ok", "detail": "No rule against runtime scripting."},
-      "account": {"short": "yes", "level": "ok", "detail": "No restriction on external accounts found."},
-      "credits": {"short": "own payment", "level": "warn", "detail": "Credits sold in the game would use our own payment provider; not verified."}
-    }},
-    {"id": "epic", "name": "Epic Games Store", "icon": "epic", "page": "#epic", "planned": true, "cells": {
-      "age": {"short": "13+ or local age", "level": "ok", "detail": "The higher of 13 and the local digital-consent age.", "source": "https://legal.epicgames.com/epicgames/parental-consent"},
-      "kids": {"short": "Cabined Accounts", "level": "warn", "detail": "Below that age a Cabined Account works fully once a parent consents; real-money purchases and chat stay off until then; non-Epic downloads blocked.", "source": "https://www.epicgames.com/site/en-US/cabinedaccounts"},
-      "ai": {"short": "likely yes", "level": "unknown", "detail": "No AI disclosure rule found; Epic's content guidelines page did not load. Ask Epic before relying on it."},
-      "script": {"short": "unverified", "level": "unknown", "detail": "Not verified."},
-      "account": {"short": "unverified", "level": "unknown", "detail": "Not verified."},
-      "credits": {"short": "unverified", "level": "unknown", "detail": "Epic allows third-party payment for in-game purchases on PC (not re-verified)."}
-    }},
-    {"id": "gog", "name": "GOG", "icon": "gog", "page": "#gog", "planned": true, "cells": {
-      "age": {"short": "unverified", "level": "unknown", "detail": "A third-party guide says 16 with parental consent under 18; an older agreement says no one under 13.", "source": "https://www.gog.com/news/were_updating_our_user_agreement_and_other_gog_terms"},
-      "kids": {"short": "no family accounts", "level": "bad", "detail": "No parent-managed accounts found; GOG builds are DRM-free and can run on a parent's computer."},
-      "ai": {"short": "curated", "level": "unknown", "detail": "GOG picks its catalogue; ask during submission."},
-      "script": {"short": "unverified", "level": "unknown", "detail": "Not verified."},
-      "account": {"short": "unverified", "level": "unknown", "detail": "Not verified."},
-      "credits": {"short": "unverified", "level": "unknown", "detail": "Not verified."}
-    }},
-    {"id": "microsoft", "name": "Microsoft Store", "icon": "microsoft", "page": "#microsoft", "planned": true, "cells": {
-      "age": {"short": "13–16 by country", "level": "ok", "detail": "13 in the US and UK, 14 in Italy and South Korea, 16 in other EU countries.", "source": "https://support.microsoft.com/en-gb/accounts-billing/manage/list-of-countries-or-regions-that-have-statutory-age-limits-for-children"},
-      "kids": {"short": "family group", "level": "warn", "detail": "Microsoft family group child accounts with a parent's consent; Ask a parent for purchases is a parent setting. Lowest age not found.", "source": "https://support.microsoft.com/help/4579312"},
-      "ai": {"short": "unverified", "level": "unknown", "detail": "Store policies on generative AI not re-checked."},
-      "script": {"short": "unverified", "level": "unknown", "detail": "Not verified for MSIX desktop apps."},
-      "account": {"short": "unverified", "level": "unknown", "detail": "Not verified."},
-      "credits": {"short": "unverified", "level": "unknown", "detail": "Not verified."}
-    }},
-    {"id": "play", "name": "Google Play", "icon": "play", "page": "#play", "planned": true, "cells": {
-      "age": {"short": "13+ by country", "level": "ok", "detail": "13 by default; the applicable age varies by country.", "source": "https://support.google.com/googleplay/answer/7039872"},
-      "kids": {"short": "Family Link", "level": "warn", "detail": "Supervised accounts made by a parent with Family Link, no lower age found; the parent chooses which purchases need approval. Targeting children brings the Families policy (audience declaration, data rules).", "source": "https://support.google.com/families/answer/7087279"},
-      "ai": {"short": "yes, with reporting", "level": "warn", "detail": "AI-Generated Content policy: prevent restricted content and offer in-app reporting without leaving the app.", "source": "https://support.google.com/googleplay/android-developer/answer/13985936"},
-      "script": {"short": "yes, if policy-safe", "level": "ok", "detail": "Interpreted code loaded at runtime is allowed if it cannot break Play policy; no downloaded native code.", "source": "https://support.google.com/googleplay/android-developer/answer/9888379"},
-      "account": {"short": "sign-in ok", "level": "warn", "detail": "A provider sign-in is fine, but no in-app links to the provider's payment (payments policy).", "source": "https://support.google.com/googleplay/android-developer/answer/9858738"},
-      "credits": {"short": "Play Billing", "level": "warn", "detail": "Consumable credits must use Play Billing, except alternative billing programmes in some regions (EEA, US, Japan).", "source": "https://support.google.com/googleplay/android-developer/answer/9858738"}
-    }},
-    {"id": "samsung", "name": "Galaxy Store", "icon": "", "page": "#samsung", "planned": true, "cells": {
-      "age": {"short": "13+", "level": "ok", "detail": "13 by default; Thailand 20 per one Samsung page.", "source": "https://terms.account.samsung.com/contents/legal/usa/eng/general.html"},
-      "kids": {"short": "unverified", "level": "unknown", "detail": "Supervised accounts exist (the store's age signals cover 0–18), but the feature and its age floor are unverified.", "source": "https://developer.samsung.com/galaxy-store/galaxy-store-content-provider-api/get-age-signals.html"},
-      "ai": {"short": "unverified", "level": "unknown", "detail": "Not checked."},
-      "script": {"short": "unverified", "level": "unknown", "detail": "Not checked."},
-      "account": {"short": "unverified", "level": "unknown", "detail": "Not checked."},
-      "credits": {"short": "Samsung IAP?", "level": "unknown", "detail": "Likely Samsung In-App Purchase; not verified."}
-    }},
-    {"id": "apple", "name": "Apple App Store", "icon": "apple", "page": "#eval-apple", "cells": {
-      "age": {"short": "13–18 by country", "level": "ok", "detail": "13 in most countries, 14–16 in several European ones, 18 in Brazil (lists conflict, unverified per country).", "source": "https://support.apple.com/125666"},
-      "kids": {"short": "Family Sharing", "level": "warn", "detail": "Family Sharing child accounts with a parent's consent; Ask to Buy is on by default under 13. The Kids Category bars sending personal data to third parties, which rules out cloud AI there; a general 9+ rating is more realistic.", "source": "https://support.apple.com/en-au/ht201089"},
-      "ai": {"short": "yes, with tools", "level": "warn", "detail": "1.2 AI content creation apps: filtering, report, block and contact details.", "source": "https://developer.apple.com/app-store/review/guidelines/"},
-      "script": {"short": "risk (2.5.2)", "level": "bad", "detail": "2.5.2 forbids code that \"introduces or changes features or functionality\". Argue Flecs Script is content inside our sandbox (4.7: filtering, reporting, age gate, no native APIs). Review may refuse.", "source": "https://developer.apple.com/app-store/review/guidelines/"},
-      "account": {"short": "with consent", "level": "warn", "detail": "5.1.2(i): disclose and get explicit permission before data goes to a third-party AI.", "source": "https://developer.apple.com/app-store/review/guidelines/"},
-      "credits": {"short": "In-App Purchase", "level": "warn", "detail": "3.1.1: digital credits must be In-App Purchase.", "source": "https://developer.apple.com/app-store/review/guidelines/"}
-    }},
-    {"id": "android-xr", "name": "Android XR", "icon": "", "page": "#eval-android-xr", "cells": {
-      "age": {"short": "as Google Play", "level": "ok", "detail": "Same Google account rules as Google Play."},
-      "kids": {"short": "as Google Play", "level": "warn", "detail": "Family Link; headset makers may set their own age limits."},
-      "ai": {"short": "yes, with reporting", "level": "warn", "detail": "Same AI-Generated Content policy as Google Play."},
-      "script": {"short": "yes, if policy-safe", "level": "ok", "detail": "Same interpreted-code rule as Google Play."},
-      "account": {"short": "sign-in ok", "level": "warn", "detail": "As Google Play."},
-      "credits": {"short": "Play Billing", "level": "warn", "detail": "As Google Play."}
-    }},
-    {"id": "meta", "name": "Meta Horizon Store", "icon": "meta", "page": "#eval-meta", "cells": {
-      "age": {"short": "13+", "level": "ok", "detail": "13 for your own Meta account.", "source": "https://www.meta.com/help/quest/153416360720860/"},
-      "kids": {"short": "10+ only", "level": "bad", "detail": "Parent-managed accounts for 10–12; apps must keep out users under 10, so 8 and 9 are outside Meta's floor. The parent approves apps and pays.", "source": "https://developers.meta.com/horizon/policy/age-groups/"},
-      "ai": {"short": "no rule found", "level": "warn", "detail": "Generated content must meet the Content Guidelines, with reporting; every app self-certifies an age group.", "source": "https://developers.meta.com/horizon/policy/content-guidelines/"},
-      "script": {"short": "no rule found", "level": "ok", "detail": "No runtime-code rule found in the app policies.", "source": "https://developers.meta.com/horizon/policy/app-policies"},
-      "account": {"short": "unverified", "level": "unknown", "detail": "Third-party login not covered by the policies read."},
-      "credits": {"short": "Meta IAP", "level": "warn", "detail": "1.1.1: \"you must use the Platform In-App Purchases\".", "source": "https://developers.meta.com/horizon/policy/app-policies"}
-    }},
-    {"id": "pico", "name": "PICO Store", "icon": "", "page": "#eval-pico", "cells": {
-      "age": {"short": "unverified", "level": "unknown", "detail": "No PICO source found."},
-      "kids": {"short": "unverified", "level": "unknown", "detail": "No PICO source found."},
-      "ai": {"short": "unknown", "level": "unknown", "detail": "Ask PICO."},
-      "script": {"short": "unknown", "level": "unknown", "detail": "Ask PICO."},
-      "account": {"short": "unknown", "level": "unknown", "detail": "Ask PICO."},
-      "credits": {"short": "unknown", "level": "unknown", "detail": "Ask PICO."}
-    }},
-    {"id": "viveport", "name": "Viveport", "icon": "", "page": "#eval-viveport", "cells": {
-      "age": {"short": "13+", "level": "ok", "detail": "13 per the VIVE App Store terms (2018–2022 documents).", "source": "https://business.vive.com/documents/vive-appstore-terms-of-use.pdf"},
-      "kids": {"short": "no family accounts", "level": "bad", "detail": "No parent-managed accounts found."},
-      "ai": {"short": "unknown", "level": "unknown", "detail": "Not found."},
-      "script": {"short": "unknown", "level": "unknown", "detail": "Not found."},
-      "account": {"short": "unknown", "level": "unknown", "detail": "Not found."},
-      "credits": {"short": "unknown", "level": "unknown", "detail": "Not found."}
-    }},
-    {"id": "nintendo", "name": "Nintendo eShop", "icon": "nintendoswitch", "page": "#eval-nintendo", "cells": {
-      "age": {"short": "13+ (14 Quebec)", "level": "ok", "detail": "Varies by region.", "source": "https://en-americas-support.nintendo.com/app/answers/detail/a_id/22444/p/897/c/184"},
-      "kids": {"short": "child accounts", "level": "warn", "detail": "Parents create child accounts in their Family Group; spending restrictions are a parent setting.", "source": "https://play.nintendo.com/parents/tools-for-parents/nintendo-accounts-kids"},
-      "ai": {"short": "NDA", "level": "unknown", "detail": "Lotcheck rules are under NDA."},
-      "script": {"short": "NDA", "level": "unknown", "detail": "Under NDA."},
-      "account": {"short": "NDA", "level": "unknown", "detail": "Under NDA."},
-      "credits": {"short": "eShop", "level": "unknown", "detail": "Under NDA; expect Nintendo's own purchases."}
-    }},
-    {"id": "playstation", "name": "PlayStation Store", "icon": "playstation", "page": "#eval-playstation", "cells": {
-      "age": {"short": "by country", "level": "ok", "detail": "Varies by country; list not retrieved.", "source": "https://www.playstation.com/en-bh/legal/psn-terms-of-service/"},
-      "kids": {"short": "child accounts", "level": "warn", "detail": "Child accounts under a family manager; spending limit starts at 0 until the parent raises it.", "source": "https://www.playstation.com/en-us/support/account/ps5-parental-controls-spending-limits/"},
-      "ai": {"short": "NDA", "level": "unknown", "detail": "Certification rules are under NDA."},
-      "script": {"short": "NDA", "level": "unknown", "detail": "Under NDA."},
-      "account": {"short": "NDA", "level": "unknown", "detail": "Under NDA."},
-      "credits": {"short": "PS Store", "level": "unknown", "detail": "Under NDA; expect Sony's own purchases."}
-    }},
-    {"id": "xbox", "name": "Xbox", "icon": "xbox", "page": "#eval-xbox", "cells": {
-      "age": {"short": "13–16 by country", "level": "ok", "detail": "Microsoft account ages as for the Microsoft Store.", "source": "https://support.microsoft.com/en-gb/accounts-billing/manage/list-of-countries-or-regions-that-have-statutory-age-limits-for-children"},
-      "kids": {"short": "family group", "level": "warn", "detail": "Microsoft family group child accounts with a parent's consent.", "source": "https://support.microsoft.com/help/4579312"},
-      "ai": {"short": "NDA", "level": "unknown", "detail": "Requirements are under NDA."},
-      "script": {"short": "NDA", "level": "unknown", "detail": "Under NDA."},
-      "account": {"short": "NDA", "level": "unknown", "detail": "Under NDA."},
-      "credits": {"short": "Xbox store", "level": "unknown", "detail": "Under NDA; expect Microsoft's own purchases."}
-    }}
+    {
+      "id": "steam",
+      "name": "Steam",
+      "icon": "steam",
+      "page": "#steam",
+      "planned": true,
+      "cells": {
+        "age": {
+          "short": "13+",
+          "level": "ok",
+          "detail": "13, or higher where the local consent age is higher; then Valve needs a parent's consent.",
+          "source": "https://help.steampowered.com/faqs/view/054C-3167-DD7F-49D4"
+        },
+        "kids": {
+          "short": "unclear",
+          "level": "unknown",
+          "detail": "Steam Families lets a parent create child accounts; whether Valve allows them under 13, and from what age, is unverified. Purchases go to an adult for approval.",
+          "source": "https://help.steampowered.com/faqs/view/054C-3167-DD7F-49D4"
+        },
+        "ai": {
+          "short": "yes, with guardrails",
+          "level": "warn",
+          "detail": "Content Survey: live-generated AI must describe its guardrails against illegal content; no adult sexual live AI. Local models count as live generation too.",
+          "source": "https://partner.steamgames.com/doc/gettingstarted/contentsurvey"
+        },
+        "script": {
+          "short": "no rule found",
+          "level": "ok",
+          "detail": "No Valve rule against runtime scripts; the output is judged as game content."
+        },
+        "account": {
+          "short": "ask Valve",
+          "level": "warn",
+          "detail": "Valve's FAQ on games using external AI services mentions managing player access and Steam-supported payment: confirm the own-account approach with Valve before release."
+        },
+        "credits": {
+          "short": "Steam payment",
+          "level": "warn",
+          "detail": "Expect Steam's own in-game purchase system for anything sold in the game (not verified for AI credits)."
+        }
+      },
+      "group": "pc"
+    },
+    {
+      "id": "itch",
+      "name": "itch.io",
+      "icon": "itch",
+      "page": "#itch",
+      "planned": true,
+      "cells": {
+        "age": {
+          "short": "13+",
+          "level": "ok",
+          "detail": "13 per the terms as quoted on forums (clause not read directly). Selling needs 18 or an adult running the finances.",
+          "source": "https://itch.io/about/terms"
+        },
+        "kids": {
+          "short": "no family accounts",
+          "level": "bad",
+          "detail": "No parent-managed accounts found. Children could only play a downloaded build on a parent's computer."
+        },
+        "ai": {
+          "short": "yes, disclose",
+          "level": "ok",
+          "detail": "Tag generated content in AI Disclosure (Code for generated code); no mass-produced AI pages.",
+          "source": "https://itch.io/docs/creators/quality-guidelines"
+        },
+        "script": {
+          "short": "yes",
+          "level": "ok",
+          "detail": "No rule against runtime scripting."
+        },
+        "account": {
+          "short": "yes",
+          "level": "ok",
+          "detail": "No restriction on external accounts found."
+        },
+        "credits": {
+          "short": "own payment",
+          "level": "warn",
+          "detail": "Credits sold in the game would use our own payment provider; not verified."
+        }
+      },
+      "group": "pc"
+    },
+    {
+      "id": "epic",
+      "name": "Epic Games Store",
+      "icon": "epic",
+      "page": "#epic",
+      "planned": true,
+      "cells": {
+        "age": {
+          "short": "13+ or local age",
+          "level": "ok",
+          "detail": "The higher of 13 and the local digital-consent age.",
+          "source": "https://legal.epicgames.com/epicgames/parental-consent"
+        },
+        "kids": {
+          "short": "Cabined Accounts",
+          "level": "warn",
+          "detail": "Below that age a Cabined Account works fully once a parent consents; real-money purchases and chat stay off until then; non-Epic downloads blocked.",
+          "source": "https://www.epicgames.com/site/en-US/cabinedaccounts"
+        },
+        "ai": {
+          "short": "likely yes",
+          "level": "unknown",
+          "detail": "No AI disclosure rule found; Epic's content guidelines page did not load. Ask Epic before relying on it."
+        },
+        "script": {
+          "short": "unverified",
+          "level": "unknown",
+          "detail": "Not verified."
+        },
+        "account": {
+          "short": "unverified",
+          "level": "unknown",
+          "detail": "Not verified."
+        },
+        "credits": {
+          "short": "unverified",
+          "level": "unknown",
+          "detail": "Epic allows third-party payment for in-game purchases on PC (not re-verified)."
+        }
+      },
+      "group": "pc"
+    },
+    {
+      "id": "gog",
+      "name": "GOG",
+      "icon": "gog",
+      "page": "#gog",
+      "planned": true,
+      "cells": {
+        "age": {
+          "short": "unverified",
+          "level": "unknown",
+          "detail": "A third-party guide says 16 with parental consent under 18; an older agreement says no one under 13.",
+          "source": "https://www.gog.com/news/were_updating_our_user_agreement_and_other_gog_terms"
+        },
+        "kids": {
+          "short": "no family accounts",
+          "level": "bad",
+          "detail": "No parent-managed accounts found; GOG builds are DRM-free and can run on a parent's computer."
+        },
+        "ai": {
+          "short": "curated",
+          "level": "unknown",
+          "detail": "GOG picks its catalogue; ask during submission."
+        },
+        "script": {
+          "short": "unverified",
+          "level": "unknown",
+          "detail": "Not verified."
+        },
+        "account": {
+          "short": "unverified",
+          "level": "unknown",
+          "detail": "Not verified."
+        },
+        "credits": {
+          "short": "unverified",
+          "level": "unknown",
+          "detail": "Not verified."
+        }
+      },
+      "group": "pc"
+    },
+    {
+      "id": "microsoft",
+      "name": "Microsoft Store",
+      "icon": "microsoft",
+      "page": "#microsoft",
+      "planned": true,
+      "cells": {
+        "age": {
+          "short": "13–16 by country",
+          "level": "ok",
+          "detail": "13 in the US and UK, 14 in Italy and South Korea, 16 in other EU countries.",
+          "source": "https://support.microsoft.com/en-gb/accounts-billing/manage/list-of-countries-or-regions-that-have-statutory-age-limits-for-children"
+        },
+        "kids": {
+          "short": "family group",
+          "level": "warn",
+          "detail": "Microsoft family group child accounts with a parent's consent; Ask a parent for purchases is a parent setting. Lowest age not found.",
+          "source": "https://support.microsoft.com/help/4579312"
+        },
+        "ai": {
+          "short": "unverified",
+          "level": "unknown",
+          "detail": "Store policies on generative AI not re-checked."
+        },
+        "script": {
+          "short": "unverified",
+          "level": "unknown",
+          "detail": "Not verified for MSIX desktop apps."
+        },
+        "account": {
+          "short": "unverified",
+          "level": "unknown",
+          "detail": "Not verified."
+        },
+        "credits": {
+          "short": "unverified",
+          "level": "unknown",
+          "detail": "Not verified."
+        }
+      },
+      "group": "pc"
+    },
+    {
+      "id": "play",
+      "name": "Google Play",
+      "icon": "play",
+      "page": "#play",
+      "planned": true,
+      "cells": {
+        "age": {
+          "short": "13+ by country",
+          "level": "ok",
+          "detail": "13 by default; the applicable age varies by country.",
+          "source": "https://support.google.com/googleplay/answer/7039872"
+        },
+        "kids": {
+          "short": "Family Link",
+          "level": "warn",
+          "detail": "Supervised accounts made by a parent with Family Link, no lower age found; the parent chooses which purchases need approval. Targeting children brings the Families policy (audience declaration, data rules).",
+          "source": "https://support.google.com/families/answer/7087279"
+        },
+        "ai": {
+          "short": "yes, with reporting",
+          "level": "warn",
+          "detail": "AI-Generated Content policy: prevent restricted content and offer in-app reporting without leaving the app.",
+          "source": "https://support.google.com/googleplay/android-developer/answer/13985936"
+        },
+        "script": {
+          "short": "yes, if policy-safe",
+          "level": "ok",
+          "detail": "Interpreted code loaded at runtime is allowed if it cannot break Play policy; no downloaded native code.",
+          "source": "https://support.google.com/googleplay/android-developer/answer/9888379"
+        },
+        "account": {
+          "short": "sign-in ok",
+          "level": "warn",
+          "detail": "A provider sign-in is fine, but no in-app links to the provider's payment (payments policy).",
+          "source": "https://support.google.com/googleplay/android-developer/answer/9858738"
+        },
+        "credits": {
+          "short": "Play Billing",
+          "level": "warn",
+          "detail": "Consumable credits must use Play Billing, except alternative billing programmes in some regions (EEA, US, Japan).",
+          "source": "https://support.google.com/googleplay/android-developer/answer/9858738"
+        }
+      },
+      "group": "android"
+    },
+    {
+      "id": "samsung",
+      "name": "Galaxy Store",
+      "icon": "",
+      "page": "#samsung",
+      "planned": true,
+      "cells": {
+        "age": {
+          "short": "13+",
+          "level": "ok",
+          "detail": "13 by default; Thailand 20 per one Samsung page.",
+          "source": "https://terms.account.samsung.com/contents/legal/usa/eng/general.html"
+        },
+        "kids": {
+          "short": "unverified",
+          "level": "unknown",
+          "detail": "Supervised accounts exist (the store's age signals cover 0–18), but the feature and its age floor are unverified.",
+          "source": "https://developer.samsung.com/galaxy-store/galaxy-store-content-provider-api/get-age-signals.html"
+        },
+        "ai": {
+          "short": "unverified",
+          "level": "unknown",
+          "detail": "Not checked."
+        },
+        "script": {
+          "short": "unverified",
+          "level": "unknown",
+          "detail": "Not checked."
+        },
+        "account": {
+          "short": "unverified",
+          "level": "unknown",
+          "detail": "Not checked."
+        },
+        "credits": {
+          "short": "Samsung IAP?",
+          "level": "unknown",
+          "detail": "Likely Samsung In-App Purchase; not verified."
+        }
+      },
+      "group": "android"
+    },
+    {
+      "id": "android-xr",
+      "name": "Android XR",
+      "icon": "",
+      "page": "#eval-android-xr",
+      "cells": {
+        "age": {
+          "short": "as Google Play",
+          "level": "ok",
+          "detail": "Same Google account rules as Google Play."
+        },
+        "kids": {
+          "short": "as Google Play",
+          "level": "warn",
+          "detail": "Family Link; headset makers may set their own age limits."
+        },
+        "ai": {
+          "short": "yes, with reporting",
+          "level": "warn",
+          "detail": "Same AI-Generated Content policy as Google Play."
+        },
+        "script": {
+          "short": "yes, if policy-safe",
+          "level": "ok",
+          "detail": "Same interpreted-code rule as Google Play."
+        },
+        "account": {
+          "short": "sign-in ok",
+          "level": "warn",
+          "detail": "As Google Play."
+        },
+        "credits": {
+          "short": "Play Billing",
+          "level": "warn",
+          "detail": "As Google Play."
+        }
+      },
+      "group": "xr"
+    },
+    {
+      "id": "meta",
+      "name": "Meta Horizon Store",
+      "icon": "meta",
+      "page": "#eval-meta",
+      "cells": {
+        "age": {
+          "short": "13+",
+          "level": "ok",
+          "detail": "13 for your own Meta account.",
+          "source": "https://www.meta.com/help/quest/153416360720860/"
+        },
+        "kids": {
+          "short": "10+ only",
+          "level": "bad",
+          "detail": "Parent-managed accounts for 10–12; apps must keep out users under 10, so 8 and 9 are outside Meta's floor. The parent approves apps and pays.",
+          "source": "https://developers.meta.com/horizon/policy/age-groups/"
+        },
+        "ai": {
+          "short": "no rule found",
+          "level": "warn",
+          "detail": "Generated content must meet the Content Guidelines, with reporting; every app self-certifies an age group.",
+          "source": "https://developers.meta.com/horizon/policy/content-guidelines/"
+        },
+        "script": {
+          "short": "no rule found",
+          "level": "ok",
+          "detail": "No runtime-code rule found in the app policies.",
+          "source": "https://developers.meta.com/horizon/policy/app-policies"
+        },
+        "account": {
+          "short": "unverified",
+          "level": "unknown",
+          "detail": "Third-party login not covered by the policies read."
+        },
+        "credits": {
+          "short": "Meta IAP",
+          "level": "warn",
+          "detail": "1.1.1: \"you must use the Platform In-App Purchases\".",
+          "source": "https://developers.meta.com/horizon/policy/app-policies"
+        }
+      },
+      "group": "xr"
+    },
+    {
+      "id": "viveport",
+      "name": "Viveport",
+      "icon": "",
+      "page": "#eval-viveport",
+      "cells": {
+        "age": {
+          "short": "13+",
+          "level": "ok",
+          "detail": "13 per the VIVE App Store terms (2018–2022 documents).",
+          "source": "https://business.vive.com/documents/vive-appstore-terms-of-use.pdf"
+        },
+        "kids": {
+          "short": "no family accounts",
+          "level": "bad",
+          "detail": "No parent-managed accounts found."
+        },
+        "ai": {
+          "short": "unknown",
+          "level": "unknown",
+          "detail": "Not found."
+        },
+        "script": {
+          "short": "unknown",
+          "level": "unknown",
+          "detail": "Not found."
+        },
+        "account": {
+          "short": "unknown",
+          "level": "unknown",
+          "detail": "Not found."
+        },
+        "credits": {
+          "short": "unknown",
+          "level": "unknown",
+          "detail": "Not found."
+        }
+      },
+      "group": "xr"
+    },
+    {
+      "id": "nintendo",
+      "name": "Nintendo eShop",
+      "icon": "nintendoswitch",
+      "page": "#eval-nintendo",
+      "cells": {
+        "age": {
+          "short": "13+ (14 Quebec)",
+          "level": "ok",
+          "detail": "Varies by region.",
+          "source": "https://en-americas-support.nintendo.com/app/answers/detail/a_id/22444/p/897/c/184"
+        },
+        "kids": {
+          "short": "child accounts",
+          "level": "warn",
+          "detail": "Parents create child accounts in their Family Group; spending restrictions are a parent setting.",
+          "source": "https://play.nintendo.com/parents/tools-for-parents/nintendo-accounts-kids"
+        },
+        "ai": {
+          "short": "NDA",
+          "level": "unknown",
+          "detail": "Lotcheck rules are under NDA."
+        },
+        "script": {
+          "short": "NDA",
+          "level": "unknown",
+          "detail": "Under NDA."
+        },
+        "account": {
+          "short": "NDA",
+          "level": "unknown",
+          "detail": "Under NDA."
+        },
+        "credits": {
+          "short": "eShop",
+          "level": "unknown",
+          "detail": "Under NDA; expect Nintendo's own purchases."
+        }
+      },
+      "group": "console"
+    },
+    {
+      "id": "playstation",
+      "name": "PlayStation Store",
+      "icon": "playstation",
+      "page": "#eval-playstation",
+      "cells": {
+        "age": {
+          "short": "by country",
+          "level": "ok",
+          "detail": "Varies by country; list not retrieved.",
+          "source": "https://www.playstation.com/en-bh/legal/psn-terms-of-service/"
+        },
+        "kids": {
+          "short": "child accounts",
+          "level": "warn",
+          "detail": "Child accounts under a family manager; spending limit starts at 0 until the parent raises it.",
+          "source": "https://www.playstation.com/en-us/support/account/ps5-parental-controls-spending-limits/"
+        },
+        "ai": {
+          "short": "NDA",
+          "level": "unknown",
+          "detail": "Certification rules are under NDA."
+        },
+        "script": {
+          "short": "NDA",
+          "level": "unknown",
+          "detail": "Under NDA."
+        },
+        "account": {
+          "short": "NDA",
+          "level": "unknown",
+          "detail": "Under NDA."
+        },
+        "credits": {
+          "short": "PS Store",
+          "level": "unknown",
+          "detail": "Under NDA; expect Sony's own purchases."
+        }
+      },
+      "group": "console"
+    },
+    {
+      "id": "xbox",
+      "name": "Xbox",
+      "icon": "xbox",
+      "page": "#eval-xbox",
+      "cells": {
+        "age": {
+          "short": "13–16 by country",
+          "level": "ok",
+          "detail": "Microsoft account ages as for the Microsoft Store.",
+          "source": "https://support.microsoft.com/en-gb/accounts-billing/manage/list-of-countries-or-regions-that-have-statutory-age-limits-for-children"
+        },
+        "kids": {
+          "short": "family group",
+          "level": "warn",
+          "detail": "Microsoft family group child accounts with a parent's consent.",
+          "source": "https://support.microsoft.com/help/4579312"
+        },
+        "ai": {
+          "short": "NDA",
+          "level": "unknown",
+          "detail": "Requirements are under NDA."
+        },
+        "script": {
+          "short": "NDA",
+          "level": "unknown",
+          "detail": "Under NDA."
+        },
+        "account": {
+          "short": "NDA",
+          "level": "unknown",
+          "detail": "Under NDA."
+        },
+        "credits": {
+          "short": "Xbox store",
+          "level": "unknown",
+          "detail": "Under NDA; expect Microsoft's own purchases."
+        }
+      },
+      "group": "console"
+    },
+    {
+      "id": "apple",
+      "name": "Apple App Store",
+      "icon": "apple",
+      "page": "#eval-apple",
+      "cells": {
+        "age": {
+          "short": "13–18 by country",
+          "level": "ok",
+          "detail": "13 in most countries, 14–16 in several European ones, 18 in Brazil (lists conflict, unverified per country).",
+          "source": "https://support.apple.com/125666"
+        },
+        "kids": {
+          "short": "Family Sharing",
+          "level": "warn",
+          "detail": "Family Sharing child accounts with a parent's consent; Ask to Buy is on by default under 13. The Kids Category bars sending personal data to third parties, which rules out cloud AI there; a general 9+ rating is more realistic.",
+          "source": "https://support.apple.com/en-au/ht201089"
+        },
+        "ai": {
+          "short": "yes, with tools",
+          "level": "warn",
+          "detail": "1.2 AI content creation apps: filtering, report, block and contact details.",
+          "source": "https://developer.apple.com/app-store/review/guidelines/"
+        },
+        "script": {
+          "short": "risk (2.5.2)",
+          "level": "bad",
+          "detail": "2.5.2 forbids code that \"introduces or changes features or functionality\". Argue Flecs Script is content inside our sandbox (4.7: filtering, reporting, age gate, no native APIs). Review may refuse.",
+          "source": "https://developer.apple.com/app-store/review/guidelines/"
+        },
+        "account": {
+          "short": "with consent",
+          "level": "warn",
+          "detail": "5.1.2(i): disclose and get explicit permission before data goes to a third-party AI.",
+          "source": "https://developer.apple.com/app-store/review/guidelines/"
+        },
+        "credits": {
+          "short": "In-App Purchase",
+          "level": "warn",
+          "detail": "3.1.1: digital credits must be In-App Purchase.",
+          "source": "https://developer.apple.com/app-store/review/guidelines/"
+        }
+      },
+      "group": "apple"
+    }
+  ],
+  "groups": [
+    [
+      "pc",
+      "PC"
+    ],
+    [
+      "android",
+      "Android"
+    ],
+    [
+      "xr",
+      "XR"
+    ],
+    [
+      "console",
+      "Console"
+    ],
+    [
+      "apple",
+      "Apple"
+    ]
   ]
 }

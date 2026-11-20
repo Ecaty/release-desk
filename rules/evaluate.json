@@ -3,31 +3,10 @@
   "common": "How this game works for these rules: the AI and players change the world with Flecs Script, declarative data that the game's own engine interprets. It never downloads native code. Stores that review AI features expect content filtering, in-app reporting and blocking, and disclosure of any third-party AI. Console rules are under NDA, so their verdicts stay open until we are in their programmes.",
   "stores": [
     {
-      "id": "apple", "name": "Apple App Store", "icon": "apple", "group": "Apple",
-      "summary": "iPhone, iPad, Mac App Store and Apple Vision Pro (visionOS), all through App Store Connect.",
-      "fit": {
-        "level": "warn",
-        "verdict": "Allowed with conditions, and the riskiest of the open stores for runtime scripts.",
-        "detail": "Guideline 2.5.2: apps \"may not download, install, or execute code which introduces or changes features\". Flecs Script made by the AI at runtime has to be argued as content inside the app's own sandbox: declarative data, no native APIs, no new app features. 4.7 (mini apps, chatbots) asks for filtering, reporting and blocking, and age gating. 1.2 asks AI content creation apps for filters, reports, blocking and contact details. 5.1.2(i) needs explicit permission before sharing data with third-party AI. Expect questions from App Review; nothing here is certain."
-      },
-      "facts": [
-        {"label": "Developer account", "value": "Apple Developer Program, about 99 USD a year (check the current fee)."},
-        {"label": "Devices", "value": "A Mac with Xcode for every Apple build; visionOS needs an Apple-silicon Mac. Test iPhone/iPad strongly advised; Vision Pro has a simulator."},
-        {"label": "Review", "value": "Human App Review for every build and update in App Store Connect."},
-        {"label": "Unity", "value": "iOS and macOS are supported in the normal editor. visionOS needs Unity Pro, Enterprise or Industry."},
-        {"label": "AI content", "value": "Filtering, report and block tools, published contact details, third-party AI disclosure and consent, age rating from the App Store Connect questionnaire."}
-      ],
-      "steps": [
-        {"title": "Decide if a Mac is available", "detail": "Every Apple build is made and signed on a Mac with Xcode; Unity exports an Xcode project."},
-        {"title": "Developer Program", "detail": "Enrol as an organisation (needs a D-U-N-S number) or as an individual.", "link": "https://developer.apple.com/programs/"},
-        {"title": "Read 2.5.2, 4.7 and 1.2 against the AI design", "detail": "Write down how Flecs Script stays data inside the sandbox, and which filter, report and block tools the game has.", "link": "https://developer.apple.com/app-store/review/guidelines/"},
-        {"title": "Privacy: third-party AI consent", "detail": "Name each AI provider in the privacy details and ask the player before sending anything (5.1.2(i))."},
-        {"title": "TestFlight build", "detail": "First upload to TestFlight to see how review reacts before a store release."}
-      ],
-      "sources": ["https://developer.apple.com/app-store/review/guidelines/", "https://docs.unity3d.com/Manual/com.unity.polyspatial.visionos.html", "https://developer.apple.com/programs/"]
-    },
-    {
-      "id": "android-xr", "name": "Android XR", "icon": "", "group": "VR",
+      "id": "android-xr",
+      "name": "Android XR",
+      "icon": "",
+      "group": "xr",
       "summary": "Google's headset platform. It is Google Play: the same Play Console account, with a mobile or a dedicated XR track.",
       "fit": {
         "level": "warn",
@@ -35,21 +14,53 @@
         "detail": "Device and Network Abuse policy: no downloaded executable code (dex, JAR, .so); interpreted languages loaded at runtime \"must not allow potential violations of Google Play policies\". Flecs Script is interpreted data, so it fits if what it makes stays within policy. The AI-Generated Content policy needs in-app reporting or flagging without leaving the app, and prohibits some content."
       },
       "facts": [
-        {"label": "Developer account", "value": "The existing Google Play developer account (one-off 25 USD, check)."},
-        {"label": "Devices", "value": "An Android XR headset to test; Unity's OpenXR setup must mark the XR feature as required."},
-        {"label": "Review", "value": "Play review, as for the phone build."},
-        {"label": "Unity", "value": "Supported through OpenXR; the app runs in Full Space."},
-        {"label": "AI content", "value": "In-app reporting of AI output, used for moderation."}
+        {
+          "label": "Developer account",
+          "value": "The existing Google Play developer account (one-off 25 USD, check)."
+        },
+        {
+          "label": "Devices",
+          "value": "An Android XR headset to test; Unity's OpenXR setup must mark the XR feature as required."
+        },
+        {
+          "label": "Review",
+          "value": "Play review, as for the phone build."
+        },
+        {
+          "label": "Unity",
+          "value": "Supported through OpenXR; the app runs in Full Space."
+        },
+        {
+          "label": "AI content",
+          "value": "In-app reporting of AI output, used for moderation."
+        }
       ],
       "steps": [
-        {"title": "Get or borrow an Android XR headset", "detail": "Needed to test comfort, input and performance."},
-        {"title": "XR build target", "detail": "Unity OpenXR with the Android XR feature, android:required=true."},
-        {"title": "Add the XR track in Play Console", "detail": "Same app or a separate XR listing.", "link": "https://developer.android.com/blog/posts/5-things-you-need-to-know-about-publishing-and-distributing-your-app-for-android-xr"}
+        {
+          "title": "Get or borrow an Android XR headset",
+          "detail": "Needed to test comfort, input and performance."
+        },
+        {
+          "title": "XR build target",
+          "detail": "Unity OpenXR with the Android XR feature, android:required=true."
+        },
+        {
+          "title": "Add the XR track in Play Console",
+          "detail": "Same app or a separate XR listing.",
+          "link": "https://developer.android.com/blog/posts/5-things-you-need-to-know-about-publishing-and-distributing-your-app-for-android-xr"
+        }
       ],
-      "sources": ["https://support.google.com/googleplay/android-developer/answer/9888379", "https://support.google.com/googleplay/android-developer/answer/14094294", "https://developer.android.com/blog/posts/5-things-you-need-to-know-about-publishing-and-distributing-your-app-for-android-xr"]
+      "sources": [
+        "https://support.google.com/googleplay/android-developer/answer/9888379",
+        "https://support.google.com/googleplay/android-developer/answer/14094294",
+        "https://developer.android.com/blog/posts/5-things-you-need-to-know-about-publishing-and-distributing-your-app-for-android-xr"
+      ]
     },
     {
-      "id": "meta", "name": "Meta Horizon Store", "icon": "meta", "group": "VR",
+      "id": "meta",
+      "name": "Meta Horizon Store",
+      "icon": "meta",
+      "group": "xr",
       "summary": "Meta Quest headsets. Free developer sign-up; organisation verification and Meta's review before release.",
       "fit": {
         "level": "warn",
@@ -57,43 +68,59 @@
         "detail": "Content generated or recommended by the app must meet Meta's Content Guidelines, and user content falls under the Code of Conduct for Virtual Experiences, with a way to report it. Age groups are self-certified for each submission and update. AI-specific rules were not found and are unverified."
       },
       "facts": [
-        {"label": "Developer account", "value": "Free sign-up, then organisation verification and the Data Use Checkup before submitting."},
-        {"label": "Devices", "value": "A Quest headset, practically required for testing and the VRC checks."},
-        {"label": "Review", "value": "Technical (VRC) and content review, several business days."},
-        {"label": "Unity", "value": "Supported with the Meta XR packages; no special licence."},
-        {"label": "AI content", "value": "Moderation and reporting of generated and user content; age-group certification."}
+        {
+          "label": "Developer account",
+          "value": "Free sign-up, then organisation verification and the Data Use Checkup before submitting."
+        },
+        {
+          "label": "Devices",
+          "value": "A Quest headset, practically required for testing and the VRC checks."
+        },
+        {
+          "label": "Review",
+          "value": "Technical (VRC) and content review, several business days."
+        },
+        {
+          "label": "Unity",
+          "value": "Supported with the Meta XR packages; no special licence."
+        },
+        {
+          "label": "AI content",
+          "value": "Moderation and reporting of generated and user content; age-group certification."
+        }
       ],
       "steps": [
-        {"title": "Get a Quest headset", "detail": "Quest 3 or 3S for testing."},
-        {"title": "Developer account and organisation", "detail": "Sign up and verify the organisation.", "link": "https://developers.meta.com/horizon/sign-up"},
-        {"title": "Check the VRC list against the game", "detail": "Performance, input and comfort requirements."},
-        {"title": "Content guidelines and age groups", "detail": "Plan reporting for AI and player creations.", "link": "https://developers.meta.com/horizon/policy/content-guidelines/"}
+        {
+          "title": "Get a Quest headset",
+          "detail": "Quest 3 or 3S for testing."
+        },
+        {
+          "title": "Developer account and organisation",
+          "detail": "Sign up and verify the organisation.",
+          "link": "https://developers.meta.com/horizon/sign-up"
+        },
+        {
+          "title": "Check the VRC list against the game",
+          "detail": "Performance, input and comfort requirements."
+        },
+        {
+          "title": "Content guidelines and age groups",
+          "detail": "Plan reporting for AI and player creations.",
+          "link": "https://developers.meta.com/horizon/policy/content-guidelines/"
+        }
       ],
-      "sources": ["https://developers.meta.com/horizon/policy/app-policies", "https://developers.meta.com/horizon/policy/content-guidelines/", "https://developers.meta.com/horizon/policy/age-groups/", "https://developers.meta.com/horizon/resources/publish-organization-verification/"]
+      "sources": [
+        "https://developers.meta.com/horizon/policy/app-policies",
+        "https://developers.meta.com/horizon/policy/content-guidelines/",
+        "https://developers.meta.com/horizon/policy/age-groups/",
+        "https://developers.meta.com/horizon/resources/publish-organization-verification/"
+      ]
     },
     {
-      "id": "pico", "name": "PICO Store", "icon": "", "group": "VR",
-      "summary": "PICO headsets (ByteDance). Self-serve publishing through the PICO Developer Console is reported.",
-      "fit": {
-        "level": "unknown",
-        "verdict": "Unknown: PICO's rules on runtime code and AI were not found.",
-        "detail": "Ask PICO directly before any work. Older documents mention signing an agreement and passing a device test."
-      },
-      "facts": [
-        {"label": "Developer account", "value": "PICO Developer Console; cost not found."},
-        {"label": "Devices", "value": "A PICO headset to test."},
-        {"label": "Review", "value": "Not verified."},
-        {"label": "Unity", "value": "PICO's Unity SDK and OpenXR support."},
-        {"label": "AI content", "value": "Not found."}
-      ],
-      "steps": [
-        {"title": "Ask PICO about AI and runtime scripts", "detail": "Get it in writing before building anything."},
-        {"title": "Developer Console account", "link": "https://sdk.picovr.com/docs/FAQ/chapter_twentyeight.html"}
-      ],
-      "sources": ["https://sdk.picovr.com/docs/FAQ/chapter_twentyeight.html", "https://mixed-news.com/en/picos-new-platform-policy-makes-life-easier-for-independent-xr-developers/"]
-    },
-    {
-      "id": "viveport", "name": "Viveport", "icon": "", "group": "VR",
+      "id": "viveport",
+      "name": "Viveport",
+      "icon": "",
+      "group": "xr",
       "summary": "HTC's store for Vive Focus 3, XR Elite and Focus Vision headsets, and for PC VR.",
       "fit": {
         "level": "unknown",
@@ -101,19 +128,42 @@
         "detail": "The developer console and submission guides are active; rules on runtime code and AI were not found."
       },
       "facts": [
-        {"label": "Developer account", "value": "Viveport developer console; cost not verified."},
-        {"label": "Devices", "value": "A Vive headset to test."},
-        {"label": "Review", "value": "Not verified."},
-        {"label": "Unity", "value": "Supported through Vive Wave or OpenXR."},
-        {"label": "AI content", "value": "Not found."}
+        {
+          "label": "Developer account",
+          "value": "Viveport developer console; cost not verified."
+        },
+        {
+          "label": "Devices",
+          "value": "A Vive headset to test."
+        },
+        {
+          "label": "Review",
+          "value": "Not verified."
+        },
+        {
+          "label": "Unity",
+          "value": "Supported through Vive Wave or OpenXR."
+        },
+        {
+          "label": "AI content",
+          "value": "Not found."
+        }
       ],
       "steps": [
-        {"title": "Check Viveport's current submission rules", "link": "https://developer.vive.com/resources/viveport"}
+        {
+          "title": "Check Viveport's current submission rules",
+          "link": "https://developer.vive.com/resources/viveport"
+        }
       ],
-      "sources": ["https://developer.vive.com/resources/viveport"]
+      "sources": [
+        "https://developer.vive.com/resources/viveport"
+      ]
     },
     {
-      "id": "nintendo", "name": "Nintendo eShop", "icon": "nintendoswitch", "group": "Consoles",
+      "id": "nintendo",
+      "name": "Nintendo eShop",
+      "icon": "nintendoswitch",
+      "group": "console",
       "summary": "Nintendo Switch and Switch 2. Free registration, then Nintendo's approval before any dev kit.",
       "fit": {
         "level": "unknown",
@@ -121,20 +171,49 @@
         "detail": "Runtime scripts and online AI providers are known to be sensitive on consoles; nothing can be confirmed until Nintendo approves the project and its guidelines can be read."
       },
       "facts": [
-        {"label": "Developer account", "value": "Register at the Nintendo Developer Portal (free, companies or adults); Nintendo must approve."},
-        {"label": "Devices", "value": "Dev kit bought or leased after approval; Switch 2 kits are given selectively."},
-        {"label": "Review", "value": "Lotcheck (NDA)."},
-        {"label": "Unity", "value": "Unity Pro (or a platform-holder key) plus Nintendo's approval; no console trials or indie discounts, 12-month commitment."},
-        {"label": "AI content", "value": "Under NDA."}
+        {
+          "label": "Developer account",
+          "value": "Register at the Nintendo Developer Portal (free, companies or adults); Nintendo must approve."
+        },
+        {
+          "label": "Devices",
+          "value": "Dev kit bought or leased after approval; Switch 2 kits are given selectively."
+        },
+        {
+          "label": "Review",
+          "value": "Lotcheck (NDA)."
+        },
+        {
+          "label": "Unity",
+          "value": "Unity Pro (or a platform-holder key) plus Nintendo's approval; no console trials or indie discounts, 12-month commitment."
+        },
+        {
+          "label": "AI content",
+          "value": "Under NDA."
+        }
       ],
       "steps": [
-        {"title": "Register on the Nintendo Developer Portal", "link": "https://developer.nintendo.com/register"},
-        {"title": "Budget Unity Pro for console", "detail": "Required for console builds.", "link": "https://unity.com/en/solutions/console"}
+        {
+          "title": "Register on the Nintendo Developer Portal",
+          "link": "https://developer.nintendo.com/register"
+        },
+        {
+          "title": "Budget Unity Pro for console",
+          "detail": "Required for console builds.",
+          "link": "https://unity.com/en/solutions/console"
+        }
       ],
-      "sources": ["https://developer.nintendo.com/register", "https://developer.nintendo.com/faq", "https://unity.com/en/solutions/console"]
+      "sources": [
+        "https://developer.nintendo.com/register",
+        "https://developer.nintendo.com/faq",
+        "https://unity.com/en/solutions/console"
+      ]
     },
     {
-      "id": "playstation", "name": "PlayStation Store", "icon": "playstation", "group": "Consoles",
+      "id": "playstation",
+      "name": "PlayStation Store",
+      "icon": "playstation",
+      "group": "console",
       "summary": "PS5 and PS VR2 through PlayStation Partners. Needs a company, a pitch, and Sony's acceptance.",
       "fit": {
         "level": "unknown",
@@ -142,20 +221,47 @@
         "detail": "Nothing public covers runtime scripts or generative AI; ask once the concept is accepted."
       },
       "facts": [
-        {"label": "Developer account", "value": "Apply via PlayStation Partners: legal entity, company email and project pitch."},
-        {"label": "Devices", "value": "Sony has loaned dev and test kits after concept acceptance (2022 terms, may have changed)."},
-        {"label": "Review", "value": "Certification (NDA)."},
-        {"label": "Unity", "value": "Unity Pro plus the PlayStation add-on."},
-        {"label": "AI content", "value": "Under NDA."}
+        {
+          "label": "Developer account",
+          "value": "Apply via PlayStation Partners: legal entity, company email and project pitch."
+        },
+        {
+          "label": "Devices",
+          "value": "Sony has loaned dev and test kits after concept acceptance (2022 terms, may have changed)."
+        },
+        {
+          "label": "Review",
+          "value": "Certification (NDA)."
+        },
+        {
+          "label": "Unity",
+          "value": "Unity Pro plus the PlayStation add-on."
+        },
+        {
+          "label": "AI content",
+          "value": "Under NDA."
+        }
       ],
       "steps": [
-        {"title": "Prepare a pitch and apply", "link": "https://partners.playstation.net/"},
-        {"title": "Budget Unity Pro for console", "link": "https://unity.com/en/solutions/playstation"}
+        {
+          "title": "Prepare a pitch and apply",
+          "link": "https://partners.playstation.net/"
+        },
+        {
+          "title": "Budget Unity Pro for console",
+          "link": "https://unity.com/en/solutions/playstation"
+        }
       ],
-      "sources": ["https://sonyinteractive.com/en/news/blog/complimentary-development-hardware/", "https://unity.com/en/solutions/playstation"]
+      "sources": [
+        "https://sonyinteractive.com/en/news/blog/complimentary-development-hardware/",
+        "https://unity.com/en/solutions/playstation"
+      ]
     },
     {
-      "id": "xbox", "name": "Xbox (ID@Xbox)", "icon": "xbox", "group": "Consoles",
+      "id": "xbox",
+      "name": "Xbox (ID@Xbox)",
+      "icon": "xbox",
+      "group": "console",
       "summary": "Xbox consoles through ID@Xbox. Submit a concept; dev kits and the GDK come after approval.",
       "fit": {
         "level": "unknown",
@@ -163,16 +269,100 @@
         "detail": "Microsoft reviews every console game for player trust and safety; rules on runtime scripts and AI are not public."
       },
       "facts": [
-        {"label": "Developer account", "value": "ID@Xbox concept submission (believed free, unverified)."},
-        {"label": "Devices", "value": "Dev kits after approval."},
-        {"label": "Review", "value": "Certification, trust and safety review (NDA)."},
-        {"label": "Unity", "value": "Supported after approval; Unity Pro for console."},
-        {"label": "AI content", "value": "Under NDA."}
+        {
+          "label": "Developer account",
+          "value": "ID@Xbox concept submission (believed free, unverified)."
+        },
+        {
+          "label": "Devices",
+          "value": "Dev kits after approval."
+        },
+        {
+          "label": "Review",
+          "value": "Certification, trust and safety review (NDA)."
+        },
+        {
+          "label": "Unity",
+          "value": "Supported after approval; Unity Pro for console."
+        },
+        {
+          "label": "AI content",
+          "value": "Under NDA."
+        }
       ],
       "steps": [
-        {"title": "Submit a concept to ID@Xbox", "link": "https://developer.microsoft.com/en-US/games/publish/id/welcome"}
+        {
+          "title": "Submit a concept to ID@Xbox",
+          "link": "https://developer.microsoft.com/en-US/games/publish/id/welcome"
+        }
       ],
-      "sources": ["https://developer.microsoft.com/en-US/games/publish/id/welcome", "https://unity.com/en/solutions/console"]
+      "sources": [
+        "https://developer.microsoft.com/en-US/games/publish/id/welcome",
+        "https://unity.com/en/solutions/console"
+      ]
+    },
+    {
+      "id": "apple",
+      "name": "Apple App Store",
+      "icon": "apple",
+      "group": "apple",
+      "summary": "iPhone, iPad, Mac App Store and Apple Vision Pro (visionOS), all through App Store Connect.",
+      "fit": {
+        "level": "warn",
+        "verdict": "Allowed with conditions, and the riskiest of the open stores for runtime scripts.",
+        "detail": "Guideline 2.5.2: apps \"may not download, install, or execute code which introduces or changes features\". Flecs Script made by the AI at runtime has to be argued as content inside the app's own sandbox: declarative data, no native APIs, no new app features. 4.7 (mini apps, chatbots) asks for filtering, reporting and blocking, and age gating. 1.2 asks AI content creation apps for filters, reports, blocking and contact details. 5.1.2(i) needs explicit permission before sharing data with third-party AI. Expect questions from App Review; nothing here is certain."
+      },
+      "facts": [
+        {
+          "label": "Developer account",
+          "value": "Apple Developer Program, about 99 USD a year (check the current fee)."
+        },
+        {
+          "label": "Devices",
+          "value": "A Mac with Xcode for every Apple build; visionOS needs an Apple-silicon Mac. Test iPhone/iPad strongly advised; Vision Pro has a simulator."
+        },
+        {
+          "label": "Review",
+          "value": "Human App Review for every build and update in App Store Connect."
+        },
+        {
+          "label": "Unity",
+          "value": "iOS and macOS are supported in the normal editor. visionOS needs Unity Pro, Enterprise or Industry."
+        },
+        {
+          "label": "AI content",
+          "value": "Filtering, report and block tools, published contact details, third-party AI disclosure and consent, age rating from the App Store Connect questionnaire."
+        }
+      ],
+      "steps": [
+        {
+          "title": "Decide if a Mac is available",
+          "detail": "Every Apple build is made and signed on a Mac with Xcode; Unity exports an Xcode project."
+        },
+        {
+          "title": "Developer Program",
+          "detail": "Enrol as an organisation (needs a D-U-N-S number) or as an individual.",
+          "link": "https://developer.apple.com/programs/"
+        },
+        {
+          "title": "Read 2.5.2, 4.7 and 1.2 against the AI design",
+          "detail": "Write down how Flecs Script stays data inside the sandbox, and which filter, report and block tools the game has.",
+          "link": "https://developer.apple.com/app-store/review/guidelines/"
+        },
+        {
+          "title": "Privacy: third-party AI consent",
+          "detail": "Name each AI provider in the privacy details and ask the player before sending anything (5.1.2(i))."
+        },
+        {
+          "title": "TestFlight build",
+          "detail": "First upload to TestFlight to see how review reacts before a store release."
+        }
+      ],
+      "sources": [
+        "https://developer.apple.com/app-store/review/guidelines/",
+        "https://docs.unity3d.com/Manual/com.unity.polyspatial.visionos.html",
+        "https://developer.apple.com/programs/"
+      ]
     }
   ]
 }

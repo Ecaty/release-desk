@@ -88,8 +88,8 @@ details.check{border-top:1px solid var(--line);padding:8px 0}details.check summa
 .thumb{display:block;max-width:120px;max-height:60px;margin-bottom:4px;border-radius:4px;background:repeating-conic-gradient(var(--line) 0 25%,transparent 0 50%) 0 0/12px 12px}
 .si{display:inline-block;width:16px;height:16px;background:currentColor;-webkit-mask:var(--i) center/contain no-repeat;mask:var(--i) center/contain no-repeat;vertical-align:-3px;margin-right:7px;flex:none}
 .si.steam{--i:url(/icons/steam.svg)}.si.epic{--i:url(/icons/epicgames.svg)}.si.play{--i:url(/icons/googleplay.svg)}.si.gog{--i:url(/icons/gogdotcom.svg)}.si.microsoft{--i:url(/icons/microsoftstore.svg)}.si.itch{--i:url(/icons/itchdotio.svg)}.si.apple{--i:url(/icons/apple.svg)}.si.meta{--i:url(/icons/meta.svg)}.si.nintendoswitch{--i:url(/icons/nintendoswitch.svg)}.si.playstation{--i:url(/icons/playstation.svg)}.si.xbox{--i:url(/icons/xbox.svg)}
-.tablewrap{overflow-x:auto}table.compare td,table.compare th{vertical-align:top}table.compare td:first-child a{white-space:nowrap;display:inline-flex;align-items:center}.cellbtn{border:none;background:none;padding:0;cursor:pointer;text-align:left}.cellbtn[aria-expanded=true] .chip{outline:2px solid var(--accent)}.celldetail td{background:var(--soft)}
-.navhead{font-size:12px;color:var(--muted);padding:2px 10px}#nav-eval{display:flex;flex-direction:column;gap:4px}
+.tablewrap{overflow-x:auto}table.compare td,table.compare th{vertical-align:top}table.compare td:first-child a{white-space:nowrap;display:inline-flex;align-items:center}.cellbtn{border:none;background:none;padding:0;cursor:pointer;text-align:left}.cellbtn[aria-expanded=true] .chip{outline:2px solid var(--accent)}.celldetail td{background:var(--soft)}.grouprow th{padding-top:14px;font-size:13px;color:var(--ink)}
+.navhead{font-size:12px;color:var(--muted);padding:2px 10px}.nav-eval{display:flex;flex-direction:column;gap:4px}.navhead{margin-top:6px}
 .fit{width:9px;height:9px;border-radius:50%;flex:none}.fit.ok{background:var(--ok)}.fit.warn{background:var(--warn)}.fit.bad{background:var(--bad)}.fit.unknown{background:var(--muted)}
 .disclaimer{border-left:4px solid var(--muted)}.disclaimer.ok{border-left-color:var(--ok)}.disclaimer.warn{border-left-color:var(--warn)}.disclaimer.bad{border-left-color:var(--bad)}
 .evalsteps{list-style:none;padding:0;margin:0}.evalsteps li{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--line)}.evalsteps li:first-child{border-top:none}.evalsteps input{margin-top:4px}
@@ -129,16 +129,21 @@ nav small.lvl{font-weight:600;padding:1px 7px;border-radius:999px}.lvl.done{back
   <nav id="nav">
     <a href="#overview"><span><span class="ms" aria-hidden="true">space_dashboard</span>Overview</span></a>
     <div class="sep"></div>
+    <div class="navhead">PC</div>
     <a href="#steam"><span><i class="si steam"></i>Steam</span> <small id="nav-steam"></small></a>
     <a href="#itch"><span><i class="si itch"></i>itch.io</span> <small id="nav-itch"></small></a>
     <a href="#epic"><span><i class="si epic"></i>Epic Games Store</span> <small id="nav-epic"></small></a>
     <a href="#gog"><span><i class="si gog"></i>GOG</span> <small id="nav-gog"></small></a>
     <a href="#microsoft"><span><i class="si microsoft"></i>Microsoft Store</span> <small id="nav-microsoft"></small></a>
+    <div class="navhead">Android</div>
     <a href="#play"><span><i class="si play"></i>Google Play</span> <small id="nav-play"></small></a>
     <a href="#samsung"><span><span class="ms" aria-hidden="true">storefront</span>Galaxy Store</span> <small id="nav-samsung"></small></a>
-    <div class="sep"></div>
-    <div class="navhead">To evaluate</div>
-    <div id="nav-eval"></div>
+    <div class="navhead">XR</div>
+    <div class="nav-eval" data-group="xr"></div>
+    <div class="navhead">Console</div>
+    <div class="nav-eval" data-group="console"></div>
+    <div class="navhead">Apple</div>
+    <div class="nav-eval" data-group="apple"></div>
   </nav>
   <main id="main"></main>
 </div>
@@ -376,10 +381,11 @@ const views = {
 const LVL = {ok: "ok", warn: "warn", bad: "bad", unknown: "hand"};
 function compareBox(c) {
   const head = `<tr><th>Store</th>${c.columns.map(col => `<th>${esc(col.label)}</th>`).join("")}</tr>`;
-  const rows = c.stores.map(s => `<tr><td><a href="${esc(s.page)}">${s.icon ? `<i class="si ${esc(s.icon)}"></i>` : ""}${esc(s.name)}</a>${s.planned ? "" : ` <span class="note">to evaluate</span>`}</td>${c.columns.map(col => {
+  const groupRow = g => `<tr class="grouprow"><th colspan="${c.columns.length + 1}">${esc(g[1])}</th></tr>`;
+  const rows = c.groups.map(g => groupRow(g) + c.stores.filter(s => s.group === g[0]).map(s => `<tr><td><a href="${esc(s.page)}">${s.icon ? `<i class="si ${esc(s.icon)}"></i>` : ""}${esc(s.name)}</a>${s.planned ? "" : ` <span class="note">to evaluate</span>`}</td>${c.columns.map(col => {
       const cell = s.cells[col.key] || {short: "?", level: "unknown"};
       return `<td><button class="cellbtn" data-cell="${esc(s.id)}:${esc(col.key)}" aria-expanded="false">${chip(LVL[cell.level] || "hand", cell.short)}</button></td>`;
-    }).join("")}</tr><tr class="celldetail" data-detail-for="${esc(s.id)}" hidden><td colspan="${c.columns.length + 1}"></td></tr>`).join("");
+    }).join("")}</tr><tr class="celldetail" data-detail-for="${esc(s.id)}" hidden><td colspan="${c.columns.length + 1}"></td></tr>`).join("")).join("");
   const must = `<div class="box"><h3>For players from 8, through a parent's account</h3><ul>${c.product.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>`;
   return `<div class="box" id="compare"><h3>Stores</h3><p class="note sub">Click a cell for details and the source. Checked ${esc(c.checked)}; store rules change, so verify before release.</p>
     <div class="tablewrap"><table class="compare">${head}${rows}</table></div></div>${must}`;
@@ -562,10 +568,11 @@ async function render() {
     if (el) { el.textContent = `${s.done}/${s.total}`; el.className = "lvl " + levelOf(s.done, s.total); el.title = `${s.done} of ${s.total} setup steps done`; }
   })).catch(() => {});
   let html;
-  if (start.project && !$("#nav-eval").dataset.ready) api("/api/evaluate").then(list => {
-    $("#nav-eval").innerHTML = list.map(s => `<a href="#eval-${esc(s.id)}"><span>${s.icon ? `<i class="si ${esc(s.icon)}"></i>` : ic("storefront")}${esc(s.name)}</span> <i class="fit ${esc(s.fit)}" title="${esc(FIT[s.fit])}"></i></a>`).join("");
-    $("#nav-eval").dataset.ready = "1";
-    document.querySelectorAll("#nav-eval a").forEach(a => a.getAttribute("href") === "#" + view ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current"));
+  if (start.project && !$("#nav").dataset.evalReady) api("/api/evaluate").then(list => {
+    // Stores to evaluate sit in their platform group, marked by the fit dot instead of a step count.
+    document.querySelectorAll(".nav-eval").forEach(box => box.innerHTML = list.filter(s => s.group === box.dataset.group).map(s => `<a href="#eval-${esc(s.id)}" title="To evaluate · ${esc(FIT[s.fit])}"><span>${s.icon ? `<i class="si ${esc(s.icon)}"></i>` : ic("storefront")}${esc(s.name)}</span> <i class="fit ${esc(s.fit)}"></i></a>`).join(""));
+    $("#nav").dataset.evalReady = "1";
+    document.querySelectorAll(".nav-eval a").forEach(a => a.getAttribute("href") === "#" + view ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current"));
   }).catch(() => {});
   const evalView = view.startsWith("eval-") ? () => views.evaluate(view.slice(5)) : null;
   try { html = start.project ? await (views[view] || evalView || views.overview)() : await views.start(start); }

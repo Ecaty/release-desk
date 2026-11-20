@@ -68,7 +68,7 @@ TEMPLATE = r"""<!doctype html>
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141816;--panel:#1f2522;--ink:#e7ebe8;--muted:#9aa49e;--line:#2e3632;--accent:#6cc2a2;--ok:#7fd3a0;--ok-bg:#1f3a2a;--warn:#f0c46a;--warn-bg:#3a3020;--bad:#f09a85;--bad-bg:#3c2420;--soft:#262d29}}
 :root[data-theme="dark"]{--bg:#141816;--panel:#1f2522;--ink:#e7ebe8;--muted:#9aa49e;--line:#2e3632;--accent:#6cc2a2;--ok:#7fd3a0;--ok-bg:#1f3a2a;--warn:#f0c46a;--warn-bg:#3a3020;--bad:#f09a85;--bad-bg:#3c2420;--soft:#262d29}
 body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
-.wrap{max-width:1100px;margin:0 auto;padding:16px}
+.wrap{padding:16px}
 h1{font-size:20px;margin:0}h2{font-size:15px;margin:0 0 8px}.note{color:var(--muted);font-size:12px}
 .box{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:12px 0}
 .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}.tabs button{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:999px;padding:5px 12px;cursor:pointer;font:inherit}
@@ -92,17 +92,22 @@ const chip = (lvl, t) => `<span class="chip ${lvl}">${esc(t)}</span>`;
 const LV = {ok: "ok", warn: "warn", bad: "bad", unknown: ""};
 let tab = "stores";
 try { tab = localStorage.getItem("desk.tab") || tab; } catch (_) {}
-function stores() {
-  return `<div class="grid">${D.stores.map(s => {
+function card(s) {
     const b = s.builds[0];
     return `<div class="card"><b>${esc(s.name)}</b><div class="meter"><i style="width:${Math.round(100 * s.done / Math.max(1, s.total))}%"></i></div>
       <div class="note">${s.done} of ${s.total} setup steps · next: ${esc(s.next)}</div>
       ${b ? `<div style="margin-top:6px">${esc(b.kind)} ${esc(b.version)} (${esc(b.build)}) · ${esc(b.finished)} ${b.uploaded ? chip("ok", "uploaded " + b.uploaded) : chip("", "not uploaded")}</div>` : `<div class="note" style="margin-top:6px">No builds yet</div>`}
       ${s.overrides.length ? `<div class="note">Own: ${esc(s.overrides.join(", "))}</div>` : ""}
       ${Object.keys(s.tooLong).length ? `<div>${Object.entries(s.tooLong).map(([k, v]) => chip("bad", (D.release.fields[k] || k) + " " + v)).join(" ")}</div>` : ""}</div>`;
-  }).join("")}</div>
-  <div class="box"><h2>To evaluate</h2>${D.evaluate.map(e => `<span style="margin-right:14px;white-space:nowrap"><span class="dot ${esc(e.fit)}"></span>${esc(e.name)}</span>`).join("")}
-  <p class="note">Green fits the AI and runtime scripts, amber with conditions, red likely not, grey unknown or under NDA.</p></div>`;
+}
+const evalCard = e => `<div class="card"><b><span class="dot ${esc(e.fit)}"></span>${esc(e.name)}</b><div class="note">To evaluate · ${esc({ok: "fits the AI and runtime scripts", warn: "fits with conditions", bad: "AI or runtime scripts likely not allowed", unknown: "rules unknown or under NDA"}[e.fit] || "")}</div></div>`;
+function stores() {
+  const group = id => (D.compare.stores.find(x => x.id === id) || {}).group;
+  return D.compare.groups.map(([g, label]) => {
+    const planned = D.stores.filter(s => group(s.id) === g), later = D.evaluate.filter(e => e.group === g);
+    if (!planned.length && !later.length) return "";
+    return `<h2 style="margin-top:16px">${esc(label)}</h2><div class="grid">${planned.map(card).join("")}${later.map(evalCard).join("")}</div>`;
+  }).join("");
 }
 function rel() {
   return `<div class="box"><table>${Object.entries(D.release.fields).map(([k, l]) => `<tr><th style="width:160px">${esc(l)}</th><td><pre>${esc(D.release.values[k])}</pre></td></tr>`).join("")}</table></div>`;
@@ -119,7 +124,7 @@ function checks() {
 function compare() {
   const c = D.compare;
   return `<div class="box scroll"><p class="note">Click a cell for details. Checked ${esc(c.checked)}.</p><table><tr><th>Store</th>${c.columns.map(x => `<th>${esc(x.label)}</th>`).join("")}</tr>
-    ${c.stores.map(s => `<tr><td style="white-space:nowrap">${esc(s.name)}</td>${c.columns.map(x => { const v = s.cells[x.key] || {short: "?", level: "unknown"}; return `<td><button class="cell" data-cell="${esc(s.id)}:${esc(x.key)}" aria-expanded="false">${chip(LV[v.level] ?? "", v.short)}</button></td>`; }).join("")}</tr><tr class="detail" data-for="${esc(s.id)}" hidden><td colspan="${c.columns.length + 1}"></td></tr>`).join("")}</table></div>
+    ${c.groups.map(([g, label]) => `<tr><th colspan="${c.columns.length + 1}" style="padding-top:14px;color:var(--ink)">${esc(label)}</th></tr>` + c.stores.filter(s => s.group === g).map(s => `<tr><td style="white-space:nowrap">${esc(s.name)}</td>${c.columns.map(x => { const v = s.cells[x.key] || {short: "?", level: "unknown"}; return `<td><button class="cell" data-cell="${esc(s.id)}:${esc(x.key)}" aria-expanded="false">${chip(LV[v.level] ?? "", v.short)}</button></td>`; }).join("")}</tr><tr class="detail" data-for="${esc(s.id)}" hidden><td colspan="${c.columns.length + 1}"></td></tr>`).join("")).join("")}</table></div>
     <div class="box"><h2>For players from 8, through a parent's account</h2><ul>${c.product.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>`;
 }
 const TABS = {stores: ["Stores", stores], release: ["Release", rel], builds: ["Builds", blds], checks: ["Release checks", checks], compare: ["Store rules", compare]};
