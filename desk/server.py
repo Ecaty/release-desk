@@ -9,7 +9,7 @@ import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from . import art, builds, epic, evaluate, gog, itch, jobs, laptop, microsoft, play, release, samsung, shots, steam, unity
+from . import art, builds, epic, evaluate, gog, itch, jobs, laptop, microsoft, status, play, release, samsung, shots, steam, unity
 from .project import Project, load_config, save_config
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -97,6 +97,14 @@ def progress(p):
     return out
 
 
+def write_status(p):
+    """Refreshes the read-only status page for the work board; a failure here never breaks the desk."""
+    try:
+        status.write(p, progress(p))
+    except Exception as error:  # noqa: BLE001 - reported in the log, the desk keeps working
+        p.log("Board status page not written", [f"{type(error).__name__}: {error}"])
+
+
 def run_job(name, fn):
     """Long work (Unity builds, uploads) runs in the background; the page polls /api/jobs."""
     with LOCK:
@@ -124,6 +132,7 @@ def run_job(name, fn):
                  else gog.summary_lines(p) if "GOG" in name else microsoft.summary_lines(p) if "Microsoft" in name
                  else samsung.summary_lines(p) if "Galaxy" in name else laptop.summary_lines(p) if "Release check" in name else itch.summary_lines(p) if "itch" in name
                  else steam.summary_lines(p, load_config())))
+        write_status(p)
 
     threading.Thread(target=work, daemon=True).start()
     return STATE["jobs"][name]
@@ -342,6 +351,7 @@ class Handler(BaseHTTPRequestHandler):
             if self.path == "/api/refresh":
                 text = project().log("Refresh", steam.summary_lines(project(), load_config()) + epic.summary_lines(project()) + gog.summary_lines(project())
                                     + microsoft.summary_lines(project()) + play.summary_lines(project()) + samsung.summary_lines(project()) + itch.summary_lines(project()))
+                write_status(project())
                 return self.send(200, {"text": text})
             if self.path == "/api/unity/apply":
                 return self.send(200, run_job("Push to Unity", apply_to_unity))
