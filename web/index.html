@@ -89,6 +89,8 @@ details.check{border-top:1px solid var(--line);padding:8px 0}details.check summa
 .si{display:inline-block;width:16px;height:16px;background:currentColor;-webkit-mask:var(--i) center/contain no-repeat;mask:var(--i) center/contain no-repeat;vertical-align:-3px;margin-right:7px;flex:none}
 .si.steam{--i:url(/icons/steam.svg)}.si.epic{--i:url(/icons/epicgames.svg)}.si.play{--i:url(/icons/googleplay.svg)}.si.gog{--i:url(/icons/gogdotcom.svg)}.si.microsoft{--i:url(/icons/microsoftstore.svg)}.si.itch{--i:url(/icons/itchdotio.svg)}.si.apple{--i:url(/icons/apple.svg)}.si.meta{--i:url(/icons/meta.svg)}.si.nintendoswitch{--i:url(/icons/nintendoswitch.svg)}.si.playstation{--i:url(/icons/playstation.svg)}.si.xbox{--i:url(/icons/xbox.svg)}
 .tablewrap{overflow-x:auto}table.compare td,table.compare th{vertical-align:top}table.compare td:first-child a{white-space:nowrap;display:inline-flex;align-items:center}.cellbtn{border:none;background:none;padding:0;cursor:pointer;text-align:left}.cellbtn[aria-expanded=true] .chip{outline:2px solid var(--accent)}.celldetail td{background:var(--soft)}.grouprow th{padding-top:14px;font-size:13px;color:var(--ink)}
+.storegroups{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}.storegroup h4{margin:0 0 6px;font-size:13px;color:var(--muted)}.storeon{display:flex;align-items:center;gap:6px;padding:4px 0}
+nav [hidden]{display:none}
 .navhead{font-size:12px;color:var(--muted);padding:2px 10px}.nav-eval{display:flex;flex-direction:column;gap:4px}.navhead{margin-top:6px}
 .fit{width:9px;height:9px;border-radius:50%;flex:none}.fit.ok{background:var(--ok)}.fit.warn{background:var(--warn)}.fit.bad{background:var(--bad)}.fit.unknown{background:var(--muted)}
 .disclaimer{border-left:4px solid var(--muted)}.disclaimer.ok{border-left-color:var(--ok)}.disclaimer.warn{border-left-color:var(--warn)}.disclaimer.bad{border-left-color:var(--bad)}
@@ -129,20 +131,21 @@ nav small.lvl{font-weight:600;padding:1px 7px;border-radius:999px}.lvl.done{back
   <nav id="nav">
     <a href="#overview"><span><span class="ms" aria-hidden="true">space_dashboard</span>Overview</span></a>
     <div class="sep"></div>
-    <div class="navhead">PC</div>
-    <a href="#steam"><span><i class="si steam"></i>Steam</span> <small id="nav-steam"></small></a>
-    <a href="#itch"><span><i class="si itch"></i>itch.io</span> <small id="nav-itch"></small></a>
-    <a href="#epic"><span><i class="si epic"></i>Epic Games Store</span> <small id="nav-epic"></small></a>
-    <a href="#gog"><span><i class="si gog"></i>GOG</span> <small id="nav-gog"></small></a>
-    <a href="#microsoft"><span><i class="si microsoft"></i>Microsoft Store</span> <small id="nav-microsoft"></small></a>
-    <div class="navhead">Android</div>
-    <a href="#play"><span><i class="si play"></i>Google Play</span> <small id="nav-play"></small></a>
-    <a href="#samsung"><span><span class="ms" aria-hidden="true">storefront</span>Galaxy Store</span> <small id="nav-samsung"></small></a>
-    <div class="navhead">XR</div>
+    <div class="navhead" data-head="pc">PC</div>
+    <a href="#steam" data-store="steam" data-group="pc"><span><i class="si steam"></i>Steam</span> <small id="nav-steam"></small></a>
+    <a href="#itch" data-store="itch" data-group="pc"><span><i class="si itch"></i>itch.io</span> <small id="nav-itch"></small></a>
+    <a href="#epic" data-store="epic" data-group="pc"><span><i class="si epic"></i>Epic Games Store</span> <small id="nav-epic"></small></a>
+    <a href="#gog" data-store="gog" data-group="pc"><span><i class="si gog"></i>GOG</span> <small id="nav-gog"></small></a>
+    <a href="#microsoft" data-store="microsoft" data-group="pc"><span><i class="si microsoft"></i>Microsoft Store</span> <small id="nav-microsoft"></small></a>
+    <div class="navhead" data-head="android">Android</div>
+    <a href="#itch-android" data-store="itch-android" data-group="android"><span><i class="si itch"></i>itch.io Android</span> <small id="nav-itch-android"></small></a>
+    <a href="#play" data-store="play" data-group="android"><span><i class="si play"></i>Google Play</span> <small id="nav-play"></small></a>
+    <a href="#samsung" data-store="samsung" data-group="android"><span><span class="ms" aria-hidden="true">storefront</span>Galaxy Store</span> <small id="nav-samsung"></small></a>
+    <div class="navhead" data-head="xr">XR</div>
     <div class="nav-eval" data-group="xr"></div>
-    <div class="navhead">Console</div>
+    <div class="navhead" data-head="console">Console</div>
     <div class="nav-eval" data-group="console"></div>
-    <div class="navhead">Apple</div>
+    <div class="navhead" data-head="apple">Apple</div>
     <div class="nav-eval" data-group="apple"></div>
   </nav>
   <main id="main"></main>
@@ -184,7 +187,7 @@ function selectTab(key, id) {
   document.querySelectorAll(`[data-tabkey="${key}"] > button`).forEach(b => b.setAttribute("aria-selected", b.dataset.tab === id));
   document.querySelectorAll(`.pane[data-owner="${key}"]`).forEach(p => p.hidden = p.dataset.id !== id);
 }
-const STORE_NAMES = {steam: "Steam", itch: "itch.io", epic: "Epic Games Store", gog: "GOG", microsoft: "Microsoft Store", play: "Google Play", samsung: "Galaxy Store"};
+const STORE_NAMES = {steam: "Steam", itch: "itch.io", "itch-android": "itch.io Android", epic: "Epic Games Store", gog: "GOG", microsoft: "Microsoft Store", play: "Google Play", samsung: "Galaxy Store"};
 let stepFocus = {store: "", index: -1};
 // Progress for a store page header: bar, count (opens all steps), next open step, and arrows through the open steps.
 function progressHead(store, steps, label = "") {
@@ -220,7 +223,7 @@ async function goToStep(store, index) {
 }
 const levelOf = (done, total) => done >= total ? "done" : done > 0 ? "part" : "none";
 // Official marks where a readable one exists; Samsung only has a wordmark, so the Galaxy Store uses a standard symbol.
-const storeIcon = id => id === "samsung" ? `<span class="ms" aria-hidden="true" style="margin-right:7px">storefront</span>` : `<i class="si ${id}"></i>`;
+const storeIcon = id => id === "samsung" ? `<span class="ms" aria-hidden="true" style="margin-right:7px">storefront</span>` : `<i class="si ${id === "itch-android" ? "itch" : id}"></i>`;
 const fieldInput = (id, f, value, disabled) => f.multiline
   ? `<textarea id="${id}" class="in" rows="4" ${disabled ? "disabled" : ""}>${esc(value)}</textarea>`
   : `<input id="${id}" class="in" ${f.number ? 'type="number" min="1"' : ""} value="${esc(value)}" ${disabled ? "disabled" : ""}>`;
@@ -263,7 +266,7 @@ const views = {
       ${start.recent.length ? `<div class="recent"><h3 class="note">Recent</h3>${start.recent.map(p => `<button class="copy" data-recent="${esc(p)}">${ic("folder")}${esc(p)}</button>`).join("")}</div>` : ""}</div>`;
   },
   async overview() {
-    const [o, r, l, k, ck, cmp] = await Promise.all([api("/api/overview"), api("/api/release"), api("/api/log"), api("/api/keys"), api("/api/check"), api("/api/compare")]);
+    const [o, r, l, k, ck, cmp, sl] = await Promise.all([api("/api/overview"), api("/api/release"), api("/api/log"), api("/api/keys"), api("/api/check"), api("/api/compare"), api("/api/stores")]);
     const rows = o.sync.map(r => `<tr><td>${esc(r.label)}</td><td class="mono">${esc(r.desk)}</td><td class="mono">${esc(r.unity)}</td><td>${r.same ? chip("ok", "same") : chip("warn", "differs")}</td></tr>`).join("");
     const unity = `<div class="box"><h3>Synced to Unity</h3><p>Unity CLI ${k.unityCli ? chip("ok", "found") : chip("bad", "missing")}</p><table><tr><th>Setting</th><th>Desk</th><th>Unity</th><th></th></tr>${rows}</table>
         <p class="note">Push to Unity writes these into PlayerSettings in the open Editor.</p><div class="actions"><button class="btn" data-act="push-unity">${ic("sync")}Push to Unity</button></div></div>`;
@@ -278,7 +281,7 @@ const views = {
       <div id="jobs"></div>
       ${tabs("overview", [
         ["release", "Release", tabs("overview/release", [["shared", "Shared", releaseBox(r)], ["stores", "Per store", perStore(r)]], true)],
-        ["stores", "Stores", compareBox(cmp)],
+        ["stores", "Stores", tabs("overview/stores", [["on", "On this desk", storesBox(sl)], ["table", "Side by side", compareBox(cmp)]], true)],
         ["build", "Build all", buildAllBox(r)],
         ["check", "Release check", checkBox(ck)],
         ["unity", "Unity", unity],
@@ -346,6 +349,18 @@ const views = {
         <button class="btn primary" data-act="itch-push" id="itch-upload" ${k.ready && b.exists ? "" : "disabled"}>${ic("cloud_upload")}Push to ${esc(k.channel)}</button></div>
       <p class="note">Unity opens on its own if it is closed. Push preview lists what would change against the channel's previous build. butler uses its own saved login; the desk never sees it.</p>`);
   },
+  async "itch-android"() {
+    const [d, k] = await Promise.all([api("/api/itch-android"), api("/api/keys")]), b = d.build, ik = d.key;
+    const ready = ik.ready && d.sign.ready;
+    const builds = `<div class="box" id="itch-android-builds">${buildTable("itch-android", b.history, [["file", "File", h => `<span class="mono">${esc(h.path.split(/[\\/]/).pop())}</span>${h.exists ? "" : " " + chip("hand", "deleted")}`], ["uploaded", "itch.io", h => h.uploaded ? chip("ok", h.uploaded) : h.exists ? chip("hand", "not uploaded") : chip("hand", "replaced")]])}
+      <p class="note mono">${esc(b.folder)}</p>
+      <div class="actions" id="itch-android-upload"><button class="btn" data-act="build" data-kind="itch-android-apk" ${d.sign.ready ? "" : 'disabled title="Create the upload key first (Keys & accounts)"'}>${ic("build")}Build Android APK</button>
+        <button class="btn" data-act="itch-android-preview" ${ready && b.exists ? "" : "disabled"}>${ic("visibility")}Push preview (nothing sent)</button>
+        <button class="btn primary" data-act="itch-android-push" ${ready && b.exists ? "" : "disabled"}>${ic("cloud_upload")}Push to ${esc(ik.androidChannel)}</button></div>
+      <p class="note">Unity opens on its own if it is closed. An Android build switches Unity to Android and back, so the first one takes long. The APK is signed with the Google Play upload key; Unity reads its password from Credential Manager. butler uses its own saved login; the desk never sees it.</p></div>`;
+    return storePage("itch-android", "itch.io Android", "The Android download on the same itch.io page: an APK that players install outside Google Play. Text, art and the release values are shared with itch.io.", d.steps, [
+      ["builds", "Builds", builds], ["keys", "Keys &amp; accounts", keysBox("itch-android", k)], ["steps", "Setup steps", stepsBox(d.steps, "itch-android")]]);
+  },
   async gog() {
     const d = await api("/api/gog"), b = d.build, k = d.key;
     return handStore("gog", "GOG", "GOG curates its catalogue. Builds upload through GOG's Pipeline Builder; the store assets go to GOG through their Assets Manager.", d,
@@ -389,6 +404,21 @@ function compareBox(c) {
   const must = `<div class="box"><h3>For players from 8, through a parent's account</h3><ul>${c.product.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>`;
   return `<div class="box" id="compare"><h3>Stores</h3><p class="note sub">Click a cell for details and the source. Checked ${esc(c.checked)}; store rules change, so verify before release.</p>
     <div class="tablewrap"><table class="compare">${head}${rows}</table></div></div>${must}`;
+}
+function storesBox(sl) {
+  const row = x => `<label class="storeon"><input type="checkbox" data-store-on="${esc(x.id)}" ${x.on ? "checked" : ""}>${x.kind === "desk" ? storeIcon(x.id) : x.icon ? `<i class="si ${esc(x.icon)}"></i>` : ic("storefront")}${esc(x.name)}${x.kind === "evaluate" ? ` <span class="note">to evaluate</span>` : ""}</label>`;
+  const groups = sl.groups.map(([g, label]) => { const list = sl.stores.filter(x => x.group === g); return list.length ? `<div class="storegroup"><h4>${esc(label)}</h4>${list.map(row).join("")}</div>` : ""; }).join("");
+  return `<div class="box" id="stores-on"><h3>Stores on this desk</h3><p class="note sub">Only the stores ticked here show in the menu, Overview, Build all and the board status page. Saved at once to Store/store.json; a store added to the desk later starts ticked.</p>
+    <div class="storegroups">${groups}</div></div>`;
+}
+// Menu: hide stores turned off for this project, and a group heading with nothing left under it.
+async function navStores(view) {
+  const sl = await api("/api/stores");
+  const on = new Set(sl.stores.filter(x => x.on).map(x => x.id));
+  document.querySelectorAll("#nav a[data-store]").forEach(a => a.hidden = !on.has(a.dataset.store));
+  document.querySelectorAll(".nav-eval").forEach(box => box.innerHTML = sl.stores.filter(x => x.kind === "evaluate" && x.on && x.group === box.dataset.group).map(x => `<a href="#eval-${esc(x.id)}" title="To evaluate · ${esc(FIT[x.fit])}"><span>${x.icon ? `<i class="si ${esc(x.icon)}"></i>` : ic("storefront")}${esc(x.name)}</span> <i class="fit ${esc(x.fit)}"></i></a>`).join(""));
+  document.querySelectorAll("#nav .navhead[data-head]").forEach(h => h.hidden = !sl.stores.some(x => x.on && x.group === h.dataset.head));
+  document.querySelectorAll(".nav-eval a").forEach(a => a.getAttribute("href") === "#" + view ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current"));
 }
 let COMPARE = null;
 async function openCell(btn) {
@@ -454,7 +484,7 @@ function keysBox(store, k) {
   const idSave = section => `<div class="actions"><button class="btn primary" data-act="save-ids" data-section="${section}">${ic("save")}Save</button></div>`;
   const box = (h, body) => `<div class="box"><h3>${h}</h3>${body}</div>`;
   const c = k.steamcmd;
-  const html = {
+  const html = {}; Object.assign(html, {
     steam: () => box("IDs", `${idField("steam", "appId", "App ID", "From Steamworks after paying the app fee.")}${idField("steam", "depot", "Windows depot ID")}${idField("steam", "branch", "Upload branch", "Set live on this branch; the default branch is always set live by hand.")}${idSave("steam")}`)
       + box("SteamCMD", `<div class="field"><label for="steam-user">Build account name</label><input id="steam-user" class="in" value="${esc(c.user)}" placeholder="not your main Steam account"><button class="btn" data-act="save-user">${ic("save")}Save</button></div>
         <table><tr id="steamcmd"><td>SteamCMD</td><td class="mono">${esc(c.path)}</td><td>${c.installed ? chip("ok", "installed") : chip("bad", "missing")}</td></tr>
@@ -470,6 +500,11 @@ function keysBox(store, k) {
         <tr><td>Login</td><td class="mono">butler's own saved login</td><td>${k.itch.loggedIn ? chip("ok", "logged in") : chip("bad", "not yet")}</td></tr></table>
         <div class="actions"><button class="btn" data-act="itch-login" ${k.itch.installed ? "" : "disabled"}>${ic("key")}Log in to itch.io</button></div>
         <p class="note">Download butler from itch.io and unzip it into the folder above. Log in opens butler's sign-in in your browser; butler keeps the login itself.</p>`),
+    "itch-android": () => box("itch.io page", `${idField("itch", "project", "Project", "The same user/game as the Windows download.")}${idField("itch", "androidChannel", "Channel", "android (the name tags the upload as an Android download).")}${idSave("itch")}
+        <table><tr><td>butler</td><td class="mono">${esc(k.itch.butler || k.itch.toolFolder)}</td><td>${k.itch.installed ? chip("ok", "found") : chip("bad", "missing")}</td></tr>
+        <tr><td>Login</td><td class="mono">butler's own saved login</td><td>${k.itch.loggedIn ? chip("ok", "logged in") : chip("bad", "not yet")}</td></tr></table>
+        <div class="actions"><button class="btn" data-act="itch-login" ${k.itch.installed ? "" : "disabled"}>${ic("key")}Log in to itch.io</button></div>`)
+      + html.play(),
     gog: () => box("IDs", `${idField("gog", "productId", "Product ID", "From the GOG Developer Portal after GOG accepts the game.")}${idField("gog", "branch", "Upload branch", "Optional; Pipeline Builder cannot publish to master.")}${idSave("gog")}`)
       + box("Pipeline Builder", `<table><tr id="gog-tool"><td>Pipeline Builder</td><td class="mono">${esc(k.gog.tool || k.gog.toolFolder)}</td><td>${k.gog.installed ? chip("ok", "found") : chip("bad", "missing")}</td></tr>
         <tr id="gog-project"><td>Build Creator project</td><td class="mono">${esc(k.gog.project.path)}</td><td>${k.gog.project.problem ? chip("bad", k.gog.project.problem) : chip("ok", "found")}</td></tr></table>
@@ -488,8 +523,8 @@ function keysBox(store, k) {
     samsung: () => box("Seller Portal", `${idField("samsung", "contentId", "Content ID", "12-digit app ID from Seller Portal, after the app is registered there.")}${idField("samsung", "serviceAccountId", "Service account ID", "Seller Portal > Assistance > API Service.")}${idSave("samsung")}
         <table><tr id="samsung-key"><td>Service account key</td><td class="mono">${esc(k.samsung.env)}</td><td>${k.samsung.found ? chip("ok", "found") : k.samsung.set ? chip("bad", "not readable") : chip("bad", "not set")}</td></tr></table>
         <p class="note">Save the private key from Seller Portal outside every repository and set ${esc(k.samsung.env)} to its path; the desk signs the token request with it and never shows it.</p>`),
-  }[store];
-  return html ? html() : "";
+  });
+  return html[store] ? html[store]() : "";
 }
 
 async function handStore(id, title, intro, d, buildActions) {
@@ -568,12 +603,8 @@ async function render() {
     if (el) { el.textContent = `${s.done}/${s.total}`; el.className = "lvl " + levelOf(s.done, s.total); el.title = `${s.done} of ${s.total} setup steps done`; }
   })).catch(() => {});
   let html;
-  if (start.project && !$("#nav").dataset.evalReady) api("/api/evaluate").then(list => {
-    // Stores to evaluate sit in their platform group, marked by the fit dot instead of a step count.
-    document.querySelectorAll(".nav-eval").forEach(box => box.innerHTML = list.filter(s => s.group === box.dataset.group).map(s => `<a href="#eval-${esc(s.id)}" title="To evaluate · ${esc(FIT[s.fit])}"><span>${s.icon ? `<i class="si ${esc(s.icon)}"></i>` : ic("storefront")}${esc(s.name)}</span> <i class="fit ${esc(s.fit)}"></i></a>`).join(""));
-    $("#nav").dataset.evalReady = "1";
-    document.querySelectorAll(".nav-eval a").forEach(a => a.getAttribute("href") === "#" + view ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current"));
-  }).catch(() => {});
+  // Stores to evaluate sit in their platform group, marked by the fit dot instead of a step count.
+  if (start.project) navStores(view).catch(() => {});
   const evalView = view.startsWith("eval-") ? () => views.evaluate(view.slice(5)) : null;
   try { html = start.project ? await (views[view] || evalView || views.overview)() : await views.start(start); }
   catch (e) { html = `<div class="box">${chip("bad", "error")} ${esc(e.message)}</div>`; }
@@ -614,6 +645,8 @@ async function updateJobs() {
 
 document.addEventListener("change", e => {
   edited(e);
+  const so = e.target.closest("[data-store-on]");
+  if (so) { api("/api/stores", {[so.dataset.storeOn]: so.checked}).then(() => { COMPARE = null; toast(so.checked ? "Shown on this desk" : "Hidden on this desk"); return render(); }).catch(err => toast(err.message)); return; }
   const ev = e.target.closest("[data-eval-step]");
   if (ev) { const id = location.hash.slice(6); const doneList = [...document.querySelectorAll("[data-eval-step]:checked")].map(el => +el.dataset.evalStep); api("/api/evaluate/" + id, {done: doneList}).then(() => render()).catch(err => toast(err.message)); return; }
   const ov = e.target.closest("[data-ov]");
@@ -672,7 +705,7 @@ document.addEventListener("click", async e => {
     if (act === "save-user") { await api("/api/keys/steam-user", {user: $("#steam-user").value}); toast("Saved"); return render(); }
     if (act === "copy-log") return copy($("#logtext").textContent);
     if (act === "run-win") { const r = await api("/api/run/windows", {kind: t.dataset.kind || "steam-windows"}); return toast(r.message); }
-    const jobs = {"push-unity": ["/api/unity/apply", {}], "build": ["/api/build", {kind: t.dataset.kind}], "install": ["/api/play/install", {}], "capture": ["/api/shots/capture", {only: t.dataset.only || ""}], "icons": ["/api/art/icons", {}], "capsules": ["/api/art/capsules", {}], "play-preview": ["/api/play/publish", {preview: true}], "play-check": ["/api/play/check", {}], "epic-check": ["/api/epic/check", {}], "gog-upload": ["/api/gog/upload", {}], "itch-preview": ["/api/itch/preview", {}], "itch-push": ["/api/itch/push", {}], "samsung-check": ["/api/samsung/check", {}], "samsung-submit": ["/api/samsung/submit", {}], "ms-package": ["/api/microsoft/package", {}], "ms-publish": ["/api/microsoft/publish", {}], "epic-upload": ["/api/epic/upload", {}], "play-publish": ["/api/play/publish", {preview: false}], "upload-preview": ["/api/steam/upload", {preview: true}], "upload": ["/api/steam/upload", {preview: false}]};
+    const jobs = {"push-unity": ["/api/unity/apply", {}], "build": ["/api/build", {kind: t.dataset.kind}], "install": ["/api/play/install", {}], "capture": ["/api/shots/capture", {only: t.dataset.only || ""}], "icons": ["/api/art/icons", {}], "capsules": ["/api/art/capsules", {}], "play-preview": ["/api/play/publish", {preview: true}], "play-check": ["/api/play/check", {}], "epic-check": ["/api/epic/check", {}], "gog-upload": ["/api/gog/upload", {}], "itch-preview": ["/api/itch/preview", {}], "itch-push": ["/api/itch/push", {}], "itch-android-preview": ["/api/itch-android/preview", {}], "itch-android-push": ["/api/itch-android/push", {}], "samsung-check": ["/api/samsung/check", {}], "samsung-submit": ["/api/samsung/submit", {}], "ms-package": ["/api/microsoft/package", {}], "ms-publish": ["/api/microsoft/publish", {}], "epic-upload": ["/api/epic/upload", {}], "play-publish": ["/api/play/publish", {preview: false}], "upload-preview": ["/api/steam/upload", {preview: true}], "upload": ["/api/steam/upload", {preview: false}]};
     if (jobs[act]) { await api(...jobs[act]); toast("Started; progress shows under Runs"); updateJobs(); }
   } catch (err) { toast(err.message); }
 });

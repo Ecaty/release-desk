@@ -9,7 +9,7 @@ import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from . import art, builds, epic, evaluate, gog, itch, jobs, laptop, microsoft, status, play, release, samsung, shots, steam, unity
+from . import art, builds, epic, evaluate, gog, itch, jobs, laptop, microsoft, status, play, release, samsung, shots, steam, stores, unity
 from .project import Project, load_config, save_config
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -53,7 +53,7 @@ def overview():
 
 IDS = {"steam": ("appId", "depot", "branch"), "epic": ("organizationId", "productId", "artifactId", "clientId"), "gog": ("productId", "branch"),
        "microsoft": ("productId", "identityName", "publisher", "publisherName"), "play": ("package",), "samsung": ("contentId", "serviceAccountId"),
-       "itch": ("project", "channel")}
+       "itch": ("project", "channel", "androidChannel")}
 
 
 def save_ids(p, data):
@@ -81,20 +81,34 @@ def ids(p):
             "gog": {k: (store.get("gog", {}) or {}).get(k, "") for k in IDS["gog"]},
             "microsoft": {k: (store.get("microsoft", {}) or {}).get(k, "") for k in IDS["microsoft"]},
             "samsung": {k: str((store.get("samsung", {}) or {}).get(k, "")) for k in IDS["samsung"]},
-            "itch": {"project": (store.get("itch", {}) or {}).get("project", ""), "channel": (store.get("itch", {}) or {}).get("channel", "windows")}, "play": {"package": (store.get("android", {}) or {}).get("package", "")}}
+            "itch": {"project": (store.get("itch", {}) or {}).get("project", ""), "channel": (store.get("itch", {}) or {}).get("channel", "windows"),
+                     "androidChannel": (store.get("itch", {}) or {}).get("androidChannel", "android")}, "play": {"package": (store.get("android", {}) or {}).get("package", "")}}
+
+
+STEPS = {"steam": lambda p: steam.status(p, load_config())["steps"], "itch": lambda p: itch.status(p)["steps"],
+         "epic": lambda p: epic.status(p)["steps"], "gog": lambda p: gog.status(p)["steps"], "microsoft": lambda p: microsoft.status(p)["steps"],
+         "itch-android": lambda p: itch.android_status(p)["steps"], "play": lambda p: play.status(p)["steps"], "samsung": lambda p: samsung.status(p)["steps"]}
+SUMMARY = {"steam": lambda p: steam.summary_lines(p, load_config()), "itch": itch.summary_lines, "epic": epic.summary_lines,
+           "gog": gog.summary_lines, "microsoft": microsoft.summary_lines, "itch-android": lambda p: itch.summary_lines(p, android=True),
+           "play": play.summary_lines, "samsung": samsung.summary_lines}
 
 
 def progress(p):
-    """Setup steps done per store, for the overview cards and the counts in the left menu."""
+    """Setup steps done per store turned on for this project, for the overview cards and the counts in the left menu."""
     out = []
-    for sid, name, steps in (("steam", "Steam", steam.status(p, load_config())["steps"]), ("itch", "itch.io", itch.status(p)["steps"]),
-                             ("epic", "Epic Games Store", epic.status(p)["steps"]),
-                             ("gog", "GOG", gog.status(p)["steps"]), ("microsoft", "Microsoft Store", microsoft.status(p)["steps"]),
-                             ("play", "Google Play", play.status(p)["steps"]), ("samsung", "Galaxy Store", samsung.status(p)["steps"])):
+    for sid, name, _group, _icon in stores.DESK:
+        if not stores.is_on(p, sid):
+            continue
+        steps = STEPS[sid](p)
         open_steps = [x for x in steps if x["state"] != "ok"]
         out.append({"id": sid, "name": name, "done": len(steps) - len(open_steps), "total": len(steps),
                     "next": open_steps[0]["title"] if open_steps else "Ready"})
     return out
+
+
+def summary(p):
+    """One line per store turned on, for Refresh and Build all."""
+    return [line for sid, _n, _g, _i in stores.DESK if stores.is_on(p, sid) for line in SUMMARY[sid](p)]
 
 
 def write_status(p):
@@ -130,8 +144,9 @@ def run_job(name, fn):
         p.log(f"{name}: {'ok' if state == 'done' else state} ({minutes} min)", str(message).splitlines()[:12]
               + (play.summary_lines(p) if "Play" in name or "AAB" in name else epic.summary_lines(p) if "Epic" in name
                  else gog.summary_lines(p) if "GOG" in name else microsoft.summary_lines(p) if "Microsoft" in name
-                 else samsung.summary_lines(p) if "Galaxy" in name else laptop.summary_lines(p) if "Release check" in name else itch.summary_lines(p) if "itch" in name
-                 else steam.summary_lines(p, load_config())))
+                 else samsung.summary_lines(p) if "Galaxy" in name else laptop.summary_lines(p) if "Release check" in name
+                 else itch.summary_lines(p, android=True) if "itch.io Android" in name else itch.summary_lines(p) if "itch" in name
+                 else summary(p) if name == "Build all" else steam.summary_lines(p, load_config())))
         write_status(p)
 
     threading.Thread(target=work, daemon=True).start()
@@ -193,8 +208,11 @@ class Handler(BaseHTTPRequestHandler):
                 icon = (ROOT / "web" / "icons" / Path(self.path).name)
                 return self.send(200, icon.read_bytes(), "image/svg+xml") if icon.is_file() else self.send(404, {"error": "not found"})
             if self.path == "/api/release":
-                return self.send(200, {**release.status(project()), "kinds": {k: v["label"] for k, v in builds.KINDS.items()},
-                                       "buildStore": {k: release.BUILD_STORE[v["store"]] for k, v in builds.KINDS.items()}})
+                r = release.status(project())
+                r["stores"] = {k: v for k, v in r["stores"].items() if stores.is_on(project(), k)}
+                kinds = stores.on_kinds(project(), list(builds.KINDS))
+                return self.send(200, {**r, "kinds": {k: builds.KINDS[k]["label"] for k in kinds},
+                                       "buildStore": {k: release.BUILD_STORE[builds.KINDS[k]["store"]] for k in kinds}})
             if self.path == "/api/start":
                 p = STATE["project"]
                 title = ""
@@ -218,11 +236,15 @@ class Handler(BaseHTTPRequestHandler):
             if self.path == "/api/check":
                 return self.send(200, laptop.state(project()))
             if self.path == "/api/compare":
-                return self.send(200, json.loads((ROOT / "rules" / "compare.json").read_text(encoding="utf-8")))
+                return self.send(200, status.compare(project()))
             if self.path == "/api/evaluate":
                 return self.send(200, evaluate.stores())
             if self.path.startswith("/api/evaluate/"):
                 return self.send(200, evaluate.store(project(), self.path.split("/")[3]))
+            if self.path == "/api/stores":
+                return self.send(200, stores.listing(project()))
+            if self.path == "/api/itch-android":
+                return self.send(200, itch.android_status(project()))
             if self.path == "/api/itch":
                 return self.send(200, itch.status(project()))
             if self.path == "/api/samsung":
@@ -301,6 +323,14 @@ class Handler(BaseHTTPRequestHandler):
             if self.path == "/api/itch/login":
                 ok, message = itch.login(project())
                 return self.send(200 if ok else 400, {"ok": ok, "error": message, "message": message})
+            if self.path == "/api/stores":
+                stores.save(project(), data)
+                write_status(project())
+                return self.send(200, {"ok": True})
+            if self.path == "/api/itch-android/preview":
+                return self.send(200, run_job("itch.io Android: push preview", lambda: itch.preview(project(), android=True)))
+            if self.path == "/api/itch-android/push":
+                return self.send(200, run_job("itch.io Android: push", lambda: itch.push(project(), android=True)))
             if self.path == "/api/itch/preview":
                 return self.send(200, run_job("itch.io: push preview", lambda: itch.preview(project())))
             if self.path == "/api/itch/push":
@@ -349,8 +379,7 @@ class Handler(BaseHTTPRequestHandler):
                 save_config(config)
                 return self.send(200, {"ok": True})
             if self.path == "/api/refresh":
-                text = project().log("Refresh", steam.summary_lines(project(), load_config()) + epic.summary_lines(project()) + gog.summary_lines(project())
-                                    + microsoft.summary_lines(project()) + play.summary_lines(project()) + samsung.summary_lines(project()) + itch.summary_lines(project()))
+                text = project().log("Refresh", summary(project()))
                 write_status(project())
                 return self.send(200, {"text": text})
             if self.path == "/api/unity/apply":

@@ -248,6 +248,49 @@
       "group": "pc"
     },
     {
+      "id": "itch-android",
+      "name": "itch.io Android",
+      "icon": "itch",
+      "page": "#itch-android",
+      "planned": true,
+      "cells": {
+        "age": {
+          "short": "13+",
+          "level": "ok",
+          "detail": "13 per the terms as quoted on forums (clause not read directly). Selling needs 18 or an adult running the finances.",
+          "source": "https://itch.io/about/terms"
+        },
+        "kids": {
+          "short": "parent installs",
+          "level": "warn",
+          "detail": "The APK installs outside Google Play: Android asks once to allow installs from the browser or the itch.io app, and Family Link can block that on a child's account, so a parent installs it. Google's developer verification (from September 2026 in Brazil, Indonesia, Singapore and Thailand, worldwide from 2027) lets certified Android devices install only apps from verified developers, outside Play too: verify the developer account before offering the APK there.",
+          "source": "https://developer.android.com/developer-verification"
+        },
+        "ai": {
+          "short": "yes, disclose",
+          "level": "ok",
+          "detail": "Tag generated content in AI Disclosure (Code for generated code); no mass-produced AI pages.",
+          "source": "https://itch.io/docs/creators/quality-guidelines"
+        },
+        "script": {
+          "short": "yes",
+          "level": "ok",
+          "detail": "No rule against runtime scripting; Google Play's rule on downloaded code does not apply outside Play."
+        },
+        "account": {
+          "short": "yes",
+          "level": "ok",
+          "detail": "No restriction on external accounts found."
+        },
+        "credits": {
+          "short": "own payment",
+          "level": "warn",
+          "detail": "Credits sold in the game would use our own payment provider; not verified."
+        }
+      },
+      "group": "android"
+    },
+    {
       "id": "play",
       "name": "Google Play",
       "icon": "play",

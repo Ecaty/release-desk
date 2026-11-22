@@ -9,12 +9,11 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-from . import builds, evaluate, laptop, release
+from . import builds, evaluate, laptop, release, stores
 
 OUT = "Logs/board-status.html"
 ROOT = Path(__file__).resolve().parent.parent
-BUILD_STORE = {"steam-windows": "steam", "itch-windows": "itch", "epic-windows": "epic", "gog-windows": "gog",
-               "microsoft-windows": "microsoft", "play-aab": "play", "play-dev-apk": "play"}
+BUILD_STORE = stores.KIND_STORE
 
 
 def _build(h):
@@ -28,13 +27,13 @@ def collect(project, progress):
     r = release.status(project)
     # Per kind, so a build made before the desk kept a history still shows (history() falls back per kind).
     history = sorted((h for kind in builds.KINDS for h in builds.history(project, kind)), key=lambda h: h.get("finished", ""), reverse=True)
-    stores = []
+    rows = []
     for s in progress:
         mine = [h for h in history if BUILD_STORE.get(h.get("kind")) == s["id"]]
         if s["id"] == "samsung":
             mine = [dict(h, uploaded=h.get("galaxy", "")) for h in history if h.get("kind") == "play-aab"]
         st = r["stores"].get(s["id"], {})
-        stores.append({"id": s["id"], "name": s["name"], "done": s["done"], "total": s["total"], "next": s["next"],
+        rows.append({"id": s["id"], "name": s["name"], "done": s["done"], "total": s["total"], "next": s["next"],
                        "overrides": st.get("overrides", []), "tooLong": st.get("tooLong", {}),
                        "builds": [_build(h) for h in mine[:5]]})
     checks = [{k: c.get(k) for k in ("request", "commit", "state", "started", "finished", "summary")}
@@ -45,9 +44,15 @@ def collect(project, progress):
     fields = {k: v["label"] for k, v in r["fields"].items()}
     return {"title": project.unity_settings().get("productName") or project.root.name,
             "generated": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
-            "release": {"fields": fields, "values": r["shared"]}, "stores": stores, "checks": checks,
-            "compare": json.loads((ROOT / "rules" / "compare.json").read_text(encoding="utf-8")),
-            "evaluate": evaluate.stores()}
+            "release": {"fields": fields, "values": r["shared"]}, "stores": rows, "checks": checks,
+            "compare": compare(project), "evaluate": [s for s in evaluate.stores() if stores.is_on(project, s["id"])]}
+
+
+def compare(project):
+    """The stores table with only the stores turned on for this project."""
+    c = json.loads((ROOT / "rules" / "compare.json").read_text(encoding="utf-8"))
+    c["stores"] = [s for s in c["stores"] if stores.is_on(project, s["id"])]
+    return c
 
 
 def write(project, progress):

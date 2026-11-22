@@ -4,6 +4,7 @@ Layout (inside the Unity project, which ignores Build/):
   Build/Steam/Windows/<Name>.exe              folder SteamPipe uploads
   Build/GooglePlay/Android/<Name>_<ver>_<n>-dev.apk   phone testing
   Build/GooglePlay/Android/<Name>_<ver>_<n>.aab       release upload
+  Build/Itch/Android/<Name>_<ver>_<n>.apk             itch.io Android download
 Each build writes <file or folder>.json next to it with version, build number and result.
 """
 import json
@@ -21,6 +22,7 @@ KINDS = {
     "itch-windows": {"store": "Itch", "target": "windows", "label": "Windows (itch.io)", "folder": True, "development": False},
     "gog-windows": {"store": "GOG", "target": "windows", "label": "Windows (GOG)", "folder": True, "development": False},
     "microsoft-windows": {"store": "Microsoft", "target": "windows", "label": "Windows (Microsoft Store)", "folder": True, "development": False},
+    "itch-android-apk": {"store": "Itch", "target": "android", "label": "Android APK (itch.io)", "ext": ".apk", "development": False},
     "play-dev-apk": {"store": "GooglePlay", "target": "android", "label": "Phone test APK", "ext": "-dev.apk", "development": True},
     "play-aab": {"store": "GooglePlay", "target": "android", "label": "Release AAB", "ext": ".aab", "development": False},
 }
@@ -132,7 +134,7 @@ def build(project, kind):
     notes = release.changes(release.effective(project, store)["whatsNew"] or release.draft(project, last_commit(project, kind)))
     unity.call(project.root, f"return ReleaseDesk.Editor.DeskEntry.ApplySettings({unity.literal(release.unity_file(project, store))});")
     signing = ""
-    if kind == "play-aab":
+    if kind in ("play-aab", "itch-android-apk"):
         from . import play  # play imports builds
         key = play.key_state(project)
         if not key["ready"]:

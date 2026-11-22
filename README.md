@@ -61,9 +61,17 @@ Status: seven stores are wired up: Steam (upload with SteamCMD), itch.io (butler
 
 After every refresh and every finished job the desk writes `Store/Logs/board-status.html` (git-ignored): a self-contained, read-only page with each store's setup progress, the release text, builds and uploads, release-check results and the store rules table. It has no buttons and no IDs, paths, keys or account details, so the board can show it as is. Builds and uploads stay in the desk.
 
+## Stores on this desk
+
+Overview > Stores > On this desk turns each store on or off for this project (`"stores": {"<id>": false}` in `Store/store.json`). A store that is off is hidden from the menu, Overview, Build all, the stores table, Refresh and the board status page; nothing else about it changes. A store added to the desk later starts on in every project.
+
+## itch.io Android
+
+Its own row under Android, on the same itch.io page as the Windows download. **Build Android APK** builds `Build/Itch/Android/<Name>_<ver>_<n>.apk`, signed with the Google Play upload key (Keys & accounts), so an update installs over the previous one. **Push** stages only the newest APK and runs `butler push <stage> user/game:android`; the channel is set in Keys & accounts. Text, art and release values are itch.io's.
+
 ## Stores side by side
 
-Overview > Stores is one table of every store: own-account age, play from 8 through a parent's account, AI-only creation, runtime Flecs Script, the player's own AI account and AI credits. Click a cell for the detail and its source; below the table is what the game must do to be usable from 8 (child-friendly UX, AI filter, report and block, consent, store payments only). Data: `rules/compare.json`, checked 2026-11-20.
+Overview > Stores > Side by side is one table of every store: own-account age, play from 8 through a parent's account, AI-only creation, runtime Flecs Script, the player's own AI account and AI credits. Click a cell for the detail and its source; below the table is what the game must do to be usable from 8 (child-friendly UX, AI filter, report and block, consent, store payments only). Data: `rules/compare.json`, checked 2026-11-20.
 
 ## Stores to evaluate
 
