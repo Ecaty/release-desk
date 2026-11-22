@@ -52,6 +52,7 @@ def compare(project):
     """The stores table with only the stores turned on for this project."""
     c = json.loads((ROOT / "rules" / "compare.json").read_text(encoding="utf-8"))
     c["stores"] = [s for s in c["stores"] if stores.is_on(project, s["id"])]
+    c["groups"] = stores.groups(project)
     return c
 
 
