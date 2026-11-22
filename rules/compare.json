@@ -256,15 +256,15 @@
       "cells": {
         "age": {
           "short": "13+",
-          "level": "ok",
+          "level": "unknown",
           "detail": "13 per the terms as quoted on forums (clause not read directly). Selling needs 18 or an adult running the finances.",
           "source": "https://itch.io/about/terms"
         },
         "kids": {
           "short": "parent installs",
           "level": "warn",
-          "detail": "The APK installs outside Google Play: Android asks once to allow installs from the browser or the itch.io app, and Family Link can block that on a child's account, so a parent installs it. Google's developer verification (from September 2026 in Brazil, Indonesia, Singapore and Thailand, worldwide from 2027) lets certified Android devices install only apps from verified developers, outside Play too: verify the developer account before offering the APK there.",
-          "source": "https://developer.android.com/developer-verification"
+          "detail": "The APK installs outside Google Play: Android asks once to allow installs from the browser or the itch.io app, and Family Link can block that on a child's account, so a parent installs it. Google's developer verification: from 30 September 2026 in Brazil, Indonesia, Singapore and Thailand, and in 2027 worldwide (no exact date yet), certified Android devices install apps from outside Play only when the developer is registered; unregistered apps still install through adb or an advanced flow. Register in the Android Developer Console before offering the APK. Checked 2026-11-22 against Google's developer guide; one source.",
+          "source": "https://developer.android.com/developer-verification/guides"
         },
         "ai": {
           "short": "yes, disclose",

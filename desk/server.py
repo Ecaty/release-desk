@@ -119,6 +119,20 @@ def write_status(p):
         p.log("Board status page not written", [f"{type(error).__name__}: {error}"])
 
 
+def job_summary(p, name):
+    """Summary lines for the log after a job: the store a build kind or job name belongs to, if it is on."""
+    sid = next((stores.KIND_STORE[k] for k, v in builds.KINDS.items() if name == f"Build {v['store']} {v['label']}"), None)
+    if sid is None:
+        prefixes = [("itch.io Android:", "itch-android"), ("itch.io:", "itch"), ("Google Play:", "play"), ("Galaxy Store:", "samsung"),
+                    ("GOG:", "gog"), ("Microsoft Store:", "microsoft"), ("Epic:", "epic"), ("Steam", "steam"), ("Upload", "steam")]
+        sid = next((i for prefix, i in prefixes if name.startswith(prefix)), None)
+    if name == "Release check":
+        return laptop.summary_lines(p)
+    if sid is None:
+        return summary(p)
+    return SUMMARY[sid](p) if stores.is_on(p, sid) else []
+
+
 def run_job(name, fn):
     """Long work (Unity builds, uploads) runs in the background; the page polls /api/jobs."""
     with LOCK:
@@ -142,11 +156,7 @@ def run_job(name, fn):
         p = STATE["project"]
         minutes = round((time.time() - started) / 60, 1)
         p.log(f"{name}: {'ok' if state == 'done' else state} ({minutes} min)", str(message).splitlines()[:12]
-              + (play.summary_lines(p) if "Play" in name or "AAB" in name else epic.summary_lines(p) if "Epic" in name
-                 else gog.summary_lines(p) if "GOG" in name else microsoft.summary_lines(p) if "Microsoft" in name
-                 else samsung.summary_lines(p) if "Galaxy" in name else laptop.summary_lines(p) if "Release check" in name
-                 else itch.summary_lines(p, android=True) if "itch.io Android" in name else itch.summary_lines(p) if "itch" in name
-                 else summary(p) if name == "Build all" else steam.summary_lines(p, load_config())))
+              + job_summary(p, name))
         write_status(p)
 
     threading.Thread(target=work, daemon=True).start()
@@ -371,7 +381,7 @@ class Handler(BaseHTTPRequestHandler):
             if self.path == "/api/release/draft":
                 return self.send(200, {"text": release.draft(project(), builds.last_commit(project()))})
             if self.path == "/api/build/all":
-                kinds = [k for k in data.get("kinds", []) if k in builds.KINDS]
+                kinds = stores.on_kinds(project(), [k for k in data.get("kinds", []) if k in builds.KINDS])
                 return self.send(200, run_job("Build all", lambda: builds.build_all(project(), kinds)))
             if self.path == "/api/keys/steam-user":
                 config = load_config()
@@ -387,6 +397,8 @@ class Handler(BaseHTTPRequestHandler):
             if self.path == "/api/build":
                 kind = data["kind"]
                 spec = builds.KINDS[kind]
+                if not stores.on_kinds(project(), [kind]):
+                    raise ValueError(f"{stores.name(stores.KIND_STORE[kind])} is turned off for this project (Overview > Stores).")
                 return self.send(200, run_job(f"Build {spec['store']} {spec['label']}", lambda: builds.build(project(), kind)))
             if self.path == "/api/shots/capture":
                 only = str(data.get("only", ""))

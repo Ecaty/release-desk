@@ -1,5 +1,7 @@
 """Which stores a project's desk shows. Store/store.json "stores" holds {id: false} for each store turned off; a store
-that is not listed is on, so a store added to the desk later shows in every project until it is turned off there."""
+that is not listed is on, so a store added to the desk later shows in every project until it is turned off there
+(the user's choice on card #118, 2026-11-22: "On"). The menu keeps the desk's own order; a project changes what
+comes first only by turning stores off."""
 from . import evaluate
 
 # Stores the desk is wired up for, in menu order within their group.
@@ -20,6 +22,10 @@ def _off(project):
 
 def known():
     return [s[0] for s in DESK] + [s["id"] for s in evaluate.stores()]
+
+
+def name(store_id):
+    return next((n for i, n, _g, _icon in DESK if i == store_id), store_id)
 
 
 def is_on(project, store_id):

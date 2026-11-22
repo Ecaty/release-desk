@@ -358,7 +358,7 @@ const views = {
         <button class="btn" data-act="itch-android-preview" ${ready && b.exists ? "" : "disabled"}>${ic("visibility")}Push preview (nothing sent)</button>
         <button class="btn primary" data-act="itch-android-push" ${ready && b.exists ? "" : "disabled"}>${ic("cloud_upload")}Push to ${esc(ik.androidChannel)}</button></div>
       <p class="note">Unity opens on its own if it is closed. An Android build switches Unity to Android and back, so the first one takes long. The APK is signed with the Google Play upload key; Unity reads its password from Credential Manager. butler uses its own saved login; the desk never sees it.</p></div>`;
-    return storePage("itch-android", "itch.io Android", "The Android download on the same itch.io page: an APK that players install outside Google Play. Text, art and the release values are shared with itch.io.", d.steps, [
+    return storePage("itch-android", "itch.io Android", "The Android download on the same itch.io page: an APK that players install outside Google Play. Text, art and release values (with any override) are itch.io's, set on the itch.io page.", d.steps, [
       ["builds", "Builds", builds], ["keys", "Keys &amp; accounts", keysBox("itch-android", k)], ["steps", "Setup steps", stepsBox(d.steps, "itch-android")]]);
   },
   async gog() {
@@ -419,6 +419,14 @@ async function navStores(view) {
   document.querySelectorAll(".nav-eval").forEach(box => box.innerHTML = sl.stores.filter(x => x.kind === "evaluate" && x.on && x.group === box.dataset.group).map(x => `<a href="#eval-${esc(x.id)}" title="To evaluate · ${esc(FIT[x.fit])}"><span>${x.icon ? `<i class="si ${esc(x.icon)}"></i>` : ic("storefront")}${esc(x.name)}</span> <i class="fit ${esc(x.fit)}"></i></a>`).join(""));
   document.querySelectorAll("#nav .navhead[data-head]").forEach(h => h.hidden = !sl.stores.some(x => x.on && x.group === h.dataset.head));
   document.querySelectorAll(".nav-eval a").forEach(a => a.getAttribute("href") === "#" + view ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current"));
+}
+// A store turned off still opens by its link; show that instead of its page, with a way to turn it back on.
+async function offStore(view) {
+  const id = view.startsWith("eval-") ? view.slice(5) : view;
+  const s = (await api("/api/stores").catch(() => ({stores: []}))).stores.find(x => x.id === id);
+  if (!s || s.on) return null;
+  return `<div class="box"><h3>${esc(s.name)}</h3><p>Turned off for this project.</p>
+    <div class="actions"><label class="storeon"><input type="checkbox" data-store-on="${esc(s.id)}">Show ${esc(s.name)} on this desk</label></div></div>`;
 }
 let COMPARE = null;
 async function openCell(btn) {
@@ -606,7 +614,8 @@ async function render() {
   // Stores to evaluate sit in their platform group, marked by the fit dot instead of a step count.
   if (start.project) navStores(view).catch(() => {});
   const evalView = view.startsWith("eval-") ? () => views.evaluate(view.slice(5)) : null;
-  try { html = start.project ? await (views[view] || evalView || views.overview)() : await views.start(start); }
+  const off = start.project ? await offStore(view) : null;
+  try { html = !start.project ? await views.start(start) : off || await (views[view] || evalView || views.overview)(); }
   catch (e) { html = `<div class="box">${chip("bad", "error")} ${esc(e.message)}</div>`; }
   if (seq !== renderSeq) return;
   $("#wrap").classList.toggle("empty", !start.project);
