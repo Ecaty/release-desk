@@ -63,7 +63,7 @@ After every refresh and every finished job the desk writes `Store/Logs/board-sta
 
 ## Stores on this desk
 
-Overview > Stores > On this desk turns each store on or off for this project (`"stores": {"<id>": false}` in `Store/store.json`). A store that is off is hidden from the menu, Overview, Build all, the stores table, Refresh and the board status page; nothing else about it changes. A store added to the desk later starts on in every project. **First** picks the platform listed first (`"first": ["android"]`); the other platforms and the stores within each keep the desk's order.
+Overview > Stores > On this desk turns each store on or off for this project (`"stores": {"<id>": false}` in `Store/store.json`). A store that is off is hidden from the menu, Overview, Build all, the stores table, Refresh and the board status page; nothing else about it changes. A store added to the desk later starts on in every project. **First** picks the platform listed first (`"first": ["android"]`); the other platforms and the stores within each keep the desk's order. Tests: `python -m unittest discover tests`.
 
 ## itch.io Android
 

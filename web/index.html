@@ -147,6 +147,7 @@ nav small.lvl{font-weight:600;padding:1px 7px;border-radius:999px}.lvl.done{back
     <div class="nav-eval" data-group="console"></div>
     <div class="navhead" data-head="apple">Apple</div>
     <div class="nav-eval" data-group="apple"></div>
+    <span id="nav-end" hidden></span>
   </nav>
   <main id="main"></main>
 </div>
@@ -420,7 +421,8 @@ async function navStores(view) {
   document.querySelectorAll(".nav-eval").forEach(box => box.innerHTML = sl.stores.filter(x => x.kind === "evaluate" && x.on && x.group === box.dataset.group).map(x => `<a href="#eval-${esc(x.id)}" title="To evaluate · ${esc(FIT[x.fit])}"><span>${x.icon ? `<i class="si ${esc(x.icon)}"></i>` : ic("storefront")}${esc(x.name)}</span> <i class="fit ${esc(x.fit)}"></i></a>`).join(""));
   document.querySelectorAll("#nav .navhead[data-head]").forEach(h => h.hidden = !sl.stores.some(x => x.on && x.group === h.dataset.head));
   const nav = $("#nav");
-  sl.groups.forEach(([g]) => nav.append(...nav.querySelectorAll(`.navhead[data-head="${g}"], [data-group="${g}"]`)));
+  const end = $("#nav-end");
+  sl.groups.forEach(([g]) => nav.querySelectorAll(`.navhead[data-head="${g}"], [data-group="${g}"]`).forEach(el => nav.insertBefore(el, end)));
   document.querySelectorAll(".nav-eval a").forEach(a => a.getAttribute("href") === "#" + view ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current"));
 }
 // A store turned off still opens by its link; show that instead of its page, with a way to turn it back on.

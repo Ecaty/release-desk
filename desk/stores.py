@@ -21,8 +21,21 @@ def _off(project):
     return {k for k, v in data.items() if v is False}
 
 
+def clean_first(value):
+    """Only a list of known group ids counts, without duplicates; anything else (null, a number, a string, nested
+    lists) is ignored, so a hand-edited store.json cannot break the desk."""
+    if not isinstance(value, list):
+        return []
+    out = []
+    for g in value:
+        if isinstance(g, str) and g in dict(GROUPS) and g not in out:
+            out.append(g)
+    return out
+
+
 def groups(project):
-    first = [g for g in ((project.read("store.json", {}) or {}).get("first", []) if project else []) if g in dict(GROUPS)]
+    data = (project.read("store.json", {}) or {}) if project else {}
+    first = clean_first(data.get("first") if isinstance(data, dict) else None)
     return [[g, dict(GROUPS)[g]] for g in first] + [g for g in GROUPS if g[0] not in first]
 
 
@@ -57,7 +70,7 @@ def save(project, changes):
     store = project.read("store.json", {}) or {}
     changes = dict(changes or {})
     if "first" in changes:
-        first = [g for g in (changes.pop("first") or []) if g in dict(GROUPS)]
+        first = clean_first(changes.pop("first"))
         if first:
             store["first"] = first
         else:
