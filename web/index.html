@@ -147,6 +147,7 @@ nav small.lvl{font-weight:600;padding:1px 7px;border-radius:999px}.lvl.done{back
     <div class="nav-eval" data-group="console"></div>
     <div class="navhead" data-head="apple">Apple</div>
     <div class="nav-eval" data-group="apple"></div>
+    <span id="nav-end" hidden></span>
   </nav>
   <main id="main"></main>
 </div>
@@ -409,7 +410,8 @@ function storesBox(sl) {
   const row = x => `<label class="storeon"><input type="checkbox" data-store-on="${esc(x.id)}" ${x.on ? "checked" : ""}>${x.kind === "desk" ? storeIcon(x.id) : x.icon ? `<i class="si ${esc(x.icon)}"></i>` : ic("storefront")}${esc(x.name)}${x.kind === "evaluate" ? ` <span class="note">to evaluate</span>` : ""}</label>`;
   const groups = sl.groups.map(([g, label]) => { const list = sl.stores.filter(x => x.group === g); return list.length ? `<div class="storegroup"><h4>${esc(label)}</h4>${list.map(row).join("")}</div>` : ""; }).join("");
   return `<div class="box" id="stores-on"><h3>Stores on this desk</h3><p class="note sub">Only the stores ticked here show in the menu, Overview, Build all and the board status page. Saved at once to Store/store.json; a store added to the desk later starts ticked.</p>
-    <div class="storegroups">${groups}</div></div>`;
+    <div class="storegroups">${groups}</div>
+    <div class="field"><label for="stores-first">First</label><div><span class="select"><select id="stores-first" class="in" data-stores-first>${sl.groups.map(([g, label]) => `<option value="${g}" ${sl.groups[0][0] === g ? "selected" : ""}>${esc(label)}</option>`).join("")}</select></span><div class="note">The platform listed first in the menu, Overview, the stores table and the board status page.</div></div><span></span></div></div>`;
 }
 // Menu: hide stores turned off for this project, and a group heading with nothing left under it.
 async function navStores(view) {
@@ -418,6 +420,9 @@ async function navStores(view) {
   document.querySelectorAll("#nav a[data-store]").forEach(a => a.hidden = !on.has(a.dataset.store));
   document.querySelectorAll(".nav-eval").forEach(box => box.innerHTML = sl.stores.filter(x => x.kind === "evaluate" && x.on && x.group === box.dataset.group).map(x => `<a href="#eval-${esc(x.id)}" title="To evaluate · ${esc(FIT[x.fit])}"><span>${x.icon ? `<i class="si ${esc(x.icon)}"></i>` : ic("storefront")}${esc(x.name)}</span> <i class="fit ${esc(x.fit)}"></i></a>`).join(""));
   document.querySelectorAll("#nav .navhead[data-head]").forEach(h => h.hidden = !sl.stores.some(x => x.on && x.group === h.dataset.head));
+  const nav = $("#nav");
+  const end = $("#nav-end");
+  sl.groups.forEach(([g]) => nav.querySelectorAll(`.navhead[data-head="${g}"], [data-group="${g}"]`).forEach(el => nav.insertBefore(el, end)));
   document.querySelectorAll(".nav-eval a").forEach(a => a.getAttribute("href") === "#" + view ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current"));
 }
 // A store turned off still opens by its link; show that instead of its page, with a way to turn it back on.
@@ -654,6 +659,7 @@ async function updateJobs() {
 
 document.addEventListener("change", e => {
   edited(e);
+  if (e.target.matches("[data-stores-first]")) { api("/api/stores", {first: [e.target.value]}).then(() => { COMPARE = null; toast("Order saved"); return render(); }).catch(err => toast(err.message)); return; }
   const so = e.target.closest("[data-store-on]");
   if (so) { api("/api/stores", {[so.dataset.storeOn]: so.checked}).then(() => { COMPARE = null; toast(so.checked ? "Shown on this desk" : "Hidden on this desk"); return render(); }).catch(err => toast(err.message)); return; }
   const ev = e.target.closest("[data-eval-step]");

@@ -1,7 +1,8 @@
 """Which stores a project's desk shows. Store/store.json "stores" holds {id: false} for each store turned off; a store
 that is not listed is on, so a store added to the desk later shows in every project until it is turned off there
-(the user's choice on card #118, 2026-11-22: "On"). The menu keeps the desk's own order; a project changes what
-comes first only by turning stores off."""
+(the user's choice on card #118, 2026-11-22: "On"). "first" lists platform groups that come first for this project,
+e.g. ["android"] puts Android above PC in the menu, Overview, the stores table and the status page; the other groups
+keep the desk's order, and so do the stores within a group."""
 from . import evaluate
 
 # Stores the desk is wired up for, in menu order within their group.
@@ -18,6 +19,30 @@ GROUPS = [["pc", "PC"], ["android", "Android"], ["xr", "XR"], ["console", "Conso
 def _off(project):
     data = (project.read("store.json", {}) or {}).get("stores", {}) or {} if project else {}
     return {k for k, v in data.items() if v is False}
+
+
+def clean_first(value):
+    """Only a list of known group ids counts, without duplicates; anything else (null, a number, a string, nested
+    lists) is ignored, so a hand-edited store.json cannot break the desk."""
+    if not isinstance(value, list):
+        return []
+    out = []
+    for g in value:
+        if isinstance(g, str) and g in dict(GROUPS) and g not in out:
+            out.append(g)
+    return out
+
+
+def groups(project):
+    data = (project.read("store.json", {}) or {}) if project else {}
+    first = clean_first(data.get("first") if isinstance(data, dict) else None)
+    return [[g, dict(GROUPS)[g]] for g in first] + [g for g in GROUPS if g[0] not in first]
+
+
+def desk_order(project):
+    """Desk stores in menu order for this project."""
+    order = [g for g, _ in groups(project)]
+    return sorted(DESK, key=lambda s: order.index(s[2]))
 
 
 def known():
@@ -37,12 +62,19 @@ def listing(project):
     desk = [{"id": i, "name": n, "group": g, "icon": icon, "kind": "desk", "on": i not in off} for i, n, g, icon in DESK]
     later = [{"id": s["id"], "name": s["name"], "group": s["group"], "icon": s["icon"], "kind": "evaluate", "fit": s["fit"],
               "on": s["id"] not in off} for s in evaluate.stores()]
-    return {"groups": GROUPS, "stores": desk + later}
+    return {"groups": groups(project), "stores": desk + later}
 
 
 def save(project, changes):
     ids = set(known())
     store = project.read("store.json", {}) or {}
+    changes = dict(changes or {})
+    if "first" in changes:
+        first = clean_first(changes.pop("first"))
+        if first:
+            store["first"] = first
+        else:
+            store.pop("first", None)
     current = store.get("stores", {}) or {}
     for k, v in (changes or {}).items():
         if k not in ids:

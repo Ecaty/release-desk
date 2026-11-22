@@ -96,7 +96,7 @@ SUMMARY = {"steam": lambda p: steam.summary_lines(p, load_config()), "itch": itc
 def progress(p):
     """Setup steps done per store turned on for this project, for the overview cards and the counts in the left menu."""
     out = []
-    for sid, name, _group, _icon in stores.DESK:
+    for sid, name, _group, _icon in stores.desk_order(p):
         if not stores.is_on(p, sid):
             continue
         steps = STEPS[sid](p)
@@ -108,7 +108,7 @@ def progress(p):
 
 def summary(p):
     """One line per store turned on, for Refresh and Build all."""
-    return [line for sid, _n, _g, _i in stores.DESK if stores.is_on(p, sid) for line in SUMMARY[sid](p)]
+    return [line for sid, _n, _g, _i in stores.desk_order(p) if stores.is_on(p, sid) for line in SUMMARY[sid](p)]
 
 
 def write_status(p):
