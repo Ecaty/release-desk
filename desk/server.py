@@ -331,6 +331,8 @@ class Handler(BaseHTTPRequestHandler):
                 steps, seed = data.get("steps") or [], data.get("seed") or None
                 return self.send(200, run_job("Release check", lambda: laptop.check(project(), steps, seed)))
             if self.path == "/api/itch/install":
+                if any(n.startswith("itch.io") for n in RUNNING):
+                    raise ValueError("Wait until the running itch.io job has finished.")
                 return self.send(200, run_job("itch.io: install butler", lambda: itch.install(project())))
             if self.path == "/api/itch/login":
                 ok, message = itch.login(project())

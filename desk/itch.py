@@ -6,9 +6,11 @@ own store under Android; text, art and the page itself are shared with itch.io.
 
 No review or fee; the page is edited on itch.io. butler keeps its own login after `butler login` (a browser sign-in
 in its console); the desk never reads it. Pushes only send what changed since the previous build."""
+import json
 import os
 import shutil
 import subprocess
+import urllib.parse
 import urllib.request
 import zipfile
 from pathlib import Path
@@ -23,6 +25,11 @@ IGNORE = ["*.pdb", "*_BurstDebugInformation_DoNotShip*", "*_BackUpThisFolder_But
 BROTH = "https://broth.itch.zone/butler/windows-amd64"
 ANDROID = "itch-android-apk"
 CREDS = Path(os.environ.get("USERPROFILE", Path.home())) / ".config" / "itch" / "butler_creds"
+# Every .exe and .dll in the butler archive carries itch.io's Authenticode signature (checked 2026-11-22 on 15.32.0:
+# butler.exe, 7z.dll and c7zip.dll, "CN=itch corp., O=itch corp.", issued by Microsoft ID Verified CS AOC CA 04).
+SIGNER_ORG = "itch corp."
+MAX_DOWNLOAD = 200 * 1024 * 1024  # 15.32.0 is 10.35 MiB
+MAX_UNPACKED = 500 * 1024 * 1024  # 15.32.0 unpacks to 26 MiB
 
 
 def settings(project):
@@ -43,34 +50,100 @@ def version(exe):
         return ""
 
 
+def allowed_url(url):
+    """Downloads go only over https to broth.itch.zone or the itch.io mirror it redirects to."""
+    u = urllib.parse.urlsplit(url)
+    host = (u.hostname or "").lower()
+    return u.scheme == "https" and (host == "broth.itch.zone" or (host.startswith("itchio-mirror.") and host.endswith(".r2.cloudflarestorage.com")))
+
+
+class _Redirects(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        if not allowed_url(newurl):
+            raise ValueError(f"butler download was redirected to an unexpected address ({urllib.parse.urlsplit(newurl).hostname}); nothing was installed.")
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+def _open(url, timeout):
+    if not allowed_url(url):
+        raise ValueError("Unexpected butler download address.")
+    r = urllib.request.build_opener(_Redirects).open(url, timeout=timeout)
+    if not allowed_url(r.geturl()):
+        r.close()
+        raise ValueError("butler download ended at an unexpected address; nothing was installed.")
+    return r
+
+
+def signatures(folder):
+    """Authenticode status and signer organisation of every .exe and .dll in folder, read by Windows itself."""
+    script = ("Get-ChildItem -LiteralPath $env:RD_CHECK_FOLDER -Recurse -Include *.exe,*.dll | ForEach-Object { $s = Get-AuthenticodeSignature -LiteralPath $_.FullName; "
+              "[pscustomobject]@{name=$_.Name; status=[string]$s.Status; subject=[string]$s.SignerCertificate.Subject} } | ConvertTo-Json -Compress")
+    env = dict(os.environ, RD_CHECK_FOLDER=str(folder))  # passed by environment, never pasted into the command text
+    out = subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", script], capture_output=True, text=True, timeout=120, env=env)
+    data = json.loads(out.stdout or "[]")
+    return data if isinstance(data, list) else [data]
+
+
+def signed_by_itch(folder):
+    sigs = signatures(folder)
+    names = {x.get("name", "").lower() for x in sigs}
+    good = all(x.get("status") == "Valid" and f"O={SIGNER_ORG}" in [part.strip() for part in (x.get("subject") or "").split(",")] for x in sigs)
+    return bool(sigs) and "butler.exe" in names and good, sigs
+
+
 def install(project=None):
-    """Downloads the latest Windows butler from itch.io's broth service into the desk's tool folder and checks that it
-    runs. A previous copy there is replaced only once the new one works. No login happens here."""
-    with urllib.request.urlopen(f"{BROTH}/LATEST", timeout=30) as r:
-        latest = r.read().decode("utf-8").strip()
+    """Downloads the latest Windows butler from itch.io's broth service into the desk's tool folder. Nothing in it runs
+    until Windows confirms every .exe and .dll is signed by itch.io; the old copy is kept as a backup until the new one
+    is in place and starts. No login happens here."""
+    with _open(f"{BROTH}/LATEST", 30) as r:
+        latest = r.read(100).decode("utf-8", "replace").strip()
     if not latest or len(latest) > 40 or not all(c.isalnum() or c in ".-" for c in latest):
         return False, "itch.io's download service did not name a butler version."
     jobs.say(f"Downloading butler {latest}")
     TOOL_DIR.parent.mkdir(parents=True, exist_ok=True)
     archive = TOOL_DIR.parent / "butler-download.zip"
     fresh = TOOL_DIR.parent / "butler-new"
+    backup = TOOL_DIR.parent / "butler-old"
     shutil.rmtree(fresh, ignore_errors=True)
     try:
-        with urllib.request.urlopen(f"{BROTH}/{latest}/archive/default", timeout=120) as r, open(archive, "wb") as f:
+        size = 0
+        with _open(f"{BROTH}/{latest}/archive/default", 120) as r, open(archive, "wb") as f:
             while chunk := r.read(1 << 20):
                 jobs.check()
+                size += len(chunk)
+                if size > MAX_DOWNLOAD:
+                    return False, "The butler download is far larger than expected; nothing was installed."
                 f.write(chunk)
         with zipfile.ZipFile(archive) as z:
-            names = z.namelist()
-            if "butler.exe" not in names or any(n.startswith(("/", "\\")) or ".." in Path(n).parts for n in names):
+            infos = z.infolist()
+            names = [i.filename for i in infos]
+            if "butler.exe" not in names or any(n.startswith(("/", "\\")) or ".." in Path(n).parts or ":" in n for n in names):
                 return False, "The download is not a butler archive; nothing was installed."
+            if sum(i.file_size for i in infos) > MAX_UNPACKED:
+                return False, "The butler archive unpacks far larger than expected; nothing was installed."
             z.extractall(fresh)
+        jobs.say("Checking itch.io's signature")
+        ok, sigs = signed_by_itch(fresh)
+        if not ok:
+            bad = ", ".join(f"{x.get('name')}: {x.get('status')}" for x in sigs if x.get("status") != "Valid" or SIGNER_ORG not in (x.get("subject") or "")) or "no signed files"
+            return False, f"The download is not signed by itch.io ({bad}); nothing was installed or run."
         got = version(str(fresh / "butler.exe"))
         if not got:
             return False, "The downloaded butler does not start; nothing was installed."
-        shutil.rmtree(TOOL_DIR, ignore_errors=True)
-        fresh.rename(TOOL_DIR)
-        return True, f"butler {latest} installed in {TOOL_DIR} ({got})."
+        shutil.rmtree(backup, ignore_errors=True)
+        if TOOL_DIR.exists():
+            try:
+                TOOL_DIR.rename(backup)
+            except OSError:
+                return False, "The installed butler is in use (an upload may be running); try again when it has finished."
+        try:
+            fresh.rename(TOOL_DIR)
+        except OSError:
+            if backup.exists():
+                backup.rename(TOOL_DIR)
+            raise
+        shutil.rmtree(backup, ignore_errors=True)
+        return True, f"butler {latest} installed in {TOOL_DIR} ({got}), signed by itch.io."
     finally:
         archive.unlink(missing_ok=True)
         shutil.rmtree(fresh, ignore_errors=True)
