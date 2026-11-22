@@ -9,6 +9,8 @@ in its console); the desk never reads it. Pushes only send what changed since th
 import os
 import shutil
 import subprocess
+import urllib.request
+import zipfile
 from pathlib import Path
 
 from . import art, builds, jobs, release, storekit
@@ -17,6 +19,8 @@ from .project import CONFIG_DIR
 RULES = art.rules("itch")
 TOOL_DIR = CONFIG_DIR / "butler"
 IGNORE = ["*.pdb", "*_BurstDebugInformation_DoNotShip*", "*_BackUpThisFolder_ButDontShipItWithYourGame*"]
+# itch.io's own download service for butler builds (the source is on GitHub, itchio/butler; releases come from here).
+BROTH = "https://broth.itch.zone/butler/windows-amd64"
 ANDROID = "itch-android-apk"
 CREDS = Path(os.environ.get("USERPROFILE", Path.home())) / ".config" / "itch" / "butler_creds"
 
@@ -29,6 +33,47 @@ def settings(project):
 def butler():
     local = sorted(TOOL_DIR.glob("**/butler.exe"))
     return str(local[0]) if local else shutil.which("butler")
+
+
+def version(exe):
+    try:
+        out = subprocess.run([exe, "-V"], capture_output=True, text=True, timeout=30)
+        return (out.stdout + out.stderr).strip().splitlines()[0] if (out.stdout + out.stderr).strip() else ""
+    except (OSError, subprocess.SubprocessError):
+        return ""
+
+
+def install(project=None):
+    """Downloads the latest Windows butler from itch.io's broth service into the desk's tool folder and checks that it
+    runs. A previous copy there is replaced only once the new one works. No login happens here."""
+    with urllib.request.urlopen(f"{BROTH}/LATEST", timeout=30) as r:
+        latest = r.read().decode("utf-8").strip()
+    if not latest or len(latest) > 40 or not all(c.isalnum() or c in ".-" for c in latest):
+        return False, "itch.io's download service did not name a butler version."
+    jobs.say(f"Downloading butler {latest}")
+    TOOL_DIR.parent.mkdir(parents=True, exist_ok=True)
+    archive = TOOL_DIR.parent / "butler-download.zip"
+    fresh = TOOL_DIR.parent / "butler-new"
+    shutil.rmtree(fresh, ignore_errors=True)
+    try:
+        with urllib.request.urlopen(f"{BROTH}/{latest}/archive/default", timeout=120) as r, open(archive, "wb") as f:
+            while chunk := r.read(1 << 20):
+                jobs.check()
+                f.write(chunk)
+        with zipfile.ZipFile(archive) as z:
+            names = z.namelist()
+            if "butler.exe" not in names or any(n.startswith(("/", "\\")) or ".." in Path(n).parts for n in names):
+                return False, "The download is not a butler archive; nothing was installed."
+            z.extractall(fresh)
+        got = version(str(fresh / "butler.exe"))
+        if not got:
+            return False, "The downloaded butler does not start; nothing was installed."
+        shutil.rmtree(TOOL_DIR, ignore_errors=True)
+        fresh.rename(TOOL_DIR)
+        return True, f"butler {latest} installed in {TOOL_DIR} ({got})."
+    finally:
+        archive.unlink(missing_ok=True)
+        shutil.rmtree(fresh, ignore_errors=True)
 
 
 def key_state(project):
@@ -55,7 +100,7 @@ def status(project):
          "detail": "Create the project page on itch.io (free, no review), then put user/game (the page address, lower case) in Keys & accounts."},
         {"title": "butler installed and logged in", "state": "ok" if key["installed"] and key["loggedIn"] else "todo", "kind": "desk",
          "link": "https://itchio.itch.io/butler", "go": "itch/keys/itch-butler",
-         "detail": f"Download butler and unzip it into {key['toolFolder']} (or put it on PATH), then Log in to itch.io (Keys & accounts)."},
+         "detail": "Install butler (Keys & accounts downloads itch.io's latest build), then Log in to itch.io."},
         {"title": "AI disclosure", "state": "todo", "kind": "hand", "link": "https://itch.io/docs/creators/quality-guidelines#ai-disclosure",
          "detail": "On the Edit game page, disclose generative AI use: Code (shipped code includes generated contributions), and describe optional live generation and manual creation in the description."},
         {"title": "Page text", "state": "ok" if not any(f["problem"] for f in fields) else "todo", "kind": "copy", "go": "itch/listing/itch-text",
