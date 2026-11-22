@@ -31,7 +31,7 @@ CREDS = Path(os.environ.get("USERPROFILE", Path.home())) / ".config" / "itch" / 
 SIGNER_SUBJECT = "CN=itch corp., O=itch corp., L=San Francisco, S=California, C=US"
 # Microsoft Trusted Signing issues from rotating intermediates ("... CS AOC CA 04" today), so the issuer is matched
 # by its fixed shape, not one CA number; the chain must still validate for Windows to report Valid.
-SIGNER_ISSUER = re.compile(r"CN=Microsoft ID Verified CS [A-Z]{2,4} CA \d{2}, O=Microsoft Corporation, C=US")
+SIGNER_ISSUER = re.compile(r"CN=Microsoft ID Verified CS [A-Z]{2,4} CA [0-9]{2}, O=Microsoft Corporation, C=US")
 # itch.io's mirror bucket that broth redirects to (seen 2026-11-22); another account's bucket is refused.
 MIRROR_HOST = "itchio-mirror.cb031a832f44726753d6267436f3b414.r2.cloudflarestorage.com"
 MAX_DOWNLOAD = 200 * 1024 * 1024  # 15.32.0 is 10.35 MiB
