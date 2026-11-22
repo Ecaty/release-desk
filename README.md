@@ -19,7 +19,7 @@ Status: seven stores are wired up: Steam (upload with SteamCMD), itch.io (butler
 ## itch.io
 
 - Open to everyone, no review or fee. Create the project page on itch.io and put `user/game` (and the channel, `windows` by default) in Keys & accounts. Disclose generative AI use on the Edit game page (Code), as itch.io's quality guidelines ask.
-- **Upload:** unzip butler (itch.io's official tool) into `%APPDATA%\release-desk\butler` or put it on PATH; **Log in to itch.io** runs `butler login` in its own console and butler keeps the login. **Push** runs `butler push Build/Itch/Windows user/game:windows --userversion <version>+<build> --if-changed` with debug files ignored; only changes are sent. **Push preview** runs `butler push-preview` and sends nothing.
+- **Upload:** **Install butler** (Keys & accounts) downloads the latest Windows build of butler, itch.io's official tool, from itch.io's broth service (`broth.itch.zone/butler/windows-amd64`) into `%APPDATA%\release-desk\butler`. It downloads only over https from broth and itch.io's mirror, with size caps, and runs nothing until Windows confirms that every .exe and .dll is signed by itch corp. (Authenticode). The older copy stays as a backup until the new one is in place and starts (or put butler on PATH yourself); **Log in to itch.io** runs `butler login` in its own console and butler keeps the login. **Push** runs `butler push Build/Itch/Windows user/game:windows --userversion <version>+<build> --if-changed` with debug files ignored; only changes are sent. **Push preview** runs `butler push-preview` and sends nothing.
 - **Page:** tagline and description (Copy), 630×500 cover (Make capsules) and 3 to 5 screenshots in `Store/shots/itch`, added on Edit game.
 
 ## Epic Games Store
