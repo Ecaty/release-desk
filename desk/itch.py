@@ -8,6 +8,7 @@ No review or fee; the page is edited on itch.io. butler keeps its own login afte
 in its console); the desk never reads it. Pushes only send what changed since the previous build."""
 import json
 import os
+import re
 import shutil
 import subprocess
 import urllib.parse
@@ -27,7 +28,12 @@ ANDROID = "itch-android-apk"
 CREDS = Path(os.environ.get("USERPROFILE", Path.home())) / ".config" / "itch" / "butler_creds"
 # Every .exe and .dll in the butler archive carries itch.io's Authenticode signature (checked 2026-11-22 on 15.32.0:
 # butler.exe, 7z.dll and c7zip.dll, "CN=itch corp., O=itch corp.", issued by Microsoft ID Verified CS AOC CA 04).
-SIGNER_ORG = "itch corp."
+SIGNER_SUBJECT = "CN=itch corp., O=itch corp., L=San Francisco, S=California, C=US"
+# Microsoft Trusted Signing issues from rotating intermediates ("... CS AOC CA 04" today), so the issuer is matched
+# by its fixed shape, not one CA number; the chain must still validate for Windows to report Valid.
+SIGNER_ISSUER = re.compile(r"CN=Microsoft ID Verified CS [A-Z]{2,4} CA [0-9]{2}, O=Microsoft Corporation, C=US")
+# itch.io's mirror bucket that broth redirects to (seen 2026-11-22); another account's bucket is refused.
+MIRROR_HOST = "itchio-mirror.cb031a832f44726753d6267436f3b414.r2.cloudflarestorage.com"
 MAX_DOWNLOAD = 200 * 1024 * 1024  # 15.32.0 is 10.35 MiB
 MAX_UNPACKED = 500 * 1024 * 1024  # 15.32.0 unpacks to 26 MiB
 
@@ -54,7 +60,7 @@ def allowed_url(url):
     """Downloads go only over https to broth.itch.zone or the itch.io mirror it redirects to."""
     u = urllib.parse.urlsplit(url)
     host = (u.hostname or "").lower()
-    return u.scheme == "https" and (host == "broth.itch.zone" or (host.startswith("itchio-mirror.") and host.endswith(".r2.cloudflarestorage.com")))
+    return u.scheme == "https" and host in ("broth.itch.zone", MIRROR_HOST) and u.port in (None, 443)
 
 
 class _Redirects(urllib.request.HTTPRedirectHandler):
@@ -76,18 +82,22 @@ def _open(url, timeout):
 
 def signatures(folder):
     """Authenticode status and signer organisation of every .exe and .dll in folder, read by Windows itself."""
-    script = ("Get-ChildItem -LiteralPath $env:RD_CHECK_FOLDER -Recurse -Include *.exe,*.dll | ForEach-Object { $s = Get-AuthenticodeSignature -LiteralPath $_.FullName; "
-              "[pscustomobject]@{name=$_.Name; status=[string]$s.Status; subject=[string]$s.SignerCertificate.Subject} } | ConvertTo-Json -Compress")
+    script = ("Get-ChildItem -LiteralPath $env:RD_CHECK_FOLDER -Recurse -Force -Include *.exe,*.dll | ForEach-Object { $s = Get-AuthenticodeSignature -LiteralPath $_.FullName; "
+              "[pscustomobject]@{name=$_.Name; status=[string]$s.Status; subject=[string]$s.SignerCertificate.Subject; issuer=[string]$s.SignerCertificate.Issuer} } | ConvertTo-Json -Compress")
     env = dict(os.environ, RD_CHECK_FOLDER=str(folder))  # passed by environment, never pasted into the command text
     out = subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", script], capture_output=True, text=True, timeout=120, env=env)
     data = json.loads(out.stdout or "[]")
     return data if isinstance(data, list) else [data]
 
 
+def _signed_ok(x):
+    return x.get("status") == "Valid" and x.get("subject") == SIGNER_SUBJECT and bool(SIGNER_ISSUER.fullmatch(x.get("issuer") or ""))
+
+
 def signed_by_itch(folder):
     sigs = signatures(folder)
     names = {x.get("name", "").lower() for x in sigs}
-    good = all(x.get("status") == "Valid" and f"O={SIGNER_ORG}" in [part.strip() for part in (x.get("subject") or "").split(",")] for x in sigs)
+    good = all(_signed_ok(x) for x in sigs)
     return bool(sigs) and "butler.exe" in names and good, sigs
 
 
@@ -125,7 +135,7 @@ def install(project=None):
         jobs.say("Checking itch.io's signature")
         ok, sigs = signed_by_itch(fresh)
         if not ok:
-            bad = ", ".join(f"{x.get('name')}: {x.get('status')}" for x in sigs if x.get("status") != "Valid" or SIGNER_ORG not in (x.get("subject") or "")) or "no signed files"
+            bad = ", ".join(f"{x.get('name')}: {x.get('status')}" for x in sigs if not _signed_ok(x)) or "no signed files"
             return False, f"The download is not signed by itch.io ({bad}); nothing was installed or run."
         got = version(str(fresh / "butler.exe"))
         if not got:
