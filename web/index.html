@@ -447,7 +447,7 @@ async function openCell(btn) {
 }
 
 // Release check: the build laptop builds, tests and explores one pushed commit (Tools/Test-On-Laptop.ps1 over SSH).
-const stateChip = st => chip(st === "passed" ? "ok" : st === "failed" ? "bad" : "hand", st || "unknown");
+const stateChip = st => chip(st === "passed" ? "ok" : st === "failed" ? "bad" : st === "skipped" ? "auto" : "hand", st || "unknown");
 function checkBox(ck) {
   const h = ck.head;
   const picks = Object.entries(ck.steps).map(([k, label]) => `<label><input type="checkbox" data-check-step="${k}" checked>${esc(label)}</label>`).join("");
@@ -457,14 +457,16 @@ function checkBox(ck) {
   const res = ck.results.map(x => `<details class="check"><summary>${stateChip(x.state)} <b class="mono">${esc(x.request)}</b> <span class="mono">${esc(String(x.commit || "").slice(0, 9))}</span> <span class="note">${esc(x.finished || x.started || "")}</span><div class="note">${esc(x.summary || "")}</div></summary>
     <table><tr><th>Step</th><th></th><th>Time</th><th>Result</th></tr>${(x.steps || []).map(st => `<tr><td>${esc(ck.steps[st.name] || st.name)}</td><td>${stateChip(st.state)}</td><td>${st.minutes != null ? st.minutes + " min" : ""}</td><td>${esc(st.summary || "")}${(st.details && st.details.failures || []).length ? `<ul class="changes">${st.details.failures.map(f => `<li class="mono">${esc(f)}</li>`).join("")}</ul>` : ""}</td></tr>`).join("")}</table>
     ${(x.builds || []).length ? `<table><tr><th>Build</th><th>Size</th><th>sha256</th></tr>${x.builds.map(bd => `<tr><td class="mono">${esc(bd.name || bd.file)}</td><td>${bd.sizeMB != null ? bd.sizeMB + " MB" : esc(bd.size || "")}</td><td class="mono">${esc(String(bd.sha256 || "").slice(0, 16))}…</td></tr>`).join("")}</table>` : ""}
+    ${(x.links || []).length ? `<p class="note">${x.links.map(l => `${esc(l.label || "")} <span class="mono">${esc(l.path || "")}</span>`).join(" · ")}</p>` : ""}
     <p class="note mono">Logs/release-check/${esc(x.request)}</p></details>`).join("");
   return `<div class="box" id="release-check"><h3>Release check</h3>
     <p>Commit <b class="mono">${esc(h.short || "none")}</b> on <span class="mono">${esc(h.branch)}</span> · ${esc(h.subject)} ${h.pushed ? chip("ok", "pushed") : chip("bad", "not pushed")}${h.dirty ? " " + chip("warn", "uncommitted changes are not included") : ""}</p>
     <div class="pick">${picks}</div>
     <div class="field"><label for="check-seed">Explore seed</label><div><input id="check-seed" class="in mono" placeholder="random"><div class="note">Set it to replay an earlier Explore run exactly.</div></div><span></span></div>
+    <div class="field"><label for="check-minutes">Explore minutes</label><div><input id="check-minutes" class="in mono" type="number" min="1" max="240" value="${esc(ck.exploreMinutes)}"><div class="note">How long the simulated player plays on each Explore step.</div></div><span></span></div>
     <div class="actions"><button class="btn primary" data-act="release-check" ${ready ? "" : "disabled"}>${ic("check_circle")}Check this release candidate</button></div>
     ${why ? `<p class="note">${why}</p>` : ""}
-    <p class="note">The build laptop checks out this commit and runs the picked steps; progress shows under Runs and Cancel stops the laptop run. It goes over your own SSH key; the desk holds no key. Dev builds stay on the laptop and the test phone (they include the debug server); only results come back.</p></div>
+    <p class="note">The build laptop checks out this commit and runs the picked steps; progress shows under Runs and Cancel stops the laptop run. It goes over your own SSH key; the desk holds no key. Dev builds stay on the laptop and the test phone (they include the debug server); only results come back. A step the laptop cannot run (no phone reachable, a commit without the simulated player) shows as skipped with the reason.</p></div>
     ${res ? `<div class="box"><h3>Earlier checks</h3>${res}</div>` : ""}`;
 }
 
@@ -688,7 +690,7 @@ document.addEventListener("click", async e => {
     if (act === "draft") { const d = await api("/api/release/draft", {}); $("#rel-whatsNew").value = d.text || ""; $("#rel-whatsNew").dispatchEvent(new Event("input", {bubbles: true})); return toast(d.text ? "Release notes from commits; edit, then Save" : "No Release-note lines in commits since the last build"); }
     if (t.dataset.cell) return openCell(t);
     if (act === "save-eval") { const id = t.dataset.store; await api("/api/evaluate/" + id, {notes: $("#eval-notes").value}); toast("Saved to Store/evaluate.json"); return render(); }
-    if (act === "release-check") { const steps = [...document.querySelectorAll("[data-check-step]:checked")].map(el => el.dataset.checkStep); if (!steps.length) return toast("Pick at least one step"); await api("/api/check", {steps, seed: $("#check-seed").value.trim()}); toast("Started; progress shows under Runs"); return updateJobs(); }
+    if (act === "release-check") { const steps = [...document.querySelectorAll("[data-check-step]:checked")].map(el => el.dataset.checkStep); if (!steps.length) return toast("Pick at least one step"); await api("/api/check", {steps, seed: $("#check-seed").value.trim(), minutes: $("#check-minutes").value.trim()}); toast("Started; progress shows under Runs"); return updateJobs(); }
     if (act === "build-all") { const kinds = [...document.querySelectorAll("[data-kind-pick]:checked")].map(el => el.dataset.kindPick); await api("/api/build/all", {kinds}); toast("Started; progress shows under Runs"); return updateJobs(); }
     if (act === "save-steam") { const d = {}; document.querySelectorAll("[id^=st-]").forEach(el => d[el.id.slice(3)] = el.value); await api("/api/steam/listing", d); toast("Saved to Store/steam/listing.json"); return render(); }
     if (act === "save-play") { const d = {}; document.querySelectorAll("[id^=pl-]").forEach(el => { if (!el.id.startsWith("pl-ro-")) d[el.id.slice(3)] = el.value; }); await api("/api/play/listing", d); toast("Saved to Store/play/listing.json"); return render(); }

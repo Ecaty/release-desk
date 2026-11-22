@@ -328,8 +328,8 @@ class Handler(BaseHTTPRequestHandler):
                 evaluate.save(project(), self.path.split("/")[3], data)
                 return self.send(200, {"ok": True})
             if self.path == "/api/check":
-                steps, seed = data.get("steps") or [], data.get("seed") or None
-                return self.send(200, run_job("Release check", lambda: laptop.check(project(), steps, seed)))
+                steps, seed, minutes = data.get("steps") or [], data.get("seed") or None, data.get("minutes") or None
+                return self.send(200, run_job("Release check", lambda: laptop.check(project(), steps, seed, minutes)))
             if self.path == "/api/itch/install":
                 if any(n.startswith("itch.io") for n in RUNNING):
                     raise ValueError("Wait until the running itch.io job has finished.")

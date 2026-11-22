@@ -2,10 +2,13 @@
 
 The project's own Tools/Test-On-Laptop.ps1 does the work over the user's SSH key (ssh-agent); the desk holds no
 key or token and never reaches the laptop itself. Contract (agreed with the laptop side):
-  Test-On-Laptop.ps1 -Commit <pushed sha> -Request <id> -Steps <a,b> [-ExploreSeed n] -NoWait   start, exit 0/1/2
+  Test-On-Laptop.ps1 -Commit <pushed sha> -Request <id> -Steps <a,b> [-ExploreSeed n] [-ExploreMinutes m] -NoWait
+                                     start, exit 0/1/2
   Test-On-Laptop.ps1 -Status <id>    one JSON line {request, state, step, stepsDone, stepsTotal}
   Test-On-Laptop.ps1 -Cancel <id>    stops the laptop run (Unity closed, saves restored)
-Exit codes: 0 passed / started, 1 failed, 2 could not run (busy included, with the running id).
+Exit codes: 0 passed / started, 1 failed or cancelled, 2 could not run (busy prints "busy: <id>").
+A step can come back "skipped" with its reason as the summary (no phone reachable, a commit without the simulated
+player, ...). Builds are listed per step in details.builds (name, size, sha256).
 Results come back to <project>/Logs/release-check/<request>/result.json (git-ignored)."""
 import json
 import re
@@ -20,10 +23,12 @@ STEPS = {
     "build-android-dev": "Phone APK",
     "run-all": "Run-All",
     "extended": "Extended",
+    "scenarios": "Scenarios",
     "explore-windows": "Explore on Windows",
     "explore-android": "Explore on the phone",
 }
 DONE = ("passed", "failed", "cancelled")
+EXPLORE_MINUTES = 10
 POLL = 30
 
 
@@ -102,6 +107,9 @@ def result(project, request):
     for step in r["steps"]:
         if not isinstance(step.get("details"), dict):
             step["details"] = {}
+    # Builds come per step (details.builds); list them once for the page.
+    if not r["builds"]:
+        r["builds"] = [b for step in r["steps"] for b in step["details"].get("builds") or [] if isinstance(b, dict)]
     return r
 
 
@@ -117,7 +125,7 @@ def results(project, limit=10):
     return out
 
 
-def check(project, steps, seed=None):
+def check(project, steps, seed=None, minutes=None):
     """Starts a release check on the laptop and follows it until it ends. Cancel stops the laptop run too."""
     if not supported(project):
         return False, f"{SCRIPT} does not take release-check requests yet (laptop side, card #72)."
@@ -131,11 +139,13 @@ def check(project, steps, seed=None):
     args = ["-Commit", h["sha"], "-Request", request, "-Steps", ",".join(steps)]
     if seed:
         args += ["-ExploreSeed", str(int(seed))]
+    if minutes and int(minutes) != EXPLORE_MINUTES and any(x.startswith("explore") for x in steps):
+        args += ["-ExploreMinutes", str(max(1, min(240, int(minutes))))]
     jobs.say("Starting on the laptop")
     run = jobs.run(_ps(project, *args, "-NoWait"), cwd=str(project.root), timeout=600)
     if run.returncode == 2:
-        busy = re.search(r"\brc-[a-z0-9-]+\b", (run.stdout or "") + (run.stderr or ""))
-        return False, f"Laptop busy{' with ' + busy.group(0) if busy else ''}, or it could not start:\n{_tail(run)}"
+        busy = re.search(r"busy:\s*([a-z0-9-]+)", (run.stdout or "") + (run.stderr or "")) or re.search(r"\b(rc-[a-z0-9-]+)\b", (run.stdout or "") + (run.stderr or ""))
+        return False, f"Laptop busy{' with ' + busy.group(1) if busy else ''}, or it could not start:\n{_tail(run)}"
     if run.returncode != 0:
         return False, f"Could not start the check:\n{_tail(run)}"
     unknown = 0
@@ -178,4 +188,4 @@ def summary_lines(project):
 
 def state(project):
     return {"supported": supported(project), "script": SCRIPT, "head": head(project), "steps": STEPS,
-            "results": results(project)}
+            "exploreMinutes": EXPLORE_MINUTES, "results": results(project)}
