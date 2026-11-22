@@ -42,11 +42,11 @@ def project_id(text):
     """butler wants user/game. Accepts that, or the page address as copied from the browser
     (https://user.itch.io/game, with or without https://, www., a trailing slash or a query)."""
     text = str(text or "").strip()
-    m = re.fullmatch(r"(?:https?://)?(?:www\.)?([a-z0-9][a-z0-9_-]*)\.itch\.io/([a-z0-9][a-z0-9_-]*)/?(?:[?#].*)?", text, re.I)
-    if m:
+    m = re.fullmatch(r"(?:https?://)?(?:www\.)?([a-z0-9][a-z0-9_-]*)\.itch\.io/([a-z0-9][a-z0-9_-]*)/?(?:[?#].*)?", text, re.I | re.ASCII)
+    if m and m.group(1).lower() != "www":
         return f"{m.group(1)}/{m.group(2)}".lower()
-    m = re.fullmatch(r"([a-z0-9][a-z0-9_-]*)/([a-z0-9][a-z0-9_-]*)", text, re.I)
-    if m:
+    m = re.fullmatch(r"([a-z0-9][a-z0-9_-]*)/([a-z0-9][a-z0-9_-]*)", text, re.I | re.ASCII)
+    if m and m.group(1).lower() != "www":
         return text.lower()
     if text:
         raise ValueError("itch.io project: use user/game or the page address (https://user.itch.io/game).")
@@ -58,7 +58,7 @@ def settings(project):
     try:
         pid = project_id(data.get("project", ""))  # an address saved before the desk normalised it still works
     except ValueError:
-        pid = str(data.get("project", ""))
+        pid = ""  # unusable: never handed to butler; the setup step asks for it again
     return {"project": pid, "channel": data.get("channel", "windows"), "androidChannel": data.get("androidChannel", "android")}
 
 

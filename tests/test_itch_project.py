@@ -12,9 +12,22 @@ class ProjectId(unittest.TestCase):
         self.assertEqual(itch.project_id(""), "")
 
     def test_refused(self):
-        for text in ("https://itch.io/game/edit/123", "https://evil.com/tunugames/tunu-christmas", "tunugames", "a/b/c", "https://tunugames.itch.io/"):
+        for text in ("https://itch.io/game/edit/123", "https://evil.com/tunugames/tunu-christmas", "tunugames", "a/b/c", "https://tunugames.itch.io/",
+                     "www.itch.io/game", "https://www.itch.io/game", "www/game", "-x/game", "user/-x", "tunugames/tunu-chrıstmas", "Kelvin/game"):
             with self.assertRaises(ValueError, msg=text):
                 itch.project_id(text)
+
+
+    def test_settings_never_pass_an_unusable_value(self):
+        class P:
+            def __init__(self, value):
+                self.value = value
+
+            def read(self, rel, default=None):
+                return {"itch": {"project": self.value}}
+        self.assertEqual(itch.settings(P("https://tunugames.itch.io/tunu-christmas"))["project"], "tunugames/tunu-christmas")
+        for bad in ("-x", "--help", "https://evil.com/a/b", "www/game"):
+            self.assertEqual(itch.settings(P(bad))["project"], "", bad)
 
 
 if __name__ == "__main__":
