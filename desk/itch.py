@@ -38,9 +38,28 @@ MAX_DOWNLOAD = 200 * 1024 * 1024  # 15.32.0 is 10.35 MiB
 MAX_UNPACKED = 500 * 1024 * 1024  # 15.32.0 unpacks to 26 MiB
 
 
+def project_id(text):
+    """butler wants user/game. Accepts that, or the page address as copied from the browser
+    (https://user.itch.io/game, with or without https://, www., a trailing slash or a query)."""
+    text = str(text or "").strip()
+    m = re.fullmatch(r"(?:https?://)?(?:www\.)?([a-z0-9][a-z0-9_-]*)\.itch\.io/([a-z0-9][a-z0-9_-]*)/?(?:[?#].*)?", text, re.I)
+    if m:
+        return f"{m.group(1)}/{m.group(2)}".lower()
+    m = re.fullmatch(r"([a-z0-9][a-z0-9_-]*)/([a-z0-9][a-z0-9_-]*)", text, re.I)
+    if m:
+        return text.lower()
+    if text:
+        raise ValueError("itch.io project: use user/game or the page address (https://user.itch.io/game).")
+    return ""
+
+
 def settings(project):
     data = (project.read("store.json", {}) or {}).get("itch", {}) or {}
-    return {"project": data.get("project", ""), "channel": data.get("channel", "windows"), "androidChannel": data.get("androidChannel", "android")}
+    try:
+        pid = project_id(data.get("project", ""))  # an address saved before the desk normalised it still works
+    except ValueError:
+        pid = str(data.get("project", ""))
+    return {"project": pid, "channel": data.get("channel", "windows"), "androidChannel": data.get("androidChannel", "android")}
 
 
 def butler():
