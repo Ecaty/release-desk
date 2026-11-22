@@ -44,7 +44,7 @@ class Install(unittest.TestCase):
             self.ran = True
             return "v15.32.0" if starts else ""
 
-        sig = [{"name": "butler.exe", "status": "Valid" if signed else "HashMismatch", "subject": "CN=itch corp., O=itch corp., C=US"}]
+        sig = [{"name": "butler.exe", "status": "Valid" if signed else "HashMismatch", "subject": "CN=itch corp., O=itch corp., L=San Francisco, S=California, C=US", "issuer": "CN=Microsoft ID Verified CS AOC CA 04, O=Microsoft Corporation, C=US"}]
         with mock.patch.object(itch, "TOOL_DIR", tool), mock.patch.object(itch, "_open", opener), \
                 mock.patch.object(itch, "version", version), mock.patch.object(itch, "signatures", lambda folder: sig):
             ok, message = itch.install()
@@ -113,20 +113,28 @@ class Install(unittest.TestCase):
 class Hosts(unittest.TestCase):
     def test_only_https_to_itch_hosts(self):
         self.assertTrue(itch.allowed_url("https://broth.itch.zone/butler/windows-amd64/LATEST"))
-        self.assertTrue(itch.allowed_url("https://itchio-mirror.abc123.r2.cloudflarestorage.com/build/1/archive"))
+        self.assertTrue(itch.allowed_url("https://" + itch.MIRROR_HOST + "/build/1/archive"))
+        self.assertFalse(itch.allowed_url("https://itchio-mirror.abc123.r2.cloudflarestorage.com/build/1/archive"))
+        self.assertFalse(itch.allowed_url("https://broth.itch.zone:8443/butler"))
         self.assertFalse(itch.allowed_url("http://broth.itch.zone/butler"))
         self.assertFalse(itch.allowed_url("https://broth.itch.zone.evil.com/"))
         self.assertFalse(itch.allowed_url("https://other.r2.cloudflarestorage.com/x"))
         self.assertFalse(itch.allowed_url("file:///C:/butler.zip"))
 
     def test_signer_must_be_itch(self):
-        with mock.patch.object(itch, "signatures", lambda f: [{"name": "butler.exe", "status": "Valid", "subject": "CN=someone, O=itch corp. fake, C=US"}]):
-            self.assertFalse(itch.signed_by_itch("x")[0])
-        with mock.patch.object(itch, "signatures", lambda f: [{"name": "c7zip.dll", "status": "Valid", "subject": "CN=itch corp., O=itch corp., C=US"}]):
-            self.assertFalse(itch.signed_by_itch("x")[0])  # no butler.exe among the signed files
-        with mock.patch.object(itch, "signatures", lambda f: [{"name": "butler.exe", "status": "Valid", "subject": "CN=itch corp., O=itch corp., C=US"}]):
-            self.assertTrue(itch.signed_by_itch("x")[0])
-
+        good = {"name": "butler.exe", "status": "Valid", "subject": "CN=itch corp., O=itch corp., L=San Francisco, S=California, C=US", "issuer": "CN=Microsoft ID Verified CS AOC CA 04, O=Microsoft Corporation, C=US"}
+        cases = [
+            (dict(good), True),
+            (dict(good, subject='CN=x, OU="y, O=itch corp.", O=other, C=US'), False),  # quoted part that once passed
+            (dict(good, subject="CN=itch corp., O=itch corp., C=US"), False),  # not the full recorded subject
+            (dict(good, issuer="CN=Some Other CA, O=Other, C=US"), False),
+            (dict(good, issuer="CN=Microsoft ID Verified CS EOC CA 01, O=Microsoft Corporation, C=US"), True),  # rotated intermediate
+            (dict(good, name="c7zip.dll"), False),  # no butler.exe among the signed files
+            (dict(good, status="HashMismatch"), False),
+        ]
+        for sig, expected in cases:
+            with mock.patch.object(itch, "signatures", lambda f, sig=sig: [sig]):
+                self.assertEqual(itch.signed_by_itch("x")[0], expected, sig)
 
 if __name__ == "__main__":
     unittest.main()
