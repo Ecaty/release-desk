@@ -149,7 +149,7 @@ ACCOUNT_GUIDE = [
 
 CREATE_APP_GUIDE = [
     {"text": "Open Play Console, press Create app.", "link": "https://play.google.com/console"},
-    {"text": "Type the game name. Pick Game and Free. Tick both boxes. Press Create app."},
+    {"text": "Type the game name. Pick Game and Free (a free app can never become paid). Tick both boxes. Press Create app."},
     {"text": "Test and release > Closed testing > Create release: upload the AAB from Builds once. The desk uploads after that."},
     {"text": "If the Dashboard shows Test with 12 testers, the closed test applies to you.", "link": TESTING_RULE},
 ]
