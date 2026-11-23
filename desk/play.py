@@ -135,12 +135,12 @@ PLAY_HELP = "https://support.google.com/googleplay/android-developer"
 
 # Sign-up as Google showed it in 2026; the Console may word things differently.
 ACCOUNT_GUIDE = [
-    {"text": "Had an account before that Google closed for inactivity? Ask to have it back first: no new fee, and an account made "
-             "before 13 Nov 2023 may not need the 12-tester closed test. Sign in to Play Console with that Google account, open Help, "
-             "Contact us, and pick the closed or inactive account topic.", "link": "https://play.google.com/console"},
+    {"text": "Had an account before that Google closed? Google may not reopen closed accounts. If you want to ask, sign in to "
+             "Play Console with that Google account and contact Play Console support from Help; Google decides. Otherwise go on below.",
+     "link": PLAY_HELP},
     {"text": "New account: open the sign-up page and sign in with the Google account you will keep for publishing (a personal Gmail is fine).",
      "link": "https://play.google.com/console/signup"},
-    {"text": "Choose Yourself (a personal account). An organisation account needs a D-U-N-S number and a verified website, which takes weeks."},
+    {"text": "Choose Yourself (a personal account). An organisation account needs a D-U-N-S number, which can take weeks."},
     {"text": "Developer name: what players see under the game on Play. Add a contact email and phone; Google verifies both with codes."},
     {"text": "Answer the questions about your Android experience, accept the agreement and pay the one-time US$25 fee by card."},
     {"text": "Verify your identity: Google asks for a photo of an ID document with your legal name and address. It can take a few days."},
@@ -205,9 +205,9 @@ def status(project):
         {"title": "Content rating, data safety, target audience", "state": "todo", "kind": "hand",
          "detail": "Questionnaires in Play Console; needed before any testing track goes out to testers.",
          "guide": [{"text": "Open the app in Play Console; the Dashboard lists each questionnaire under Set up your app.", "link": "https://play.google.com/console"},
-                   {"text": "Content rating: the IARC questionnaire (no violence, no chat, no purchases for a family party game)."},
-                   {"text": "Target audience: pick the age groups you mean. Choosing under 13 brings the Families policy and Teacher Approved checks."},
-                   {"text": "Data safety: say what data leaves the phone. Camera pictures used only on the device are not collected."},
+                   {"text": "Content rating: the IARC questionnaire; answer for what your game contains (violence, chat with others, purchases)."},
+                   {"text": "Target audience: pick the age groups you mean. Choosing under 13 brings the Families policy requirements."},
+                   {"text": "Data safety: say what data leaves the phone. Data processed only on the device does not count as collected."},
                    {"text": "Families policy and its requirements.", "link": PLAY_HELP + "/answer/9893335"}]},
     ]
     return {"fields": fields, "art": art_items, "screenshots": shots, "key": key, "account": account, "aab": aab, "steps": steps,

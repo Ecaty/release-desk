@@ -242,7 +242,7 @@ def status(project):
                    {"text": "Back here, Login shows logged in."}]},
         {"title": "AI disclosure", "state": "todo", "kind": "hand", "link": "https://itch.io/docs/creators/quality-guidelines#ai-disclosure",
          "detail": "On the Edit game page, disclose generative AI use: Code (shipped code includes generated contributions), and describe optional live generation and manual creation in the description.",
-         "guide": _guide_edit_page("Find the AI generation disclosure section, answer Yes and tick Code. Say in the description what the AI does in the game.")},
+         "guide": _guide_edit_page("Find the AI generation disclosure section, answer for your game and tick each kind of generated content it ships. Say in the description what any AI does in the game.")},
         {"title": "Page text", "state": "ok" if not any(f["problem"] for f in fields) else "todo", "kind": "copy", "go": "itch/listing/itch-text",
          "detail": "Paste the tagline and description into Edit game.",
          "guide": [{"text": "Listing > Text: press Copy next to the tagline and the description.", "go": "itch/listing/itch-text"}]
@@ -284,7 +284,7 @@ def android_status(project):
          "go": "itch-android/builds/itch-android-upload", "detail": f"Pushes the APK to the {key['androidChannel']} channel; itch.io marks it as the Android download."},
         {"title": "Android on the page", "state": "todo", "kind": "hand", "link": DASHBOARD,
          "detail": "On Edit game, check the APK upload is tagged Android and say in the description that it installs outside Google Play (players allow it once).",
-         "guide": _guide_edit_page("Under Uploads, check the .apk file has the Android tag ticked. The description already says how to install the APK (Listing > Text).")
+         "guide": _guide_edit_page("Under Uploads, check the .apk file has the Android tag ticked. Say in the description how to install the APK (Listing > Text).")
          + ([{"text": "Open the page on a phone to try the download.", "link": key["page"]}] if key["page"] else [])},
     ]
     return {"build": build, "key": key, "sign": {"ready": sign["ready"], "package": sign.get("package", "")}, "steps": steps,
@@ -300,8 +300,8 @@ def login(project):
     exe = butler()
     if not exe:
         return False, "Install butler first."
-    # A string, not a list: a list escapes the inner quotes as \" and cmd refuses the path. cmd /c drops the outer pair.
-    subprocess.Popen(f'cmd /c "title itch.io login & "{exe}" login & echo. & pause"', creationflags=getattr(subprocess, "CREATE_NEW_CONSOLE", 0))
+    # A string, not a list: a list escapes the inner quotes as \" and cmd refuses the path. cmd /s /c drops the outer pair.
+    subprocess.Popen(f'cmd /s /c "title itch.io login & "{exe}" login & echo. & pause"', creationflags=getattr(subprocess, "CREATE_NEW_CONSOLE", 0))
     return True, "Opened a console window; butler opens the itch.io sign-in in your browser."
 
 

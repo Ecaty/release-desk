@@ -7,14 +7,14 @@ from desk import itch
 
 class ProjectId(unittest.TestCase):
     def test_forms(self):
-        for text in ("tunugames/tunu-christmas", "https://tunugames.itch.io/tunu-christmas", "tunugames.itch.io/tunu-christmas",
-                     "https://TunuGames.itch.io/tunu-christmas/", "http://www.tunugames.itch.io/tunu-christmas?secret=x", " tunugames/tunu-christmas "):
-            self.assertEqual(itch.project_id(text), "tunugames/tunu-christmas", text)
+        for text in ("someone/some-game", "https://someone.itch.io/some-game", "someone.itch.io/some-game",
+                     "https://SomeOne.itch.io/some-game/", "http://www.someone.itch.io/some-game?secret=x", " someone/some-game "):
+            self.assertEqual(itch.project_id(text), "someone/some-game", text)
         self.assertEqual(itch.project_id(""), "")
 
     def test_refused(self):
-        for text in ("https://itch.io/game/edit/123", "https://evil.com/tunugames/tunu-christmas", "tunugames", "a/b/c", "https://tunugames.itch.io/",
-                     "www.itch.io/game", "https://www.itch.io/game", "www/game", "-x/game", "user/-x", "tunugames/tunu-chrıstmas", "Kelvin/game"):
+        for text in ("https://itch.io/game/edit/123", "https://evil.com/someone/some-game", "someone", "a/b/c", "https://someone.itch.io/",
+                     "www.itch.io/game", "https://www.itch.io/game", "www/game", "-x/game", "user/-x", "someone/some-gıme", "Kelvin/game"):
             with self.assertRaises(ValueError, msg=text):
                 itch.project_id(text)
 
@@ -26,14 +26,14 @@ class ProjectId(unittest.TestCase):
 
             def read(self, rel, default=None):
                 return {"itch": {"project": self.value}}
-        self.assertEqual(itch.settings(P("https://tunugames.itch.io/tunu-christmas"))["project"], "tunugames/tunu-christmas")
+        self.assertEqual(itch.settings(P("https://someone.itch.io/some-game"))["project"], "someone/some-game")
         for bad in ("-x", "--help", "https://evil.com/a/b", "www/game"):
             self.assertEqual(itch.settings(P(bad))["project"], "", bad)
 
 
 class PageAndGuides(unittest.TestCase):
     def test_page_url(self):
-        self.assertEqual(itch.page_url("tunugames/tunu-christmas"), "https://tunugames.itch.io/tunu-christmas")
+        self.assertEqual(itch.page_url("someone/some-game"), "https://someone.itch.io/some-game")
         self.assertEqual(itch.page_url(""), "")
 
     def test_guides_are_well_formed(self):
@@ -57,7 +57,7 @@ class Consoles(unittest.TestCase):
             self.assertIsInstance(line, str)
             self.assertNotIn('\\"', line)
             self.assertIn(f'"{exe}"', line)
-            self.assertTrue(line.startswith('cmd /c "') and line.endswith('"'))
+            self.assertTrue(line.startswith('cmd /s /c "') and line.endswith('"'))
 
 
 if __name__ == "__main__":
