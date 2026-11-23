@@ -210,7 +210,7 @@ def _channels(project_id):
     exe = butler()
     if not exe:
         return []
-    run = subprocess.run([exe, "status", "--json", project_id], capture_output=True, text=True, timeout=20,
+    run = subprocess.run([exe, "status", "--json", project_id], capture_output=True, text=True, timeout=5,
                          creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
     for line in (run.stdout or "").splitlines():
         try:

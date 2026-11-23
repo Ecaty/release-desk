@@ -138,7 +138,7 @@ ACCOUNT_GUIDE = [
     {"text": "Open the sign-up page. Sign in with the Google account you will publish with.", "link": "https://play.google.com/console/signup"},
     {"text": "Choose an account type: skip An organization (leave its menu closed), scroll down to Yourself, press Get started under it."},
     {"text": "Type a developer name (shown on the store), your email and phone. Enter the codes Google sends."},
-    {"text": "Questions about you and your apps: answer what is true. Earning money: No for a free game without ads (it limits nothing later)."},
+    {"text": "Questions about you and your apps: answer what is true. Earning money: answer what is true (the page says this does not affect earning money later)."},
     {"text": "Accept, then pay US$25 by card."},
     {"text": "Upload a photo of your ID. Google checks it in a few days."},
     {"text": "On your Android phone, install Google Play Console and sign in when asked.",
