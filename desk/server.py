@@ -9,7 +9,7 @@ import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from . import art, builds, epic, evaluate, gog, itch, jobs, laptop, microsoft, status, play, release, samsung, shots, steam, stores, unity
+from . import art, builds, epic, evaluate, gog, itch, jobs, laptop, microsoft, status, play, release, samsung, shots, steam, stores, ticks, unity
 from .project import Project, load_config, save_config
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -87,9 +87,16 @@ def ids(p):
                      "androidChannel": (store.get("itch", {}) or {}).get("androidChannel", "android")}, "play": {"package": (store.get("android", {}) or {}).get("package", "")}}
 
 
-STEPS = {"steam": lambda p: steam.status(p, load_config())["steps"], "itch": lambda p: itch.status(p)["steps"],
-         "epic": lambda p: epic.status(p)["steps"], "gog": lambda p: gog.status(p)["steps"], "microsoft": lambda p: microsoft.status(p)["steps"],
-         "itch-android": lambda p: itch.android_status(p)["steps"], "play": lambda p: play.status(p)["steps"], "samsung": lambda p: samsung.status(p)["steps"]}
+RAW = {"steam": lambda p: steam.status(p, load_config()), "itch": itch.status, "epic": epic.status, "gog": gog.status,
+       "microsoft": microsoft.status, "itch-android": itch.android_status, "play": play.status, "samsung": samsung.status}
+
+
+def store_status(sid, p):
+    """A store's status with the user's ticks on by-hand steps applied."""
+    return ticks.apply(p, sid, RAW[sid](p))
+
+
+STEPS = {sid: (lambda p, sid=sid: store_status(sid, p)["steps"]) for sid in RAW}
 SUMMARY = {"steam": lambda p: steam.summary_lines(p, load_config()), "itch": itch.summary_lines, "epic": epic.summary_lines,
            "gog": gog.summary_lines, "microsoft": microsoft.summary_lines, "itch-android": lambda p: itch.summary_lines(p, android=True),
            "play": play.summary_lines, "samsung": samsung.summary_lines}
@@ -265,7 +272,7 @@ class Handler(BaseHTTPRequestHandler):
             if self.path == "/api/overview":
                 return self.send(200, overview())
             if self.path == "/api/steam":
-                return self.send(200, steam.status(project(), load_config()))
+                return self.send(200, store_status("steam", project()))
             if self.path == "/api/keys":
                 config = load_config()
                 return self.send(200, {"steamcmd": steam.steamcmd_state(config), "unityCli": bool(unity.cli()),
@@ -285,20 +292,20 @@ class Handler(BaseHTTPRequestHandler):
             if self.path == "/api/stores":
                 return self.send(200, stores.listing(project()))
             if self.path == "/api/itch-android":
-                return self.send(200, itch.android_status(project()))
+                return self.send(200, store_status("itch-android", project()))
             if self.path == "/api/itch":
-                return self.send(200, itch.status(project()))
+                return self.send(200, store_status("itch", project()))
             if self.path == "/api/samsung":
-                return self.send(200, samsung.status(project()))
+                return self.send(200, store_status("samsung", project()))
             if self.path == "/api/gog":
-                return self.send(200, gog.status(project()))
+                return self.send(200, store_status("gog", project()))
             if self.path == "/api/microsoft":
-                return self.send(200, microsoft.status(project()))
+                return self.send(200, store_status("microsoft", project()))
             if self.path == "/api/epic":
-                return self.send(200, epic.status(project()))
+                return self.send(200, store_status("epic", project()))
             if self.path == "/api/play":
                 p = project()
-                return self.send(200, {**play.status(p), "builds": [builds.latest(p, "play-dev-apk"), builds.latest(p, "play-aab")],
+                return self.send(200, {**store_status("play", p), "builds": [builds.latest(p, "play-dev-apk"), builds.latest(p, "play-aab")],
                                        "history": builds.history(p, "play-dev-apk") + builds.history(p, "play-aab"),
                                        "phones": builds.devices(), "package": p.unity_settings()["androidPackage"]})
             if self.path == "/api/log":
@@ -354,6 +361,14 @@ class Handler(BaseHTTPRequestHandler):
                 store_id = self.path.split("/")[2]
                 from . import storekit
                 storekit.save_listing(project(), store_id, {"gog": gog, "microsoft": microsoft, "itch": itch}[store_id].RULES, data)
+                return self.send(200, {"ok": True})
+            if self.path == "/api/ticks":
+                sid = str(data.get("store", ""))
+                if sid not in RAW:
+                    raise ValueError(f"Unknown store: {sid}")
+                p = project()
+                ticks.save(p, sid, RAW[sid](p), str(data.get("title", "")), bool(data.get("done")))
+                write_status(p)
                 return self.send(200, {"ok": True})
             if self.path.startswith("/api/evaluate/"):
                 evaluate.save(project(), self.path.split("/")[3], data)
