@@ -135,19 +135,16 @@ PLAY_HELP = "https://support.google.com/googleplay/android-developer"
 
 # Sign-up as Google showed it in 2026; the Console may word things differently.
 ACCOUNT_GUIDE = [
-    {"text": "Had an account before that Google closed? Google may not reopen closed accounts. If you want to ask, sign in to "
-             "Play Console with that Google account and contact Play Console support from Help; Google decides. Otherwise go on below.",
-     "link": PLAY_HELP},
-    {"text": "New account: open the sign-up page and sign in with the Google account you will keep for publishing (a personal Gmail is fine).",
-     "link": "https://play.google.com/console/signup"},
-    {"text": "Choose Yourself (a personal account). An organisation account needs a D-U-N-S number, which can take weeks."},
-    {"text": "Developer name: what players see under the game on Play. Add a contact email and phone; Google verifies both with codes."},
-    {"text": "Answer the questions about your Android experience, accept the agreement and pay the one-time US$25 fee by card."},
-    {"text": "Verify your identity: Google asks for a photo of an ID document with your legal name and address. It can take a few days."},
-    {"text": "Verify an Android phone: install the Play Console app on a real phone and sign in there when asked."},
-    {"text": "When the Console opens on Home, the account is ready. Continue with Android package and Upload key below."},
-    {"text": "New personal accounts: before production, a closed test with at least 12 testers opted in for 14 days in a row. "
-             "Start it as soon as the first AAB is up, so the 14 days run while you polish.", "link": TESTING_RULE},
+    {"text": "Open the sign-up page. Sign in with the Google account you will publish with.", "link": "https://play.google.com/console/signup"},
+    {"text": "Pick Yourself."},
+    {"text": "Type a developer name (shown on the store), your email and phone. Enter the codes Google sends."},
+    {"text": "Accept, then pay US$25 by card."},
+    {"text": "Upload a photo of your ID. Google checks it in a few days."},
+    {"text": "On your Android phone, install Google Play Console and sign in when asked.",
+     "link": "https://play.google.com/store/apps/details?id=com.google.android.apps.playconsole"},
+    {"text": "Done when Play Console opens on Home.", "link": "https://play.google.com/console"},
+    {"text": "Good to know: new personal accounts need a 12-tester, 14-day closed test before going public. "
+             "Google may not reopen an old closed account; asking is optional.", "link": TESTING_RULE},
 ]
 
 CREATE_APP_GUIDE = [
