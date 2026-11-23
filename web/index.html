@@ -650,6 +650,15 @@ function edited(e) {
 }
 document.addEventListener("input", edited);
 window.addEventListener("hashchange", render);
+// Logins and key set-ups finish in their own window (console or browser). When you come back to the desk, show the
+// new state (each time, until you open another page), unless something typed here is not saved yet.
+let awaitingConsole = false;
+window.addEventListener("focus", () => {
+  if (!awaitingConsole) return;
+  if ([...document.querySelectorAll("#main [data-act^=save]")].some(b => !b.hidden)) return;
+  render();
+});
+window.addEventListener("hashchange", () => { awaitingConsole = false; });
 
 // Live progress: while any run is going, refresh the Runs box every 3 s; when it ends, redraw the page.
 let polling = null, wasRunning = false;
@@ -718,12 +727,12 @@ document.addEventListener("click", async e => {
     }
     if (act === "cancel-job") { await api("/api/jobs/cancel", {name: t.dataset.job}); toast("Cancelling"); return updateJobs(); }
     if (act === "save-hand") { const id = t.dataset.store, d = {}; document.querySelectorAll(`[id^=${id}-f-]`).forEach(el => { if (!el.disabled) d[el.id.slice(id.length + 3)] = el.value; }); await api(`/api/${id}/listing`, d); toast(`Saved to Store/${id}/listing.json`); return render(); }
-    if (act === "itch-login") { const m = await api("/api/itch/login", {}); return toast(m.message); }
-    if (act === "ms-setup") { const m = await api("/api/microsoft/setup", {}); return toast(m.message); }
+    if (act === "itch-login") { awaitingConsole = true; const m = await api("/api/itch/login", {}); return toast(m.message); }
+    if (act === "ms-setup") { awaitingConsole = true; const m = await api("/api/microsoft/setup", {}); return toast(m.message); }
     if (act === "save-epic") { const d = {}; document.querySelectorAll("[id^=ep-]").forEach(el => { if (!el.id.startsWith("ep-ro-")) d[el.id.slice(3)] = el.value; }); await api("/api/epic/listing", d); toast("Saved to Store/epic/listing.json"); return render(); }
-    if (act === "epic-secret") { const k = await api("/api/epic/secret", {}); return toast(k.message); }
+    if (act === "epic-secret") { awaitingConsole = true; const k = await api("/api/epic/secret", {}); return toast(k.message); }
     if (act === "save-play-settings") { await api("/api/play/settings", {track: $("#play-track").value, status: $("#play-status").value}); toast("Saved to Store/store.json"); return render(); }
-    if (act === "play-key") { const k = await api("/api/play/key", {}); return toast(k.message); }
+    if (act === "play-key") { awaitingConsole = true; const k = await api("/api/play/key", {}); return toast(k.message); }
     if (act === "save-user") { await api("/api/keys/steam-user", {user: $("#steam-user").value}); toast("Saved"); return render(); }
     if (act === "copy-log") return copy($("#logtext").textContent);
     if (act === "run-win") { const r = await api("/api/run/windows", {kind: t.dataset.kind || "steam-windows"}); return toast(r.message); }
