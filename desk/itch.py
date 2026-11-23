@@ -5,12 +5,14 @@ the Google Play upload key, so players can update it) to the android channel. Th
 own store under Android; text, art and the page itself are shared with itch.io.
 
 No review or fee; the page is edited on itch.io. butler keeps its own login after `butler login` (a browser sign-in
-in its console); the desk never reads it. Pushes only send what changed since the previous build."""
+in its console); the desk never reads it. butler's key may only upload, so the game's number (for a direct Edit game
+link) comes from `butler status` once a build is uploaded. Pushes only send what changed since the previous build."""
 import json
 import os
 import re
 import shutil
 import subprocess
+import time
 import urllib.parse
 import urllib.request
 import zipfile
@@ -200,9 +202,52 @@ def _guide_new_page():
     ]
 
 
-def _guide_edit_page(what):
+_EDIT = {}  # project id -> (edit url or "", time looked up)
+EDIT_RETRY = 300  # seconds before a failed lookup (offline, not logged in, game not found) is tried again
+
+
+def _channels(project_id):
+    exe = butler()
+    if not exe:
+        return []
+    run = subprocess.run([exe, "status", "--json", project_id], capture_output=True, text=True, timeout=20,
+                         creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    for line in (run.stdout or "").splitlines():
+        try:
+            d = json.loads(line)
+        except ValueError:
+            continue
+        if d.get("type") == "result":
+            return (d.get("value") or {}).get("channels") or []
+    return []
+
+
+def edit_url(project_id):
+    """https://itch.io/game/edit/<number> for user/game, from the game id on its uploaded channels; "" before the first push."""
+    page = page_url(project_id).lower()
+    if not page:
+        return ""
+    url, at = _EDIT.get(project_id, ("", 0))
+    if url or time.time() - at < EDIT_RETRY:
+        return url
+    url = ""
+    try:
+        for ch in _channels(project_id):
+            up = ch.get("upload") or {}
+            gid = up.get("gameId", up.get("game_id"))
+            if str(gid or "").isdigit():
+                url = f"https://itch.io/game/edit/{gid}"
+                break
+    except Exception:
+        url = ""
+    _EDIT[project_id] = (url, time.time())
+    return url
+
+
+def _guide_edit_page(edit, what):
     return [
-        {"text": "Open your itch.io dashboard, press Edit under the game.", "link": DASHBOARD},
+        {"text": "Open Edit game on itch.io.", "link": edit} if edit else
+        {"text": "Open your itch.io dashboard, press Edit under the game (after the first upload this opens Edit game directly).", "link": DASHBOARD},
         {"text": what},
         {"text": "Press Save at the bottom."},
     ]
@@ -213,7 +258,7 @@ def key_state(project):
     logged = CREDS.is_file() or bool(os.environ.get("BUTLER_API_KEY"))
     return {"butler": exe or "", "toolFolder": str(TOOL_DIR), "installed": bool(exe), "loggedIn": logged, "project": s["project"],
             "channel": s["channel"], "androidChannel": s["androidChannel"], "ready": bool(exe) and logged and "/" in s["project"],
-            "page": page_url(s["project"]), "dashboard": DASHBOARD}
+            "page": page_url(s["project"]), "dashboard": DASHBOARD, "edit": edit_url(s["project"]) if logged else ""}
 
 
 def _build(project, kind="itch-windows"):
@@ -238,24 +283,24 @@ def status(project):
                    {"text": "Come back here: Login shows logged in."}]},
         {"title": "AI disclosure", "state": "todo", "kind": "hand", "link": "https://itch.io/docs/creators/quality-guidelines#ai-disclosure",
          "detail": "On the Edit game page, disclose generative AI use: Code (shipped code includes generated contributions), and describe optional live generation and manual creation in the description.",
-         "guide": _guide_edit_page("AI disclosure: answer for your game, tick each kind of generated content it ships.")},
+         "guide": _guide_edit_page(key["edit"], "AI disclosure: answer for your game, tick each kind of generated content it ships.")},
         {"title": "Page text", "state": "ok" if not any(f["problem"] for f in fields) else "todo", "kind": "copy", "go": "itch/listing/itch-text",
          "detail": "Paste the tagline and description into Edit game.",
          "guide": [{"text": "Copy the tagline and the description here.", "go": "itch/listing/itch-text"}]
-         + _guide_edit_page("Paste them into Short description and Description.")},
+         + _guide_edit_page(key["edit"], "Paste them into Short description and Description.")},
         {"title": "Cover image", "state": "ok" if all(a["state"] in ("ok", "optional") for a in art_items) else "todo", "kind": "copy", "go": "itch/listing/itch-art",
          "detail": "630×500 cover (Make capsules) on Edit game.",
-         "guide": _guide_edit_page("Cover image (right side): upload the file from Listing > Art.")},
+         "guide": _guide_edit_page(key["edit"], "Cover image (right side): upload the file from Listing > Art.")},
         {"title": "Screenshots", "state": "ok" if shots["good"] >= shots["min"] else "todo", "kind": "copy", "go": "itch/listing/itch-shots",
          "detail": f"{shots['good']} usable in Store/{shots['folder']}; add 3 to 5 on Edit game.",
-         "guide": _guide_edit_page(f"Screenshots (right side): add 3 to 5 from Store/{shots['folder']}.")},
+         "guide": _guide_edit_page(key["edit"], f"Screenshots (right side): add 3 to 5 from Store/{shots['folder']}.")},
         {"title": "Windows build", "state": "ok" if build["exists"] else "todo", "kind": "desk", "go": "itch/builds/itch-builds",
          "detail": "Built by Unity into Build/Itch/Windows."},
         {"title": "Push with butler", "state": "ok" if any(h.get("uploaded") for h in build["history"][:1]) else "todo", "kind": "desk",
          "go": "itch/builds/itch-upload", "detail": f"Pushes to the {key['channel']} channel with the release version; only changes are sent."},
-        {"title": "Publish the page", "state": "todo", "kind": "hand", "link": DASHBOARD,
+        {"title": "Publish the page", "state": "todo", "kind": "hand", "link": key["edit"] or DASHBOARD,
          "detail": "Set visibility to Public (or Restricted for testers) and pricing on Edit game.",
-         "guide": _guide_edit_page("Visibility & access (bottom): Public, or Restricted for testers only.")
+         "guide": _guide_edit_page(key["edit"], "Visibility & access (bottom): Public, or Restricted for testers only.")
          + ([{"text": "Open the page to check it.", "link": key["page"]}] if key["page"] else [])},
     ]
     return {"fields": fields, "art": art_items, "screenshots": shots, "build": build, "key": key, "steps": steps,
@@ -278,9 +323,9 @@ def android_status(project):
          "detail": "Built by Unity into Build/Itch/Android."},
         {"title": "Push with butler", "state": "ok" if any(h.get("uploaded") for h in build["history"][:1]) else "todo", "kind": "desk",
          "go": "itch-android/builds/itch-android-upload", "detail": f"Pushes the APK to the {key['androidChannel']} channel; itch.io marks it as the Android download."},
-        {"title": "Android on the page", "state": "todo", "kind": "hand", "link": DASHBOARD,
+        {"title": "Android on the page", "state": "todo", "kind": "hand", "link": key["edit"] or DASHBOARD,
          "detail": "On Edit game, check the APK upload is tagged Android and say in the description that it installs outside Google Play (players allow it once).",
-         "guide": _guide_edit_page("Uploads: tick Android next to the .apk.")
+         "guide": _guide_edit_page(key["edit"], "Uploads: tick Android next to the .apk.")
          + ([{"text": "Open the page on a phone, try the download.", "link": key["page"]}] if key["page"] else [])},
     ]
     return {"build": build, "key": key, "sign": {"ready": sign["ready"], "package": sign.get("package", "")}, "steps": steps,
