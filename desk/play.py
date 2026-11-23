@@ -130,6 +130,47 @@ def _screenshots(project):
     return {"items": shots, "good": good, "min": rule["min"], "folder": rule["folder"], "note": rule["note"]}
 
 
+TESTING_RULE = "https://support.google.com/googleplay/android-developer/answer/14151465"
+PLAY_HELP = "https://support.google.com/googleplay/android-developer"
+
+# Sign-up as Google showed it in 2026; the Console may word things differently.
+ACCOUNT_GUIDE = [
+    {"text": "Had an account before that Google closed for inactivity? Ask to have it back first: no new fee, and an account made "
+             "before 13 Nov 2023 may not need the 12-tester closed test. Sign in to Play Console with that Google account, open Help, "
+             "Contact us, and pick the closed or inactive account topic.", "link": "https://play.google.com/console"},
+    {"text": "New account: open the sign-up page and sign in with the Google account you will keep for publishing (a personal Gmail is fine).",
+     "link": "https://play.google.com/console/signup"},
+    {"text": "Choose Yourself (a personal account). An organisation account needs a D-U-N-S number and a verified website, which takes weeks."},
+    {"text": "Developer name: what players see under the game on Play. Add a contact email and phone; Google verifies both with codes."},
+    {"text": "Answer the questions about your Android experience, accept the agreement and pay the one-time US$25 fee by card."},
+    {"text": "Verify your identity: Google asks for a photo of an ID document with your legal name and address. It can take a few days."},
+    {"text": "Verify an Android phone: install the Play Console app on a real phone and sign in there when asked."},
+    {"text": "When the Console opens on Home, the account is ready. Continue with Android package and Upload key below."},
+    {"text": "New personal accounts: before production, a closed test with at least 12 testers opted in for 14 days in a row. "
+             "Start it as soon as the first AAB is up, so the 14 days run while you polish.", "link": TESTING_RULE},
+]
+
+CREATE_APP_GUIDE = [
+    {"text": "Open Play Console and press Create app (Home or All apps).", "link": "https://play.google.com/console"},
+    {"text": "App name: the store title. Default language, App or game: Game, Free or paid: Free (free cannot become paid later)."},
+    {"text": "Tick the two declarations and press Create app."},
+    {"text": "The app's Dashboard lists the set-up tasks. Under Test and release, open Closed testing (or Internal testing), create a release "
+             "and upload the release AAB from Builds once by hand. After that the desk uploads."},
+    {"text": "If the Dashboard shows a Test with 12 testers step before Apply for production, the closed-test rule applies to your account.",
+     "link": TESTING_RULE},
+]
+
+SERVICE_ACCOUNT_GUIDE = [
+    {"text": "Open Google Cloud Console with the same Google account and create a project (any name).", "link": "https://console.cloud.google.com/projectcreate"},
+    {"text": "Enable the Google Play Android Developer API in that project.",
+     "link": "https://console.cloud.google.com/apis/library/androidpublisher.googleapis.com"},
+    {"text": "IAM & Admin > Service accounts > Create service account (any name, no roles needed). Open it, Keys > Add key > JSON. "
+             "Save the file outside every repository.", "link": "https://console.cloud.google.com/iam-admin/serviceaccounts"},
+    {"text": "Play Console > Users and permissions > Invite new users: paste the service account email, give it this app with "
+             "Release to testing tracks (and production when you want the desk to release there).", "link": "https://play.google.com/console"},
+]
+
+
 def status(project):
     fields, art_items, shots = _fields(project), art.check(project, "play"), _screenshots(project)
     key, account, aab = key_state(project), playapi.account_state(), builds.latest(project, "play-aab")
@@ -138,16 +179,19 @@ def status(project):
     history = builds.history(project, "play-aab")
     steps = [
         {"title": "Play developer account", "state": "todo", "kind": "hand", "link": "https://play.google.com/console/signup",
-         "detail": "Register once (one-time fee, identity checks). New personal accounts must run a closed test with testers before production."},
+         "detail": "Register once (one-time fee, identity checks). New personal accounts must run a closed test with testers before production.",
+         "guide": ACCOUNT_GUIDE},
         {"title": "Android package", "go": "play/keys/ids-play-package", "state": "ok" if key["package"] else "todo", "kind": "hand",
          "detail": "Choose the application id (cannot change later) and put it in Store/store.json as android.package, then Push to Unity."},
         {"title": "Upload key", "go": "play/keys/play-key", "state": "ok" if key["ready"] else "todo", "kind": "desk",
          "detail": f"Create upload key (Keys & accounts): keystore {key['keystore']}, password in Credential Manager as {key['credential']}. Play App Signing keeps the release key."},
         {"title": "Create the app in Play Console", "state": "todo", "kind": "hand", "link": "https://play.google.com/console",
-         "detail": "The API cannot create apps. Create it by hand and upload the first release AAB there once. Releases go up as drafts until you set play.status to \"completed\" in Store/store.json."},
+         "detail": "The API cannot create apps. Create it by hand and upload the first release AAB there once. Releases go up as drafts until you set play.status to \"completed\" in Store/store.json.",
+         "guide": CREATE_APP_GUIDE},
         {"title": "Service account", "go": "play/keys/play-account", "state": "ok" if account["found"] else "todo", "kind": "hand",
          "link": "https://developers.google.com/android-publisher/getting_started",
-         "detail": f"Create a service account in Google Cloud with the Play Android Developer API enabled, invite its email in Play Console > Users and permissions with release rights for this app, save its JSON key outside every repository and set {playapi.ENV} to its path."},
+         "detail": f"Create a service account in Google Cloud with the Play Android Developer API enabled, invite its email in Play Console > Users and permissions with release rights for this app, save its JSON key outside every repository and set {playapi.ENV} to its path.",
+         "guide": SERVICE_ACCOUNT_GUIDE + [{"text": f"Set the Windows user environment variable {playapi.ENV} to the JSON file's path and restart the desk."}]},
         {"title": "Store listing text", "go": "play/listing/play-text", "state": "ok" if not any(f["problem"] for f in fields) else "todo", "kind": "desk",
          "detail": "Title, short and full description (Listing tab); uploaded with each publish."},
         {"title": "Store art", "go": "play/listing/play-art", "state": "ok" if all(a["state"] in ("ok", "optional") for a in art_items) else "todo", "kind": "desk",
@@ -159,7 +203,12 @@ def status(project):
         {"title": f"Upload to {play['track']}", "go": "play/builds/play-publish", "state": "ok" if any(h.get("uploaded") for h in history[:1]) else "todo", "kind": "desk",
          "detail": f"Bundle with the release notes recorded when it was built (What's new, or the Release-note lines committed since the previous AAB{'' if notes_ok else '; What’s new is too long'}), listing and art in one edit on the {play['track']} track."},
         {"title": "Content rating, data safety, target audience", "state": "todo", "kind": "hand",
-         "detail": "Questionnaires in Play Console; needed before any testing track goes out to testers."},
+         "detail": "Questionnaires in Play Console; needed before any testing track goes out to testers.",
+         "guide": [{"text": "Open the app in Play Console; the Dashboard lists each questionnaire under Set up your app.", "link": "https://play.google.com/console"},
+                   {"text": "Content rating: the IARC questionnaire (no violence, no chat, no purchases for a family party game)."},
+                   {"text": "Target audience: pick the age groups you mean. Choosing under 13 brings the Families policy and Teacher Approved checks."},
+                   {"text": "Data safety: say what data leaves the phone. Camera pictures used only on the device are not collected."},
+                   {"text": "Families policy and its requirements.", "link": PLAY_HELP + "/answer/9893335"}]},
     ]
     return {"fields": fields, "art": art_items, "screenshots": shots, "key": key, "account": account, "aab": aab, "steps": steps,
             "play": play, "tracks": TRACKS, "statuses": STATUSES, "language": RULES["language"], "rules": {"checked": RULES["checked"], "sources": RULES["sources"]}}

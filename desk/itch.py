@@ -178,11 +178,46 @@ def install(project=None):
         shutil.rmtree(fresh, ignore_errors=True)
 
 
+DASHBOARD = "https://itch.io/dashboard"
+
+
+def page_url(project_id):
+    """The public page of user/game (https://user.itch.io/game); "" when there is none yet.
+    itch.io's Edit game address uses a numeric id the desk does not know, so editing goes through the dashboard."""
+    if "/" not in (project_id or ""):
+        return ""
+    user, game = project_id.split("/", 1)
+    return f"https://{user}.itch.io/{game}"
+
+
+def _guide_new_page():
+    return [
+        {"text": "Sign in to itch.io, or create a free account. The account name becomes the first part of the page address (name.itch.io).",
+         "link": "https://itch.io/login"},
+        {"text": "Open Create new project.", "link": "https://itch.io/game/new"},
+        {"text": "Fill in Title and Project URL (the game part of the address), Kind of project: Downloadable, Classification: Games, "
+                 "Pricing: No payments (or what you want to charge). The rest can wait."},
+        {"text": "Leave Visibility on Draft and press Save & view page."},
+        {"text": "Copy the page address from the browser (https://name.itch.io/game) and paste it into Project in Keys & accounts, then Save.",
+         "go": "itch/keys/ids-itch-project"},
+    ]
+
+
+def _guide_edit_page(what):
+    return [
+        {"text": "Open your dashboard on itch.io.", "link": DASHBOARD},
+        {"text": "Find the project and press Edit under it. That opens Edit game."},
+        {"text": what},
+        {"text": "Press Save at the bottom of Edit game."},
+    ]
+
+
 def key_state(project):
     exe, s = butler(), settings(project)
     logged = CREDS.is_file() or bool(os.environ.get("BUTLER_API_KEY"))
     return {"butler": exe or "", "toolFolder": str(TOOL_DIR), "installed": bool(exe), "loggedIn": logged, "project": s["project"],
-            "channel": s["channel"], "androidChannel": s["androidChannel"], "ready": bool(exe) and logged and "/" in s["project"]}
+            "channel": s["channel"], "androidChannel": s["androidChannel"], "ready": bool(exe) and logged and "/" in s["project"],
+            "page": page_url(s["project"]), "dashboard": DASHBOARD}
 
 
 def _build(project, kind="itch-windows"):
@@ -195,28 +230,37 @@ def _build(project, kind="itch-windows"):
 def status(project):
     fields = storekit.fields(project, "itch", RULES, name_label="Title")
     art_items, shots, build, key = art.check(project, "itch"), storekit.screenshots(project, RULES), _build(project), key_state(project)
-    page = f"https://itch.io/game/edit/{key['project']}" if key["project"] else "https://itch.io/game/new"
     steps = [
         {"title": "itch.io account and project page", "state": "ok" if "/" in key["project"] else "todo", "kind": "hand",
-         "link": "https://itch.io/game/new", "go": "itch/keys/ids-itch-project",
-         "detail": "Create the project page on itch.io (free, no review), then put user/game (the page address, lower case) in Keys & accounts."},
+         "link": key["page"] or "https://itch.io/game/new", "go": "itch/keys/ids-itch-project", "guide": _guide_new_page(),
+         "detail": "Create the project page on itch.io (free, no review), then paste its address into Keys & accounts."},
         {"title": "butler installed and logged in", "state": "ok" if key["installed"] and key["loggedIn"] else "todo", "kind": "desk",
          "link": "https://itchio.itch.io/butler", "go": "itch/keys/itch-butler",
-         "detail": "Install butler (Keys & accounts downloads itch.io's latest build), then Log in to itch.io."},
+         "detail": "Install butler (Keys & accounts downloads itch.io's latest build), then Log in to itch.io.",
+         "guide": [{"text": "Keys & accounts: press Install butler and wait for it to say found.", "go": "itch/keys/itch-butler"},
+                   {"text": "Press Log in to itch.io. Your browser opens itch.io's own page; sign in there and allow butler. The desk never sees the password."},
+                   {"text": "Back here, Login shows logged in."}]},
         {"title": "AI disclosure", "state": "todo", "kind": "hand", "link": "https://itch.io/docs/creators/quality-guidelines#ai-disclosure",
-         "detail": "On the Edit game page, disclose generative AI use: Code (shipped code includes generated contributions), and describe optional live generation and manual creation in the description."},
+         "detail": "On the Edit game page, disclose generative AI use: Code (shipped code includes generated contributions), and describe optional live generation and manual creation in the description.",
+         "guide": _guide_edit_page("Find the AI generation disclosure section, answer Yes and tick Code. Say in the description what the AI does in the game.")},
         {"title": "Page text", "state": "ok" if not any(f["problem"] for f in fields) else "todo", "kind": "copy", "go": "itch/listing/itch-text",
-         "detail": "Paste the tagline and description into Edit game."},
+         "detail": "Paste the tagline and description into Edit game.",
+         "guide": [{"text": "Listing > Text: press Copy next to the tagline and the description.", "go": "itch/listing/itch-text"}]
+         + _guide_edit_page("Paste the tagline into Short description or tagline and the description into Description.")},
         {"title": "Cover image", "state": "ok" if all(a["state"] in ("ok", "optional") for a in art_items) else "todo", "kind": "copy", "go": "itch/listing/itch-art",
-         "detail": "630×500 cover (Make capsules) on Edit game."},
+         "detail": "630×500 cover (Make capsules) on Edit game.",
+         "guide": _guide_edit_page("Upload the cover image (Listing > Art shows the file) under Cover image on the right.")},
         {"title": "Screenshots", "state": "ok" if shots["good"] >= shots["min"] else "todo", "kind": "copy", "go": "itch/listing/itch-shots",
-         "detail": f"{shots['good']} usable in Store/{shots['folder']}; add 3 to 5 on Edit game."},
+         "detail": f"{shots['good']} usable in Store/{shots['folder']}; add 3 to 5 on Edit game.",
+         "guide": _guide_edit_page(f"Under Screenshots on the right, add 3 to 5 pictures from Store/{shots['folder']}.")},
         {"title": "Windows build", "state": "ok" if build["exists"] else "todo", "kind": "desk", "go": "itch/builds/itch-builds",
          "detail": "Built by Unity into Build/Itch/Windows."},
         {"title": "Push with butler", "state": "ok" if any(h.get("uploaded") for h in build["history"][:1]) else "todo", "kind": "desk",
          "go": "itch/builds/itch-upload", "detail": f"Pushes to the {key['channel']} channel with the release version; only changes are sent."},
-        {"title": "Publish the page", "state": "todo", "kind": "hand", "link": page,
-         "detail": "Set visibility to Public (or Restricted for testers) and pricing on Edit game."},
+        {"title": "Publish the page", "state": "todo", "kind": "hand", "link": DASHBOARD,
+         "detail": "Set visibility to Public (or Restricted for testers) and pricing on Edit game.",
+         "guide": _guide_edit_page("Check Pricing, then at the bottom set Visibility & access to Public (or Restricted to share a link with testers only).")
+         + ([{"text": "Open the page to see it as players do.", "link": key["page"]}] if key["page"] else [])},
     ]
     return {"fields": fields, "art": art_items, "screenshots": shots, "build": build, "key": key, "steps": steps,
             "rules": {"checked": RULES["checked"], "sources": RULES["sources"]}}
@@ -226,18 +270,22 @@ def android_status(project):
     """itch.io Android: the same page, an APK on the android channel."""
     from . import play  # play imports builds
     key, build, sign = key_state(project), _build(project, ANDROID), play.key_state(project)
-    page = f"https://itch.io/game/edit/{key['project']}" if key["project"] else "https://itch.io/game/new"
     steps = [
         {"title": "itch.io page and butler", "state": "ok" if key["ready"] else "todo", "kind": "hand", "go": "itch-android/keys/ids-itch-project",
-         "detail": "The same itch.io page as the Windows download: project, butler and its login."},
+         "detail": "The same itch.io page as the Windows download: project, butler and its login.",
+         "guide": ([] if key["project"] else _guide_new_page()[:4]) + [
+             {"text": "Paste the page address into Project in Keys & accounts and Save.", "go": "itch-android/keys/ids-itch-project"},
+             {"text": "Press Install butler, then Log in to itch.io (the browser opens itch.io's own sign-in)."}]},
         {"title": "Android package and upload key", "state": "ok" if sign["ready"] else "todo", "kind": "desk", "go": "itch-android/keys/play-key",
          "detail": "The APK is signed with the Google Play upload key, so an update installs over the previous one and the same key serves Play later."},
         {"title": "Android APK", "state": "ok" if build["exists"] else "todo", "kind": "desk", "go": "itch-android/builds/itch-android-builds",
          "detail": "Built by Unity into Build/Itch/Android."},
         {"title": "Push with butler", "state": "ok" if any(h.get("uploaded") for h in build["history"][:1]) else "todo", "kind": "desk",
          "go": "itch-android/builds/itch-android-upload", "detail": f"Pushes the APK to the {key['androidChannel']} channel; itch.io marks it as the Android download."},
-        {"title": "Android on the page", "state": "todo", "kind": "hand", "link": page,
-         "detail": "On Edit game, check the APK upload is tagged Android and say in the description that it installs outside Google Play (players allow it once)."},
+        {"title": "Android on the page", "state": "todo", "kind": "hand", "link": DASHBOARD,
+         "detail": "On Edit game, check the APK upload is tagged Android and say in the description that it installs outside Google Play (players allow it once).",
+         "guide": _guide_edit_page("Under Uploads, check the .apk file has the Android tag ticked. The description already says how to install the APK (Listing > Text).")
+         + ([{"text": "Open the page on a phone to try the download.", "link": key["page"]}] if key["page"] else [])},
     ]
     return {"build": build, "key": key, "sign": {"ready": sign["ready"], "package": sign.get("package", "")}, "steps": steps,
             "rules": {"checked": RULES["checked"], "sources": RULES["sources"]}}
