@@ -101,8 +101,9 @@ def setup_cli(project):
     cli = msstore()
     if not cli:
         return False, "Install the Microsoft Store Developer CLI first."
-    subprocess.Popen(["cmd", "/c", "title msstore setup & echo Enter the Partner Center API values; Release Desk never sees them. & echo. & "
-                      f'"{cli}" reconfigure & echo. & pause'], creationflags=getattr(subprocess, "CREATE_NEW_CONSOLE", 0))
+    # A string, not a list (see itch.login): cmd /c drops the outer pair of quotes.
+    subprocess.Popen('cmd /c "title msstore setup & echo Enter the Partner Center API values; Release Desk never sees them. & echo. & '
+                     f'"{cli}" reconfigure & echo. & pause"', creationflags=getattr(subprocess, "CREATE_NEW_CONSOLE", 0))
     return True, "Opened a console window; finish msstore's setup there."
 
 

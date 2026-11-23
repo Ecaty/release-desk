@@ -1,5 +1,6 @@
 """itch.io project id: user/game or the page address."""
 import unittest
+from unittest import mock
 
 from desk import itch
 
@@ -42,6 +43,21 @@ class PageAndGuides(unittest.TestCase):
             for line in g:
                 self.assertTrue(line["text"].strip())
                 self.assertTrue(line.get("link", "https://").startswith("https://"), line)
+
+
+class Consoles(unittest.TestCase):
+    """The login consoles reach cmd as written (a list once turned the quotes into \" and cmd refused the path)."""
+    def test_quotes_reach_cmd_as_written(self):
+        from desk import microsoft
+        exe = r"C:\Users\x\AppData\Roaming\release-desk\butler\butler.exe"
+        for module, fn, tool in ((itch, "login", "butler"), (microsoft, "setup_cli", "msstore")):
+            with mock.patch.object(module, tool, lambda: exe), mock.patch.object(module.subprocess, "Popen") as popen:
+                getattr(module, fn)("x")
+            line = popen.call_args[0][0]
+            self.assertIsInstance(line, str)
+            self.assertNotIn('\\"', line)
+            self.assertIn(f'"{exe}"', line)
+            self.assertTrue(line.startswith('cmd /c "') and line.endswith('"'))
 
 
 if __name__ == "__main__":

@@ -300,7 +300,8 @@ def login(project):
     exe = butler()
     if not exe:
         return False, "Install butler first."
-    subprocess.Popen(["cmd", "/c", f'title itch.io login & "{exe}" login & echo. & pause'], creationflags=getattr(subprocess, "CREATE_NEW_CONSOLE", 0))
+    # A string, not a list: a list escapes the inner quotes as \" and cmd refuses the path. cmd /c drops the outer pair.
+    subprocess.Popen(f'cmd /c "title itch.io login & "{exe}" login & echo. & pause"', creationflags=getattr(subprocess, "CREATE_NEW_CONSOLE", 0))
     return True, "Opened a console window; butler opens the itch.io sign-in in your browser."
 
 
