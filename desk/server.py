@@ -66,6 +66,8 @@ def save_ids(p, data):
             value = str(value).strip()
             if section == "steam" and key == "depot":
                 store.setdefault("steam", {}).setdefault("depots", {})["windows"] = value
+            elif section == "itch" and key == "project":
+                store.setdefault("itch", {})["project"] = itch.project_id(value)
             elif section == "play":
                 store.setdefault("android", {})["package"] = value
             else:
