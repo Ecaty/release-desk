@@ -148,23 +148,19 @@ ACCOUNT_GUIDE = [
 ]
 
 CREATE_APP_GUIDE = [
-    {"text": "Open Play Console and press Create app (Home or All apps).", "link": "https://play.google.com/console"},
-    {"text": "App name: the store title. Default language, App or game: Game, Free or paid: Free (free cannot become paid later)."},
-    {"text": "Tick the two declarations and press Create app."},
-    {"text": "The app's Dashboard lists the set-up tasks. Under Test and release, open Closed testing (or Internal testing), create a release "
-             "and upload the release AAB from Builds once by hand. After that the desk uploads."},
-    {"text": "If the Dashboard shows a Test with 12 testers step before Apply for production, the closed-test rule applies to your account.",
-     "link": TESTING_RULE},
+    {"text": "Open Play Console, press Create app.", "link": "https://play.google.com/console"},
+    {"text": "Type the game name. Pick Game and Free. Tick both boxes. Press Create app."},
+    {"text": "Test and release > Closed testing > Create release: upload the AAB from Builds once. The desk uploads after that."},
+    {"text": "If the Dashboard shows Test with 12 testers, the closed test applies to you.", "link": TESTING_RULE},
 ]
 
 SERVICE_ACCOUNT_GUIDE = [
-    {"text": "Open Google Cloud Console with the same Google account and create a project (any name).", "link": "https://console.cloud.google.com/projectcreate"},
-    {"text": "Enable the Google Play Android Developer API in that project.",
-     "link": "https://console.cloud.google.com/apis/library/androidpublisher.googleapis.com"},
-    {"text": "IAM & Admin > Service accounts > Create service account (any name, no roles needed). Open it, Keys > Add key > JSON. "
-             "Save the file outside every repository.", "link": "https://console.cloud.google.com/iam-admin/serviceaccounts"},
-    {"text": "Play Console > Users and permissions > Invite new users: paste the service account email, give it this app with "
-             "Release to testing tracks (and production when you want the desk to release there).", "link": "https://play.google.com/console"},
+    {"text": "Create a Google Cloud project (same Google account, any name).", "link": "https://console.cloud.google.com/projectcreate"},
+    {"text": "Press Enable on this API.", "link": "https://console.cloud.google.com/apis/library/androidpublisher.googleapis.com"},
+    {"text": "Create service account (any name, no roles). Open it: Keys > Add key > JSON. Keep the file out of every repository.",
+     "link": "https://console.cloud.google.com/iam-admin/serviceaccounts"},
+    {"text": "Play Console > Users and permissions > Invite: paste its email, give it this app with Release to testing tracks.",
+     "link": "https://play.google.com/console"},
 ]
 
 
@@ -188,7 +184,7 @@ def status(project):
         {"title": "Service account", "go": "play/keys/play-account", "state": "ok" if account["found"] else "todo", "kind": "hand",
          "link": "https://developers.google.com/android-publisher/getting_started",
          "detail": f"Create a service account in Google Cloud with the Play Android Developer API enabled, invite its email in Play Console > Users and permissions with release rights for this app, save its JSON key outside every repository and set {playapi.ENV} to its path.",
-         "guide": SERVICE_ACCOUNT_GUIDE + [{"text": f"Set the Windows user environment variable {playapi.ENV} to the JSON file's path and restart the desk."}]},
+         "guide": SERVICE_ACCOUNT_GUIDE + [{"text": f"Set the Windows user variable {playapi.ENV} to the file's path, restart the desk."}]},
         {"title": "Store listing text", "go": "play/listing/play-text", "state": "ok" if not any(f["problem"] for f in fields) else "todo", "kind": "desk",
          "detail": "Title, short and full description (Listing tab); uploaded with each publish."},
         {"title": "Store art", "go": "play/listing/play-art", "state": "ok" if all(a["state"] in ("ok", "optional") for a in art_items) else "todo", "kind": "desk",
@@ -201,11 +197,10 @@ def status(project):
          "detail": f"Bundle with the release notes recorded when it was built (What's new, or the Release-note lines committed since the previous AAB{'' if notes_ok else '; What’s new is too long'}), listing and art in one edit on the {play['track']} track."},
         {"title": "Content rating, data safety, target audience", "state": "todo", "kind": "hand",
          "detail": "Questionnaires in Play Console; needed before any testing track goes out to testers.",
-         "guide": [{"text": "Open the app in Play Console; the Dashboard lists each questionnaire under Set up your app.", "link": "https://play.google.com/console"},
-                   {"text": "Content rating: the IARC questionnaire; answer for what your game contains (violence, chat with others, purchases)."},
-                   {"text": "Target audience: pick the age groups you mean. Choosing under 13 brings the Families policy requirements."},
-                   {"text": "Data safety: say what data leaves the phone. Data processed only on the device does not count as collected."},
-                   {"text": "Families policy and its requirements.", "link": PLAY_HELP + "/answer/9893335"}]},
+         "guide": [{"text": "Open the app in Play Console. Dashboard > Set up your app lists each form.", "link": "https://play.google.com/console"},
+                   {"text": "Content rating: answer for what the game contains."},
+                   {"text": "Target audience: pick the ages. Under 13 adds the Families rules.", "link": PLAY_HELP + "/answer/9893335"},
+                   {"text": "Data safety: only data that leaves the phone counts."}]},
     ]
     return {"fields": fields, "art": art_items, "screenshots": shots, "key": key, "account": account, "aab": aab, "steps": steps,
             "play": play, "tracks": TRACKS, "statuses": STATUSES, "language": RULES["language"], "rules": {"checked": RULES["checked"], "sources": RULES["sources"]}}
