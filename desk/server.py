@@ -184,9 +184,38 @@ def apply_to_unity():
     return unity.call(p.root, f"return ReleaseDesk.Editor.DeskEntry.ApplySettings({unity.literal(p.store / 'store.json')});")
 
 
+def refusal(method, headers, port):
+    """Why a request does not come from the desk's own page, or "" when it does.
+    Host stops DNS rebinding (another site's name pointed at 127.0.0.1); for POST, Origin and Sec-Fetch-Site stop other
+    pages, and JSON only means a plain cross-site form (which needs no permission from the browser) is refused too."""
+    own = {f"127.0.0.1:{port}", f"localhost:{port}"}
+    if (headers.get("Host") or "").strip().lower() not in own:
+        return "wrong host"
+    if method != "POST":
+        return ""
+    origin = (headers.get("Origin") or "").strip().lower()
+    if origin and origin not in {"http://" + h for h in own}:
+        return "another site"
+    if (headers.get("Sec-Fetch-Site") or "same-origin").strip().lower() not in ("same-origin", "none"):
+        return "another site"
+    if (headers.get("Content-Type") or "").split(";")[0].strip().lower() != "application/json":
+        return "not JSON"
+    return ""
+
+
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, *args):
         pass
+
+    def parse_request(self):
+        if not super().parse_request():
+            return False
+        why = refusal(self.command, self.headers, self.server.server_address[1])
+        if why:
+            self.close_connection = True
+            self.send(403, {"error": f"Refused: only the Release Desk page can use the desk ({why})."})
+            return False
+        return True
 
     def send(self, code, body, kind="application/json"):
         data = body if isinstance(body, bytes) else json.dumps(body).encode("utf-8")

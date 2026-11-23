@@ -10,6 +10,8 @@ Status: seven stores are wired up: Steam (upload with SteamCMD), itch.io (butler
    `"com.release-desk.unity": "https://github.com/Ecaty/release-desk.git?path=/unity"`
 2. Add the game's private store data as a `Store/` folder (or submodule) in the project root with a `store.json`.
 3. Run `Start-Desk.cmd [path-to-unity-project]` (Python 3.10+, no packages needed) and open http://127.0.0.1:27760/.
+
+The desk answers only its own page: requests must name 127.0.0.1 or localhost with the desk's port as Host, and POSTs must be JSON from the desk's own origin. Other web pages open in the same browser (including DNS rebinding) are refused with 403. A local script can still POST JSON without an Origin.
 4. Push to Unity, builds and screenshots use the project's Unity Editor; if it is closed, the desk opens the project's Unity version and waits until it is ready (never a second Editor on the same project). Every run has **Cancel**: it stops waiting and ends the desk's own child processes (SteamCMD, BuildPatch Tool, adb); a build already running inside Unity is cancelled in Unity's progress window.
 
 ## Screenshots
