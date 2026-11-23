@@ -64,7 +64,9 @@ class Project:
     def write(self, rel, data):
         path = self.store / rel
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        tmp = path.with_name(path.name + ".tmp")  # written whole, then swapped in, so a broken write never leaves half a file
+        tmp.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        os.replace(tmp, path)
 
     def git_commit(self, path):
         try:

@@ -44,6 +44,25 @@ class Ticks(unittest.TestCase):
                 ticks.save(p, "play", status(), title, True)
         self.assertEqual(p.files, {})
 
+    def test_odd_file_counts_as_no_ticks(self):
+        for content in ([], "x", {"play": "Play developer account"}, {"play": [1, None]}):
+            p = FakeProject()
+            p.files[ticks.FILE] = content
+            self.assertEqual(ticks.apply(p, "play", status())["steps"][0]["state"], "todo")
+            ticks.save(p, "play", status(), "Play developer account", True)
+            self.assertEqual(p.files[ticks.FILE]["play"], ["Play developer account"])
+
+    def test_file_written_whole(self):
+        import tempfile
+        from pathlib import Path
+        from desk.project import Project
+        with tempfile.TemporaryDirectory() as d:
+            proj = Project.__new__(Project)
+            proj.store = Path(d)
+            proj.write(ticks.FILE, {"play": ["a"]})
+            self.assertEqual(proj.read(ticks.FILE), {"play": ["a"]})
+            self.assertEqual(sorted(x.name for x in Path(d).iterdir()), [ticks.FILE])
+
 
 if __name__ == "__main__":
     unittest.main()
