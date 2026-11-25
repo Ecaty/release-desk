@@ -170,7 +170,8 @@ SERVICE_ACCOUNT_GUIDE = [
     {"text": "Now the service account: open this link, + Create service account at the top, name desk-upload, Create and continue, Continue (no role), Done.",
      "link": "https://console.cloud.google.com/iam-admin/serviceaccounts"},
     {"text": "Click its email > Keys tab > Add key > Create new key > JSON > Create. Move the downloaded file to a folder outside every project."},
-    {"text": "Copy its email (ends in iam.gserviceaccount.com). Play Console > Users and permissions > Invite new users: paste it, "
+    {"text": "Service accounts list, Email column of desk-upload (like desk-upload@tunu-play-123.iam.gserviceaccount.com): select it and copy. "
+             "Play Console > Users and permissions > Invite new users: paste it, "
              "App permissions > Add app > your game > Release to testing tracks, Invite user.", "link": "https://play.google.com/console"},
 ]
 
