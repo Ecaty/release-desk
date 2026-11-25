@@ -153,13 +153,13 @@ CREATE_APP_GUIDE = [
     {"text": "Type the game name and the package name (Keys & accounts shows it; it can never change), press Check availability. "
              "Pick Game and Free (a free app can never become paid). Tick all three declarations. Press Create app."},
     {"text": "In the desk: Google Play > Builds > Track: Closed testing, Save. Desk uploads then go to the closed test.", "go": "play/builds/play-publish"},
+    {"text": "If the Dashboard shows Test with 12 testers, the closed test below applies to you.", "link": TESTING_RULE},
     {"text": "Test and release > Testing > Closed testing. On the track called Closed testing - Alpha press Manage track (no new track needed)."},
     {"text": "Testers tab: Create email list, name it, add your testers (12 or more), Save changes. Tick the list, Save changes."},
     {"text": "Releases tab: Create new release, upload the AAB from Builds once, Next, Save. The desk uploads after that."},
     {"text": "Before review: finish the store listing and the App content forms (step below). Google won't review without them."},
     {"text": "Publishing overview (left menu): Send for review. Testers get it once Google approves."},
-    {"text": "After 14 days with 12+ testers: Dashboard > Apply for production, answer the form, Apply.", "link": TESTING_RULE},
-    {"text": "If the Dashboard shows Test with 12 testers, the closed test applies to you.", "link": TESTING_RULE},
+    {"text": "After 14 days with 12+ testers: Dashboard > Apply for production, answer the form, Apply."},
 ]
 
 SERVICE_ACCOUNT_GUIDE = [

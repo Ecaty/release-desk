@@ -78,7 +78,7 @@ def status(project, config):
     app_id, depot = str(steam.get("appId", "")), str(steam.get("depots", {}).get("windows", ""))
     steps = [
         {"title": "Steamworks account and app", "go": "steam/keys/ids-steam-appId", "state": "ok" if app_id else "todo", "kind": "hand",
-         "detail": "Finish Steamworks bank, tax and identity checks, pay the US$100 app fee, then put the App ID and Windows depot ID in Store/store.json. "
+         "detail": "Finish Steamworks bank, tax and identity checks, pay the US$100 app fee (paid back after US$1,000 in sales), then put the App ID and Windows depot ID in Store/store.json. "
                    "Release is possible 21 days after the fee at the earliest, and the Coming Soon page must be public 2 weeks before release.",
          "link": "https://partner.steamgames.com/"},
         {"title": "Build account", "go": "steam/keys/steam-user", "state": "ok" if cmd["user"] else "todo", "kind": "hand",
