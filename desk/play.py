@@ -152,8 +152,9 @@ CREATE_APP_GUIDE = [
     {"text": "Open Play Console, press Create app.", "link": "https://play.google.com/console"},
     {"text": "Type the game name. Pick Game and Free (a free app can never become paid). Tick both boxes. Press Create app."},
     {"text": "Test and release > Testing > Closed testing. On the track called Closed testing - Alpha press Manage track (no new track needed)."},
-    {"text": "Releases tab: Create new release, upload the AAB from Builds once, Next, Save. The desk uploads after that."},
     {"text": "Testers tab: Create email list, add your testers (12 or more), Save."},
+    {"text": "Releases tab: Create new release, upload the AAB from Builds once, Next, Save. The desk uploads after that."},
+    {"text": "Go to overview (Publishing overview): Send changes for review. Testers get it once Google approves."},
     {"text": "If the Dashboard shows Test with 12 testers, the closed test applies to you.", "link": TESTING_RULE},
 ]
 
