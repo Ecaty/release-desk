@@ -163,11 +163,11 @@ CREATE_APP_GUIDE = [
 ]
 
 SERVICE_ACCOUNT_GUIDE = [
-    {"text": "New Project: type a name (e.g. tunu-play), leave No organization, press Create. Ignore the yellow quota note.",
+    {"text": "First a project (this page has no service account yet): Project name e.g. tunu-play, leave No organization, Create. Ignore the yellow quota note.",
      "link": "https://console.cloud.google.com/projectcreate"},
     {"text": "Wait for the bell to say it's created. Check the project name at the top is the new one."},
     {"text": "Open this API page and press Enable.", "link": "https://console.cloud.google.com/apis/library/androidpublisher.googleapis.com"},
-    {"text": "Service accounts: + Create service account, name desk-upload, Create and continue, Continue (no role), Done.",
+    {"text": "Now the service account: open this link, + Create service account at the top, name desk-upload, Create and continue, Continue (no role), Done.",
      "link": "https://console.cloud.google.com/iam-admin/serviceaccounts"},
     {"text": "Click its email > Keys tab > Add key > Create new key > JSON > Create. Move the downloaded file to a folder outside every project."},
     {"text": "Copy its email (ends in iam.gserviceaccount.com). Play Console > Users and permissions > Invite new users: paste it, "
