@@ -159,12 +159,15 @@ CREATE_APP_GUIDE = [
 ]
 
 SERVICE_ACCOUNT_GUIDE = [
-    {"text": "Create a Google Cloud project (same Google account, any name).", "link": "https://console.cloud.google.com/projectcreate"},
-    {"text": "Press Enable on this API.", "link": "https://console.cloud.google.com/apis/library/androidpublisher.googleapis.com"},
-    {"text": "Create service account (any name, no roles). Open it: Keys > Add key > JSON. Keep the file out of every repository.",
+    {"text": "New Project: type a name (e.g. tunu-play), leave No organization, press Create. Ignore the yellow quota note.",
+     "link": "https://console.cloud.google.com/projectcreate"},
+    {"text": "Wait for the bell to say it's created. Check the project name at the top is the new one."},
+    {"text": "Open this API page and press Enable.", "link": "https://console.cloud.google.com/apis/library/androidpublisher.googleapis.com"},
+    {"text": "Service accounts: + Create service account, name desk-upload, Create and continue, Continue (no role), Done.",
      "link": "https://console.cloud.google.com/iam-admin/serviceaccounts"},
-    {"text": "Play Console > Users and permissions > Invite: paste its email, give it this app with Release to testing tracks.",
-     "link": "https://play.google.com/console"},
+    {"text": "Click its email > Keys tab > Add key > Create new key > JSON > Create. Move the downloaded file to a folder outside every project."},
+    {"text": "Copy its email (ends in iam.gserviceaccount.com). Play Console > Users and permissions > Invite new users: paste it, "
+             "App permissions > Add app > your game > Release to testing tracks, Invite user.", "link": "https://play.google.com/console"},
 ]
 
 
@@ -188,7 +191,7 @@ def status(project):
         {"title": "Service account", "go": "play/keys/play-account", "state": "ok" if account["found"] else "todo", "kind": "hand",
          "link": "https://developers.google.com/android-publisher/getting_started",
          "detail": f"Create a service account in Google Cloud with the Play Android Developer API enabled, invite its email in Play Console > Users and permissions with release rights for this app, save its JSON key outside every repository and set {playapi.ENV} to its path.",
-         "guide": SERVICE_ACCOUNT_GUIDE + [{"text": f"Set the Windows user variable {playapi.ENV} to the file's path, restart the desk."}]},
+         "guide": SERVICE_ACCOUNT_GUIDE + [{"text": f"In PowerShell: [Environment]::SetEnvironmentVariable('{playapi.ENV}', '<path to the file>', 'User'). Then restart the desk."}]},
         {"title": "Store listing text", "go": "play/listing/play-text", "state": "ok" if not any(f["problem"] for f in fields) else "todo", "kind": "desk",
          "detail": "Title, short and full description (Listing tab); uploaded with each publish."},
         {"title": "Store art", "go": "play/listing/play-art", "state": "ok" if all(a["state"] in ("ok", "optional") for a in art_items) else "todo", "kind": "desk",
