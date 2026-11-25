@@ -281,7 +281,7 @@ def status(project):
          "guide": [{"text": "Press Install butler.", "go": "itch/keys/itch-butler"},
                    {"text": "Press Log in to itch.io, sign in in the browser, allow butler."},
                    {"text": "Come back here: Login shows logged in."}]},
-        {"title": "AI disclosure", "state": "todo", "kind": "hand", "link": "https://itch.io/docs/creators/quality-guidelines#ai-disclosure",
+        {"title": "AI disclosure", "state": "todo", "kind": "hand", "link": "https://itch.io/docs/creators/quality-guidelines#accurately-tag-your-use-of-generative-ai",
          "detail": "On the Edit game page, disclose generative AI use: Code (shipped code includes generated contributions), and describe optional live generation and manual creation in the description.",
          "guide": _guide_edit_page(key["edit"], "AI disclosure: answer for your game, tick each kind of generated content it ships.")},
         {"title": "Page text", "state": "ok" if not any(f["problem"] for f in fields) else "todo", "kind": "copy", "go": "itch/listing/itch-text",

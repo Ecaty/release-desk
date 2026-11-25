@@ -150,11 +150,15 @@ ACCOUNT_GUIDE = [
 
 CREATE_APP_GUIDE = [
     {"text": "Open Play Console, press Create app.", "link": "https://play.google.com/console"},
-    {"text": "Type the game name. Pick Game and Free (a free app can never become paid). Tick both boxes. Press Create app."},
+    {"text": "Type the game name and the package name (Keys & accounts shows it; it can never change), press Check availability. "
+             "Pick Game and Free (a free app can never become paid). Tick all three declarations. Press Create app."},
+    {"text": "In the desk: Google Play > Builds > Track: Closed testing, Save. Desk uploads then go to the closed test.", "go": "play/builds/play-publish"},
     {"text": "Test and release > Testing > Closed testing. On the track called Closed testing - Alpha press Manage track (no new track needed)."},
-    {"text": "Testers tab: Create email list, add your testers (12 or more), Save."},
+    {"text": "Testers tab: Create email list, name it, add your testers (12 or more), Save changes. Tick the list, Save changes."},
     {"text": "Releases tab: Create new release, upload the AAB from Builds once, Next, Save. The desk uploads after that."},
-    {"text": "Go to overview (Publishing overview): Send changes for review. Testers get it once Google approves."},
+    {"text": "Before review: finish the store listing and the App content forms (step below). Google won't review without them."},
+    {"text": "Publishing overview (left menu): Send for review. Testers get it once Google approves."},
+    {"text": "After 14 days with 12+ testers: Dashboard > Apply for production, answer the form, Apply.", "link": TESTING_RULE},
     {"text": "If the Dashboard shows Test with 12 testers, the closed test applies to you.", "link": TESTING_RULE},
 ]
 
@@ -202,9 +206,11 @@ def status(project):
          "detail": "Signed with the upload key (Builds tab)."},
         {"title": f"Upload to {play['track']}", "go": "play/builds/play-publish", "state": "ok" if any(h.get("uploaded") for h in history[:1]) else "todo", "kind": "desk",
          "detail": f"Bundle with the release notes recorded when it was built (What's new, or the Release-note lines committed since the previous AAB{'' if notes_ok else '; What’s new is too long'}), listing and art in one edit on the {play['track']} track."},
-        {"title": "Content rating, data safety, target audience", "state": "todo", "kind": "hand",
+        {"title": "App content: privacy, ads, rating, data safety, audience", "state": "todo", "kind": "hand",
          "detail": "Questionnaires in Play Console; needed before any testing track goes out to testers.",
-         "guide": [{"text": "Open the app in Play Console. Dashboard > Set up your app lists each form.", "link": "https://play.google.com/console"},
+         "guide": [{"text": "Open the app in Play Console. Monitor and improve > Policy and programs > App content lists each form.", "link": "https://play.google.com/console"},
+                   {"text": "Privacy policy: paste a web address of your privacy policy (required, even for a free game)."},
+                   {"text": "Ads: say whether the game shows ads."},
                    {"text": "Content rating: answer for what the game contains."},
                    {"text": "Target audience: pick the ages. Under 13 adds the Families rules.", "link": PLAY_HELP + "/answer/9893335"},
                    {"text": "Data safety: only data that leaves the phone counts."}]},

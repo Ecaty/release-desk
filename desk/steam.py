@@ -78,7 +78,8 @@ def status(project, config):
     app_id, depot = str(steam.get("appId", "")), str(steam.get("depots", {}).get("windows", ""))
     steps = [
         {"title": "Steamworks account and app", "go": "steam/keys/ids-steam-appId", "state": "ok" if app_id else "todo", "kind": "hand",
-         "detail": "Pay the app fee in Steamworks, then put the App ID and Windows depot ID in Store/store.json.",
+         "detail": "Finish Steamworks bank, tax and identity checks, pay the US$100 app fee, then put the App ID and Windows depot ID in Store/store.json. "
+                   "Release is possible 21 days after the fee at the earliest, and the Coming Soon page must be public 2 weeks before release.",
          "link": "https://partner.steamgames.com/"},
         {"title": "Build account", "go": "steam/keys/steam-user", "state": "ok" if cmd["user"] else "todo", "kind": "hand",
          "detail": "Create a separate Steam account with only 'Edit App Metadata' and 'Publish App Changes To Steam', and enter its name in Keys & accounts."},
@@ -94,7 +95,7 @@ def status(project, config):
          "detail": "Built by Unity into Build/Steam/Windows (Builds tab)."},
         {"title": "Upload to beta branch", "go": "steam/builds/steam-upload", "state": "ok" if build.get("uploaded") else "todo", "kind": "desk",
          "detail": f"SteamPipe upload, set live on '{steam.get('branch', 'beta')}'. The default branch is always set live by hand in Steamworks."},
-        {"title": "Review by Valve", "state": "todo", "kind": "hand", "detail": "Valve reviews the store page and the build before release."},
+        {"title": "Review by Valve", "state": "todo", "kind": "hand", "detail": "Fill in the Content Survey (it includes AI content). Valve reviews the store page and the build on the default branch: set it live by hand and play it through Steam for 5 minutes first."},
     ]
     return {"fields": fields, "art": art, "screenshots": shots, "build": build, "steamcmd": cmd, "steps": steps,
             "appId": app_id, "depot": depot, "branch": steam.get("branch", "beta"), "rules": {"checked": RULES["checked"], "sources": RULES["sources"]}}
