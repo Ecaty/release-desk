@@ -165,7 +165,7 @@ KEY_FILE_GUIDE = [
 
 INVITE_GUIDE = [
     {"text": "Copy the desk-upload address from the Email column (ends in iam.gserviceaccount.com).", "link": CLOUD + "/iam-admin/serviceaccounts"},
-    {"text": "Press Invite new users, paste the address. Leave both switches off.", "link": CONSOLE + "/developers/users-and-permissions"},
+    {"text": "Press Invite new users, paste the address. Leave Set access expiry date and Make this user an account admin off.", "link": CONSOLE + "/developers/users-and-permissions"},
     {"text": "Give permissions for specific apps > Add app > your game > Apply. Tick Release to testing tracks > Apply."},
     {"text": "Press Invite user at the bottom."},
 ]
@@ -173,13 +173,13 @@ INVITE_GUIDE = [
 APP_CONTENT_GUIDE_1 = [
     {"text": "Open your game, then in the left menu: Monitor and improve > Policy and programs > App content.", "link": CONSOLE},
     {"text": "Privacy policy: paste the web address of your privacy policy, Save."},
-    {"text": "Ads: No (the game shows no ads), Save."},
+    {"text": "Ads: answer for your game (an ad SDK counts), Save."},
 ]
 
 APP_CONTENT_GUIDE_2 = [
     {"text": "Same App content page: Content rating > Start, answer for what the game contains, Submit.", "link": CONSOLE},
     {"text": "Target audience: pick the ages, Save. Under 13 adds the Families rules.", "link": PLAY_HELP + "/answer/9893335"},
-    {"text": "Data safety: only data that leaves the phone counts. Save."},
+    {"text": "Data safety: only data that leaves the phone counts. Then answer every other form App content lists."},
 ]
 
 TESTERS_GUIDE = [
@@ -224,8 +224,9 @@ def status(project):
          "detail": "Lets it upload test releases of this game only.", "guide": INVITE_GUIDE},
         {"title": "Service account", "go": "play/keys/play-account", "state": "ok" if account["found"] else "todo", "kind": "hand",
          "detail": "Tell the desk where the key file is.",
-         "guide": [{"text": f"In PowerShell, with your file's path: [Environment]::SetEnvironmentVariable('{playapi.ENV}', 'C:\\path\\to\\file.json', 'User')"},
-                   {"text": "Tell Release Desk on the board; it restarts the desk. Keys & accounts then shows found.", "go": "play/keys/play-account"}]},
+         "guide": [{"text": "Keys & accounts here shows whether the desk found the key file.", "go": "play/keys/play-account"},
+                   {"text": f"In PowerShell, with your file's path: [Environment]::SetEnvironmentVariable('{playapi.ENV}', 'C:\\path\\to\\file.json', 'User')"},
+                   {"text": "Tell Release Desk on the board; it restarts the desk. Keys & accounts then shows found."}]},
         {"title": "Store listing text", "go": "play/listing/play-text", "state": "ok" if not any(f["problem"] for f in fields) else "todo", "kind": "desk",
          "detail": "Title, short and full description (Listing tab); uploaded with each publish."},
         {"title": "Store art", "go": "play/listing/play-art", "state": "ok" if all(a["state"] in ("ok", "optional") for a in art_items) else "todo", "kind": "desk",
@@ -237,7 +238,7 @@ def status(project):
         {"title": "App content: privacy policy and ads", "state": "todo", "kind": "hand", "link": CONSOLE,
          "detail": "Google won't review a release without these.", "guide": APP_CONTENT_GUIDE_1},
         {"title": "App content: rating, audience, data safety", "state": "todo", "kind": "hand", "link": CONSOLE,
-         "detail": "Three short questionnaires.", "guide": APP_CONTENT_GUIDE_2},
+         "detail": "Short questionnaires: rating, audience, data safety, and whatever else App content lists (app access, advertising ID and more).", "guide": APP_CONTENT_GUIDE_2},
         {"title": "Closed test: testers", "state": "todo", "kind": "hand", "link": CONSOLE,
          "detail": "12 or more people with a Google account, for 14 days in a row. Invite a few extra.", "guide": TESTERS_GUIDE},
         {"title": "Closed test: first release", "state": "todo", "kind": "hand", "link": CONSOLE,

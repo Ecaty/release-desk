@@ -313,9 +313,9 @@ def android_status(project):
     steps = [
         {"title": "itch.io page and butler", "state": "ok" if key["ready"] else "todo", "kind": "hand", "go": "itch-android/keys/ids-itch-project",
          "detail": "The same itch.io page as the Windows download: project, butler and its login.",
-         "guide": ([] if key["project"] else _guide_new_page()[:4]) + [
-             {"text": "Paste the page address into Project here, Save.", "go": "itch-android/keys/ids-itch-project"},
-             {"text": "Press Install butler, then Log in to itch.io."}]},
+         "guide": (_guide_new_page()[:3] if not key["project"] else []) + [
+             {"text": "Paste the page address into Project here, Save.", "go": "itch-android/keys/ids-itch-project"}]
+             + ([{"text": "Press Install butler, then Log in to itch.io."}] if key["project"] else [])},
         {"title": "Android package and upload key", "state": "ok" if sign["ready"] else "todo", "kind": "desk", "go": "itch-android/keys/play-key",
          "detail": "The APK is signed with the Google Play upload key, so an update installs over the previous one and the same key serves Play later."},
         {"title": "Android APK", "state": "ok" if build["exists"] else "todo", "kind": "desk", "go": "itch-android/builds/itch-android-builds",
