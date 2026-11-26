@@ -182,6 +182,28 @@ print(filedialog.askdirectory(parent=root, initialdir=sys.argv[1] or None, muste
 """
 
 
+PICK_KEY = """
+import sys, tkinter
+from tkinter import filedialog
+root = tkinter.Tk(); root.withdraw(); root.attributes('-topmost', True)
+print(filedialog.askopenfilename(parent=root, title='Choose the service account key file (.json)',
+                                 filetypes=[('Key file', '*.json')]) or '')
+"""
+
+
+def pick_key_file():
+    """Asks for the Play service account key file; the desk keeps only its path. Returns a message for the page."""
+    run = subprocess.run([sys.executable, "-c", PICK_KEY], capture_output=True, text=True, timeout=600)
+    path = run.stdout.strip()
+    if not path:
+        return {"ok": False, "message": "No file chosen."}
+    why = play.playapi.check_key_file(path)
+    if why:
+        return {"ok": False, "message": why}
+    play.playapi.save_key_path(path)
+    return {"ok": True, "message": "Key file found. The desk remembers where it is."}
+
+
 def browse(start=""):
     """Asks for a folder with the system dialog; returns '' when cancelled."""
     run = subprocess.run([sys.executable, "-c", PICK_FOLDER, start], capture_output=True, text=True, timeout=600)
@@ -341,6 +363,8 @@ class Handler(BaseHTTPRequestHandler):
                     return self.send(400, {"error": "That run is not running."})
                 job.stop()
                 return self.send(200, {"ok": True})
+            if self.path == "/api/play/key-file":
+                return self.send(200, pick_key_file())
             if self.path == "/api/browse":
                 return self.send(200, {"path": browse(str(data.get("start", "")))})
             if self.path == "/api/open":

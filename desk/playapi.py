@@ -68,11 +68,57 @@ def _b64(data):
     return base64.urlsafe_b64encode(data).rstrip(b"=")
 
 
+# Key file location ------------------------------------------------------------------------------------------
+
+def _user_variable():
+    """The Windows user variable, so a path set after the desk started counts without a restart."""
+    try:
+        import winreg
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Environment") as k:
+            return str(winreg.QueryValueEx(k, ENV)[0])
+    except (ImportError, OSError):
+        return ""
+
+
+def key_path():
+    return os.environ.get(ENV, "") or _user_variable()
+
+
+def _in_repository(path):
+    return any((parent / ".git").exists() for parent in Path(path).resolve().parents)
+
+
+def check_key_file(path):
+    """Why a chosen file can't be the service account key, or "" when it can. Only the file's type is checked."""
+    p = Path(path)
+    if not p.is_file() or p.suffix.lower() != ".json":
+        return "Pick the .json file Google downloaded."
+    if _in_repository(p):
+        return "That file is inside a project folder. Move it to a folder of its own (e.g. Documents\\keys) and pick it there."
+    try:
+        data = json.loads(p.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return "That file can't be read as a key file."
+    if not isinstance(data, dict) or data.get("type") != "service_account" or not data.get("private_key"):
+        return "That isn't a service account key file. Make one on desk-upload's Keys tab (JSON)."
+    return ""
+
+
+def save_key_path(path):
+    """Remembers where the key file is: the Windows user variable (for later desk starts) and this desk process."""
+    import winreg
+    path = str(Path(path).resolve())
+    with winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Environment", 0, winreg.KEY_SET_VALUE) as k:
+        winreg.SetValueEx(k, ENV, 0, winreg.REG_SZ, path)
+    os.environ[ENV] = path
+    return path
+
+
 # Session ----------------------------------------------------------------------------------------------------
 
 def account_state():
     """What the desk may show: whether the path is set and readable, and the service account's email (not secret)."""
-    path = os.environ.get(ENV, "")
+    path = key_path()
     state = {"env": ENV, "set": bool(path), "found": False, "email": ""}
     if path and Path(path).is_file():
         try:
@@ -86,7 +132,7 @@ def account_state():
 
 class Play:
     def __init__(self, package):
-        path = os.environ.get(ENV, "")
+        path = key_path()
         if not path or not Path(path).is_file():
             raise ValueError(f"Set {ENV} to the service account JSON file (outside every repository).")
         data = json.loads(Path(path).read_text(encoding="utf-8"))
