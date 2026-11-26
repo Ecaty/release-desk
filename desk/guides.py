@@ -144,6 +144,7 @@ GUIDES = {
     "samsung": {
         "Seller Portal account": [
             {"text": "Sign up for a free seller account (no Samsung phone needed).", "link": SELLER},
+            {"text": "Profile > Request Corporate Commercial Seller: needs a registered business. Android apps can't be added without it."},
         ],
         "Register the app by hand": [
             {"text": "Add New Application > Android: the game's name.", "link": SELLER},

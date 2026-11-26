@@ -126,7 +126,7 @@ def status(project):
     seller = "https://seller.samsungapps.com/"
     steps = [
         {"title": "Seller Portal account", "state": "ok" if s["contentId"] else "todo", "kind": "hand", "link": seller,
-         "detail": "Register a free Galaxy Store seller account (no Samsung device needed)."},
+         "detail": "Android apps need a corporate seller account (a registered business); a personal account can't add one. Without a business, hide Galaxy Store on the Overview."},
         {"title": "Register the app by hand", "state": "ok" if s["contentId"] else "todo", "kind": "hand", "link": seller, "go": "samsung/keys/ids-samsung-contentId",
          "detail": "Add the app once in Seller Portal with the release AAB, store listing, screenshots, age rating and countries; choose Galaxy Store's signing key or your own. Then put its 12-digit content ID in Keys & accounts."},
         {"title": "Service account", "state": "ok" if key["found"] and s["serviceAccountId"] else "todo", "kind": "hand", "go": "samsung/keys/ids-samsung-serviceAccountId",
