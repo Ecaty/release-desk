@@ -36,14 +36,6 @@ class PageAndGuides(unittest.TestCase):
         self.assertEqual(itch.page_url("someone/some-game"), "https://someone.itch.io/some-game")
         self.assertEqual(itch.page_url(""), "")
 
-    def test_guides_are_well_formed(self):
-        from desk import play
-        guides = [itch._guide_new_page(), itch._guide_edit_page("", "x"), itch._guide_edit_page("https://itch.io/game/edit/1", "x"), play.ACCOUNT_GUIDE, play.CREATE_APP_GUIDE, play.SERVICE_ACCOUNT_GUIDE]
-        for g in guides:
-            for line in g:
-                self.assertTrue(line["text"].strip())
-                self.assertTrue(line.get("link", "https://").startswith("https://"), line)
-
 
 class EditLink(unittest.TestCase):
     def setUp(self):

@@ -120,6 +120,7 @@ nav small.lvl{font-weight:600;padding:1px 7px;border-radius:999px}.lvl.done{back
 .steps li.is-ok .t{color:var(--ok)}.steps li{margin-bottom:6px;border-top:none}
 .mark.hand{color:var(--warn)}.mark.ok{color:var(--ok)}
 .steps .side{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.guide .glink{font-weight:600;white-space:nowrap}
 .steps .tick{display:flex;gap:5px;align-items:center;font-size:12px;cursor:pointer;white-space:nowrap}
 .flash{animation:flash 1.6s ease-out}@keyframes flash{0%,40%{box-shadow:0 0 0 3px var(--accent)}100%{box-shadow:0 0 0 0 transparent}}
 @media (prefers-reduced-motion:reduce){.flash{animation:none;outline:3px solid var(--accent)}}
@@ -565,7 +566,7 @@ function artBox(store, s) {
 const hostOf = u => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return "link"; } };
 // The guide opens on the first unfinished step that has one, so the next thing to do by hand is always spelled out.
 const openStep = steps => steps.findIndex(y => y.state !== "ok" && (y.guide || []).length);
-const guideList = (g, open) => (g || []).length ? `<details class="guide" ${open ? "open" : ""}><summary>Step by step</summary><ol>${g.map(x => `<li>${esc(x.text)}${x.link ? ` <a href="${esc(x.link)}" target="_blank" rel="noopener">${esc(hostOf(x.link))} ${ic("open_in_new")}</a>` : ""}${x.go ? ` <button class="copy" data-act="go" data-go="${esc(x.go)}">${ic("arrow_forward")}Go</button>` : ""}</li>`).join("")}</ol></details>` : "";
+const guideList = (g, open) => (g || []).length ? `<details class="guide" ${open ? "open" : ""}><summary>Step by step</summary><ol>${g.map(x => `<li>${x.link ? `<a class="glink" href="${esc(x.link)}" target="_blank" rel="noopener">${ic("open_in_new")}${esc(hostOf(x.link))}</a> ` : ""}${esc(x.text)}${x.go ? ` <button class="copy" data-act="go" data-go="${esc(x.go)}">${ic("arrow_forward")}Go</button>` : ""}</li>`).join("")}</ol><p class="note">Looks different? Send a screenshot on the board card.</p></details>` : "";
 const stepsBox = (steps, store) => `<div class="box"><ol class="steps">${steps.map((x, i) => `<li data-step="${i}" class="${x.state === "ok" ? "is-ok" : "is-todo"} ${stepFocus.store === store && stepFocus.index === i ? "focus" : ""}">${mark(x.state)}<div><div class="t">${esc(x.title)}</div><div class="d">${esc(x.detail)}${x.link ? ` <a href="${esc(x.link)}" target="_blank" rel="noopener">Open ${ic("open_in_new")}</a>` : ""}</div>${guideList(x.guide, i === openStep(steps))}</div><div class="side">${kindChip(x.kind)}${x.tick ? `<label class="tick"><input type="checkbox" data-tick="${esc(store)}" data-title="${esc(x.title)}" ${x.state === "ok" ? "checked" : ""}>Done</label>` : ""}${x.go ? `<button class="copy" data-act="go" data-go="${esc(x.go)}">${ic("arrow_forward")}Go</button>` : ""}</div></li>`).join("")}</ol></div>`;
 async function shotsBox(store, summary) {
   const list = (await api("/api/shots")).shots.filter(x => (x.stores || []).includes(store));

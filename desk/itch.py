@@ -194,9 +194,8 @@ def page_url(project_id):
 
 def _guide_new_page():
     return [
-        {"text": "Log in to itch.io (or sign up; free).", "link": "https://itch.io/login"},
-        {"text": "Open Create new project.", "link": "https://itch.io/game/new"},
-        {"text": "Type the Title. Kind of project: Downloadable. Pricing: No payments."},
+        {"text": "Log in (or sign up, free), then this opens Create new project.", "link": "https://itch.io/game/new"},
+        {"text": "Title: the game's name. Kind of project: Downloadable. Pricing: No payments."},
         {"text": "Press Save & view page (it stays a Draft)."},
         {"text": "Copy the address bar (https://name.itch.io/game), paste it into Project here, Save.", "go": "itch/keys/ids-itch-project"},
     ]
@@ -247,7 +246,7 @@ def edit_url(project_id):
 def _guide_edit_page(edit, what):
     return [
         {"text": "Open Edit game on itch.io.", "link": edit} if edit else
-        {"text": "Open your itch.io dashboard, press Edit under the game (after the first upload this opens Edit game directly).", "link": DASHBOARD},
+        {"text": "Press Edit under the game.", "link": DASHBOARD},
         {"text": what},
         {"text": "Press Save at the bottom."},
     ]

@@ -9,7 +9,7 @@ import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from . import art, builds, epic, evaluate, gog, itch, jobs, laptop, microsoft, status, play, release, samsung, shots, steam, stores, ticks, unity
+from . import art, builds, epic, evaluate, gog, itch, jobs, laptop, microsoft, status, play, release, samsung, shots, steam, stores, ticks, guides, unity
 from .project import Project, load_config, save_config
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -93,7 +93,7 @@ RAW = {"steam": lambda p: steam.status(p, load_config()), "itch": itch.status, "
 
 def store_status(sid, p):
     """A store's status with the user's ticks on by-hand steps applied."""
-    return ticks.apply(p, sid, RAW[sid](p))
+    return ticks.apply(p, sid, guides.apply(sid, RAW[sid](p)))
 
 
 STEPS = {sid: (lambda p, sid=sid: store_status(sid, p)["steps"]) for sid in RAW}
