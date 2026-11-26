@@ -224,7 +224,7 @@ def status(project):
          "detail": "Lets it upload test releases of this game only.", "guide": INVITE_GUIDE},
         {"title": "Service account", "go": "play/keys/play-account", "state": "ok" if account["found"] else "todo", "kind": "hand",
          "detail": "Tell the desk where the key file is.",
-         "guide": [{"text": "Keys & accounts here shows whether the desk found the key file.", "go": "play/keys/play-account"},
+         "guide": [{"text": "Last, after the key file step. Go shows Service account: not set until you finish this.", "go": "play/keys/play-account"},
                    {"text": f"In PowerShell, with your file's path: [Environment]::SetEnvironmentVariable('{playapi.ENV}', 'C:\\path\\to\\file.json', 'User')"},
                    {"text": "Tell Release Desk on the board; it restarts the desk. Keys & accounts then shows found."}]},
         {"title": "Store listing text", "go": "play/listing/play-text", "state": "ok" if not any(f["problem"] for f in fields) else "todo", "kind": "desk",
