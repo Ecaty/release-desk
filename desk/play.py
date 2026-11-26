@@ -160,7 +160,7 @@ CLOUD_PROJECT_GUIDE = [
 KEY_FILE_GUIDE = [
     {"text": "Press + Create service account. Name: desk-upload. Create and continue, Continue, Done.", "link": CLOUD + "/iam-admin/serviceaccounts"},
     {"text": "Click desk-upload > Keys tab > Add key > Create new key > JSON > Create."},
-    {"text": "Move the downloaded file into a folder outside every project (e.g. Documents > keys). Never send it to anyone."},
+    {"text": "Move the file into a folder of its own, not in a project or OneDrive (e.g. C:\\Users\\you\\keys). Never send it to anyone."},
 ]
 
 INVITE_GUIDE = [

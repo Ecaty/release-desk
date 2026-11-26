@@ -193,14 +193,20 @@ print(filedialog.askopenfilename(parent=root, title='Choose the service account 
 
 def pick_key_file():
     """Asks for the Play service account key file; the desk keeps only its path. Returns a message for the page."""
-    run = subprocess.run([sys.executable, "-c", PICK_KEY], capture_output=True, text=True, timeout=600)
-    path = run.stdout.strip()
+    try:
+        run = subprocess.run([sys.executable, "-c", PICK_KEY], capture_output=True, text=True, timeout=600)
+    except (OSError, subprocess.SubprocessError):
+        return {"ok": False, "message": "The file dialog didn't open or was left open too long. Try again."}
+    path = (run.stdout or "").strip()
     if not path:
         return {"ok": False, "message": "No file chosen."}
     why = play.playapi.check_key_file(path)
     if why:
         return {"ok": False, "message": why}
-    play.playapi.save_key_path(path)
+    try:
+        play.playapi.save_key_path(path)
+    except (ImportError, OSError):
+        return {"ok": False, "message": "Windows didn't let the desk remember the file's place. Try again."}
     return {"ok": True, "message": "Key file found. The desk remembers where it is."}
 
 
