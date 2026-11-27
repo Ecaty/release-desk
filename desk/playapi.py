@@ -68,13 +68,78 @@ def _b64(data):
     return base64.urlsafe_b64encode(data).rstrip(b"=")
 
 
+# Key file location ------------------------------------------------------------------------------------------
+
+def _user_variable():
+    """The Windows user variable, so a path set after the desk started counts without a restart."""
+    try:
+        import winreg
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Environment") as k:
+            return str(winreg.QueryValueEx(k, ENV)[0])
+    except (ImportError, OSError):
+        return ""
+
+
+def key_path():
+    return os.environ.get(ENV, "") or _user_variable()
+
+
+TOKEN_URI = "https://oauth2.googleapis.com/token"
+KEYS_HINT = "a folder of its own, e.g. C:\\Users\\you\\keys"
+_SYNCED = ("onedrive", "dropbox", "google drive", "googledrive", "icloud drive", "iclouddrive", "box sync", "mega")
+
+
+def _in_repository(path):
+    """A .git folder or worktree .git file in any parent. A working tree whose git dir lives elsewhere
+    (--git-dir, core.worktree) is not detected; such setups are rare and the guide says to use a folder of its own."""
+    return any((parent / ".git").exists() for parent in Path(path).resolve().parents)
+
+
+def _synced(path):
+    """Inside OneDrive or another folder that syncs to the cloud."""
+    p = Path(path).resolve()
+    roots = [os.environ.get(v, "") for v in ("OneDrive", "OneDriveConsumer", "OneDriveCommercial")]
+    if any(r and (p == Path(r).resolve() or Path(r).resolve() in p.parents) for r in roots):
+        return True
+    return any(part.lower().startswith(_SYNCED) for part in p.parts)
+
+
+def check_key_file(path):
+    """Why a file can't be the service account key, or "" when it can. Only the file's type is checked;
+    the messages are fixed and never contain the path or anything from the file."""
+    try:
+        p = Path(path)
+        if not p.is_file() or p.suffix.lower() != ".json":
+            return "Pick the .json file Google downloaded."
+        if _in_repository(p):
+            return f"That file is inside a project folder. Move it to {KEYS_HINT}, and pick it there."
+        if _synced(p):
+            return f"That folder syncs to the cloud (e.g. OneDrive). Move the file to {KEYS_HINT}, and pick it there."
+        data = json.loads(p.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return "That file can't be read as a key file."
+    if not isinstance(data, dict) or data.get("type") != "service_account" or not data.get("private_key"):
+        return "That isn't a service account key file. Make one on desk-upload's Keys tab (JSON)."
+    return ""
+
+
+def save_key_path(path):
+    """Remembers where the key file is: the Windows user variable (for later desk starts) and this desk process."""
+    import winreg
+    path = str(Path(path).resolve())
+    with winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Environment", 0, winreg.KEY_SET_VALUE) as k:
+        winreg.SetValueEx(k, ENV, 0, winreg.REG_SZ, path)
+    os.environ[ENV] = path
+    return path
+
+
 # Session ----------------------------------------------------------------------------------------------------
 
 def account_state():
     """What the desk may show: whether the path is set and readable, and the service account's email (not secret)."""
-    path = os.environ.get(ENV, "")
+    path = key_path()
     state = {"env": ENV, "set": bool(path), "found": False, "email": ""}
-    if path and Path(path).is_file():
+    if path and not check_key_file(path):
         try:
             data = json.loads(Path(path).read_text(encoding="utf-8"))
             state["found"] = data.get("type") == "service_account" and bool(data.get("private_key"))
@@ -86,12 +151,15 @@ def account_state():
 
 class Play:
     def __init__(self, package):
-        path = os.environ.get(ENV, "")
-        if not path or not Path(path).is_file():
-            raise ValueError(f"Set {ENV} to the service account JSON file (outside every repository).")
+        path = key_path()
+        if not path:
+            raise ValueError("Choose the service account key file in Keys & accounts.")
+        why = check_key_file(path)
+        if why:
+            raise ValueError(why)
         data = json.loads(Path(path).read_text(encoding="utf-8"))
         self.package = package
-        self._email, self._token_uri = data["client_email"], data.get("token_uri", "https://oauth2.googleapis.com/token")
+        self._email, self._token_uri = data["client_email"], TOKEN_URI
         self._key = private_key(data["private_key"])
         self._token, self._expires = "", 0
 

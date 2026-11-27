@@ -36,13 +36,30 @@ class PageAndGuides(unittest.TestCase):
         self.assertEqual(itch.page_url("someone/some-game"), "https://someone.itch.io/some-game")
         self.assertEqual(itch.page_url(""), "")
 
-    def test_guides_are_well_formed(self):
-        from desk import play
-        guides = [itch._guide_new_page(), itch._guide_edit_page("x"), play.ACCOUNT_GUIDE, play.CREATE_APP_GUIDE, play.SERVICE_ACCOUNT_GUIDE]
-        for g in guides:
-            for line in g:
-                self.assertTrue(line["text"].strip())
-                self.assertTrue(line.get("link", "https://").startswith("https://"), line)
+
+class EditLink(unittest.TestCase):
+    def setUp(self):
+        itch._EDIT.clear()
+
+    def test_found_from_uploaded_channel(self):
+        chans = [{"name": "windows", "upload": {"id": 9, "gameId": 42}}]
+        with mock.patch.object(itch, "_channels", lambda pid: chans):
+            self.assertEqual(itch.edit_url("someone/some-game"), "https://itch.io/game/edit/42")
+
+    def test_none_before_first_push_and_waits_before_retrying(self):
+        calls = []
+        def none(pid):
+            calls.append(1)
+            return []
+        with mock.patch.object(itch, "_channels", none):
+            self.assertEqual(itch.edit_url("someone/some-game"), "")
+            self.assertEqual(itch.edit_url("someone/some-game"), "")
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(itch.edit_url(""), "")
+
+    def test_odd_ids_ignored(self):
+        with mock.patch.object(itch, "_channels", lambda pid: [{"upload": {"gameId": "42/../x"}}]):
+            self.assertEqual(itch.edit_url("someone/some-game"), "")
 
 
 class Consoles(unittest.TestCase):

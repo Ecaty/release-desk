@@ -66,8 +66,9 @@ def status(project):
     portal = "https://devportal.gog.com/"
     steps = [
         {"title": "Submit the game to GOG", "state": "ok" if settings(project)["productId"] else "todo", "kind": "hand",
-         "link": "https://partners.gog.com/", "go": "gog/keys/ids-gog-productId",
-         "detail": "GOG curates its catalogue: submit the game for consideration. After signing, put the product ID in Keys & accounts."},
+         "link": "https://support.gog.com/hc/en-us/articles/11382878039197", "go": "gog/keys/ids-gog-productId",
+         "detail": "GOG curates its catalogue: submit the game for consideration (the link says how; best when the game is nearly done). "
+                   "The Developer Portal opens after GOG invites you. After signing, put the product ID in Keys & accounts."},
         {"title": "Pipeline Builder", "state": "ok" if key["installed"] else "todo", "kind": "hand", "link": portal, "go": "gog/keys/gog-tool",
          "detail": f"Download GOG's Pipeline Builder from the Developer Portal and unzip it into {key['toolFolder']}."},
         {"title": "Build Creator project", "state": "ok" if not key["project"]["problem"] else "todo", "kind": "hand", "go": "gog/keys/gog-project",
@@ -75,7 +76,7 @@ def status(project):
         {"title": "Store page text", "state": "ok" if not any(f["problem"] for f in fields) else "todo", "kind": "copy", "go": "gog/listing/gog-text",
          "detail": "Description, system requirements and legal lines go to GOG with the assets."},
         {"title": "Key art and logo", "state": "ok" if all(a["state"] in ("ok", "optional") for a in art_items) else "todo", "kind": "copy", "go": "gog/listing/gog-art",
-         "detail": "Send key art and logo (Store/gog/art) through GOG's Assets Manager; GOG renders the store images from its templates."},
+         "detail": "Send key art and logo as layered .psd files, at least 1920x1080 (Store/gog/art), through GOG's Assets Manager; GOG renders the store images from its templates."},
         {"title": "Screenshots", "state": "ok" if shots["good"] >= shots["min"] else "todo", "kind": "copy", "go": "gog/listing/gog-shots",
          "detail": f"{shots['good']} usable (1920×1080 or larger) in Store/{shots['folder']}."},
         {"title": "Windows build (DRM-free)", "state": "ok" if build["exists"] else "todo", "kind": "desk", "go": "gog/builds/gog-builds",

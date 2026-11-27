@@ -139,7 +139,7 @@ def status(project):
     portal = "https://dev.epicgames.com/portal"
     steps = [
         {"title": "Epic developer organization and product", "go": "epic/keys/ids-epic-organizationId", "state": "ok" if key["ids"]["productId"] else "todo", "kind": "hand", "link": portal,
-         "detail": "Create the organization (one-time submission fee) and the product in the Developer Portal, then put organizationId, productId and artifactId under \"epic\" in Store/store.json."},
+         "detail": "Create the organization and the product in the Developer Portal (US$100 per product, non-refundable; paid back after US$1,000 in Epic sales), then put organizationId, productId and artifactId under \"epic\" in Store/store.json."},
         {"title": "BuildPatch Tool", "go": "epic/keys/epic-bpt", "state": "ok" if key["installed"] else "todo", "kind": "hand", "link": portal,
          "detail": f"Developer Portal > your product > Epic Games Store > Artifacts and Binaries > Download build patch tool, and unzip it into {key['bptFolder']}."},
         {"title": "BPT credentials", "go": "epic/keys/epic-secret", "state": "ok" if key["ids"]["clientId"] and key["stored"] else "todo", "kind": "desk",

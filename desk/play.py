@@ -133,41 +133,70 @@ def _screenshots(project):
 TESTING_RULE = "https://support.google.com/googleplay/android-developer/answer/14151465"
 PLAY_HELP = "https://support.google.com/googleplay/android-developer"
 
-# Sign-up as Google showed it in 2026; the Console may word things differently.
+CONSOLE = "https://play.google.com/console"
+CLOUD = "https://console.cloud.google.com"
+
+# Each guide: the direct link first, then at most 4 short clicks. Labels as Google showed them in Nov 2026.
 ACCOUNT_GUIDE = [
-    {"text": "Had an account before that Google closed? Google may not reopen closed accounts. If you want to ask, sign in to "
-             "Play Console with that Google account and contact Play Console support from Help; Google decides. Otherwise go on below.",
-     "link": PLAY_HELP},
-    {"text": "New account: open the sign-up page and sign in with the Google account you will keep for publishing (a personal Gmail is fine).",
-     "link": "https://play.google.com/console/signup"},
-    {"text": "Choose Yourself (a personal account). An organisation account needs a D-U-N-S number, which can take weeks."},
-    {"text": "Developer name: what players see under the game on Play. Add a contact email and phone; Google verifies both with codes."},
-    {"text": "Answer the questions about your Android experience, accept the agreement and pay the one-time US$25 fee by card."},
-    {"text": "Verify your identity: Google asks for a photo of an ID document with your legal name and address. It can take a few days."},
-    {"text": "Verify an Android phone: install the Play Console app on a real phone and sign in there when asked."},
-    {"text": "When the Console opens on Home, the account is ready. Continue with Android package and Upload key below."},
-    {"text": "New personal accounts: before production, a closed test with at least 12 testers opted in for 14 days in a row. "
-             "Start it as soon as the first AAB is up, so the 14 days run while you polish.", "link": TESTING_RULE},
+    {"text": "Sign in with the Google account you will publish with.", "link": CONSOLE + "/signup"},
+    {"text": "Scroll down to Yourself, press Get started. Type developer name, email, phone; answer the questions."},
+    {"text": "Pay US$25 by card, then upload a photo of your ID."},
+    {"text": "On your Android phone: install Play Console, sign in.", "link": "https://play.google.com/store/apps/details?id=com.google.android.apps.playconsole"},
 ]
 
 CREATE_APP_GUIDE = [
-    {"text": "Open Play Console and press Create app (Home or All apps).", "link": "https://play.google.com/console"},
-    {"text": "App name: the store title. Default language, App or game: Game, Free or paid: Free (free cannot become paid later)."},
-    {"text": "Tick the two declarations and press Create app."},
-    {"text": "The app's Dashboard lists the set-up tasks. Under Test and release, open Closed testing (or Internal testing), create a release "
-             "and upload the release AAB from Builds once by hand. After that the desk uploads."},
-    {"text": "If the Dashboard shows a Test with 12 testers step before Apply for production, the closed-test rule applies to your account.",
-     "link": TESTING_RULE},
+    {"text": "Press Create app.", "link": CONSOLE},
+    {"text": "Type the game name and the package name (Keys & accounts shows it; it can never change). Press Check availability."},
+    {"text": "Pick Game and Free. Tick the three boxes."},
+    {"text": "Press Create app."},
 ]
 
-SERVICE_ACCOUNT_GUIDE = [
-    {"text": "Open Google Cloud Console with the same Google account and create a project (any name).", "link": "https://console.cloud.google.com/projectcreate"},
-    {"text": "Enable the Google Play Android Developer API in that project.",
-     "link": "https://console.cloud.google.com/apis/library/androidpublisher.googleapis.com"},
-    {"text": "IAM & Admin > Service accounts > Create service account (any name, no roles needed). Open it, Keys > Add key > JSON. "
-             "Save the file outside every repository.", "link": "https://console.cloud.google.com/iam-admin/serviceaccounts"},
-    {"text": "Play Console > Users and permissions > Invite new users: paste the service account email, give it this app with "
-             "Release to testing tracks (and production when you want the desk to release there).", "link": "https://play.google.com/console"},
+CLOUD_PROJECT_GUIDE = [
+    {"text": "Project name: e.g. tunu-play. Leave No organization. Press Create.", "link": CLOUD + "/projectcreate"},
+    {"text": "Wait until the bell (top right) says it's created."},
+    {"text": "Open this page, check your project is shown at the top, press Enable.", "link": CLOUD + "/apis/library/androidpublisher.googleapis.com"},
+]
+
+KEY_FILE_GUIDE = [
+    {"text": "Press + Create service account. Name: desk-upload. Create and continue, Continue, Done.", "link": CLOUD + "/iam-admin/serviceaccounts"},
+    {"text": "Click desk-upload > Keys tab > Add key > Create new key > JSON > Create."},
+    {"text": "Move the file into a folder of its own, not in a project or OneDrive (e.g. C:\\Users\\you\\keys). Never send it to anyone."},
+]
+
+INVITE_GUIDE = [
+    {"text": "Copy the desk-upload address from the Email column (ends in iam.gserviceaccount.com).", "link": CLOUD + "/iam-admin/serviceaccounts"},
+    {"text": "Press Invite new users, paste the address. Leave Set access expiry date and Make this user an account admin off.", "link": CONSOLE + "/developers/users-and-permissions"},
+    {"text": "Give permissions for specific apps > Add app > your game > Apply. Tick Release to testing tracks > Apply."},
+    {"text": "Press Invite user at the bottom."},
+]
+
+APP_CONTENT_GUIDE_1 = [
+    {"text": "Open your game, then in the left menu: Monitor and improve > Policy and programs > App content.", "link": CONSOLE},
+    {"text": "Privacy policy: paste the web address of your privacy policy, Save."},
+    {"text": "Ads: answer for your game (an ad SDK counts), Save."},
+]
+
+APP_CONTENT_GUIDE_2 = [
+    {"text": "Same App content page: Content rating > Start, answer for what the game contains, Submit.", "link": CONSOLE},
+    {"text": "Target audience: pick the ages, Save. Under 13 adds the Families rules.", "link": PLAY_HELP + "/answer/9893335"},
+    {"text": "Data safety: only data that leaves the phone counts. Then answer every other form App content lists."},
+]
+
+TESTERS_GUIDE = [
+    {"text": "Open your game, then Test and release > Testing > Closed testing. Press Manage track on Closed testing - Alpha.", "link": CONSOLE},
+    {"text": "Testers tab > Create email list: name it, add 12 or more emails, Save changes."},
+    {"text": "Tick the list, Save changes."},
+]
+
+FIRST_RELEASE_GUIDE = [
+    {"text": "In the desk: set Track to Closed testing, Save. Later uploads then go there by themselves.", "go": "play/builds/play-publish"},
+    {"text": "Same Closed testing - Alpha track > Releases tab > Create new release: upload the AAB from Builds, Next, Save.", "link": CONSOLE},
+    {"text": "Left menu: Publishing overview > Send for review. Testers get it once Google approves."},
+]
+
+PRODUCTION_GUIDE = [
+    {"text": "After 14 days with 12 or more testers: open your game's Dashboard, press Apply for production.", "link": CONSOLE},
+    {"text": "Answer the three parts of the form, press Apply."},
 ]
 
 
@@ -178,20 +207,25 @@ def status(project):
     notes_ok = len(rel["whatsNew"]) <= RULES["releaseNotesMax"]
     history = builds.history(project, "play-aab")
     steps = [
-        {"title": "Play developer account", "state": "todo", "kind": "hand", "link": "https://play.google.com/console/signup",
-         "detail": "Register once (one-time fee, identity checks). New personal accounts must run a closed test with testers before production.",
+        {"title": "Play developer account", "state": "todo", "kind": "hand", "link": CONSOLE + "/signup",
+         "detail": "Once: US$25 and an ID check. New personal accounts need a 14-day closed test with 12 testers before going public.",
          "guide": ACCOUNT_GUIDE},
         {"title": "Android package", "go": "play/keys/ids-play-package", "state": "ok" if key["package"] else "todo", "kind": "hand",
-         "detail": "Choose the application id (cannot change later) and put it in Store/store.json as android.package, then Push to Unity."},
+         "detail": "The game's permanent id, e.g. com.tunu.christmas. Type it in Keys & accounts, then Push to Unity."},
         {"title": "Upload key", "go": "play/keys/play-key", "state": "ok" if key["ready"] else "todo", "kind": "desk",
-         "detail": f"Create upload key (Keys & accounts): keystore {key['keystore']}, password in Credential Manager as {key['credential']}. Play App Signing keeps the release key."},
-        {"title": "Create the app in Play Console", "state": "todo", "kind": "hand", "link": "https://play.google.com/console",
-         "detail": "The API cannot create apps. Create it by hand and upload the first release AAB there once. Releases go up as drafts until you set play.status to \"completed\" in Store/store.json.",
-         "guide": CREATE_APP_GUIDE},
+         "detail": f"Press Create upload key in Keys & accounts. Keystore {key['keystore']}; its password stays in Credential Manager."},
+        {"title": "Create the app in Play Console", "state": "todo", "kind": "hand", "link": CONSOLE,
+         "detail": "Once, by hand: Google's API can't create apps.", "guide": CREATE_APP_GUIDE},
+        {"title": "Google Cloud project", "state": "todo", "kind": "hand", "link": CLOUD + "/projectcreate",
+         "detail": "Needed so the desk may upload. Free.", "guide": CLOUD_PROJECT_GUIDE},
+        {"title": "Service account key file", "state": "todo", "kind": "hand", "link": CLOUD + "/iam-admin/serviceaccounts",
+         "detail": "The desk's own login for uploads. You keep the file.", "guide": KEY_FILE_GUIDE},
+        {"title": "Invite the service account in Play Console", "state": "todo", "kind": "hand", "link": CONSOLE + "/developers/users-and-permissions",
+         "detail": "Lets it upload test releases of this game only.", "guide": INVITE_GUIDE},
         {"title": "Service account", "go": "play/keys/play-account", "state": "ok" if account["found"] else "todo", "kind": "hand",
-         "link": "https://developers.google.com/android-publisher/getting_started",
-         "detail": f"Create a service account in Google Cloud with the Play Android Developer API enabled, invite its email in Play Console > Users and permissions with release rights for this app, save its JSON key outside every repository and set {playapi.ENV} to its path.",
-         "guide": SERVICE_ACCOUNT_GUIDE + [{"text": f"Set the Windows user environment variable {playapi.ENV} to the JSON file's path and restart the desk."}]},
+         "detail": "Tell the desk where the key file is.",
+         "guide": [{"text": "Last, after the key file step: press Go, then Choose key file and pick the downloaded .json file.", "go": "play/keys/play-account"},
+                   {"text": "Service account then shows found. The desk keeps only where the file is, never its contents."}]},
         {"title": "Store listing text", "go": "play/listing/play-text", "state": "ok" if not any(f["problem"] for f in fields) else "todo", "kind": "desk",
          "detail": "Title, short and full description (Listing tab); uploaded with each publish."},
         {"title": "Store art", "go": "play/listing/play-art", "state": "ok" if all(a["state"] in ("ok", "optional") for a in art_items) else "todo", "kind": "desk",
@@ -199,16 +233,19 @@ def status(project):
         {"title": "Phone screenshots", "go": "play/listing/play-shots", "state": "ok" if shots["good"] >= shots["min"] else "todo", "kind": "desk",
          "detail": f"{shots['good']} of at least {shots['min']} usable in Store/{shots['folder']} (add \"play\" to a shot's stores in Store/shots.json)."},
         {"title": "Release AAB", "go": "play/builds/play-builds", "state": "ok" if aab["exists"] else "todo", "kind": "desk",
-         "detail": "Signed with the upload key (Builds tab)."},
-        {"title": f"Upload to {play['track']}", "go": "play/builds/play-publish", "state": "ok" if any(h.get("uploaded") for h in history[:1]) else "todo", "kind": "desk",
-         "detail": f"Bundle with the release notes recorded when it was built (What's new, or the Release-note lines committed since the previous AAB{'' if notes_ok else '; What’s new is too long'}), listing and art in one edit on the {play['track']} track."},
-        {"title": "Content rating, data safety, target audience", "state": "todo", "kind": "hand",
-         "detail": "Questionnaires in Play Console; needed before any testing track goes out to testers.",
-         "guide": [{"text": "Open the app in Play Console; the Dashboard lists each questionnaire under Set up your app.", "link": "https://play.google.com/console"},
-                   {"text": "Content rating: the IARC questionnaire; answer for what your game contains (violence, chat with others, purchases)."},
-                   {"text": "Target audience: pick the age groups you mean. Choosing under 13 brings the Families policy requirements."},
-                   {"text": "Data safety: say what data leaves the phone. Data processed only on the device does not count as collected."},
-                   {"text": "Families policy and its requirements.", "link": PLAY_HELP + "/answer/9893335"}]},
+         "detail": "Press Build release AAB (Builds tab). Signed with the upload key."},
+        {"title": "App content: privacy policy and ads", "state": "todo", "kind": "hand", "link": CONSOLE,
+         "detail": "Google won't review a release without these.", "guide": APP_CONTENT_GUIDE_1},
+        {"title": "App content: rating, audience, data safety", "state": "todo", "kind": "hand", "link": CONSOLE,
+         "detail": "Short questionnaires: rating, audience, data safety, and whatever else App content lists (app access, advertising ID and more).", "guide": APP_CONTENT_GUIDE_2},
+        {"title": "Closed test: testers", "state": "todo", "kind": "hand", "link": CONSOLE,
+         "detail": "12 or more people with a Google account, for 14 days in a row. Invite a few extra.", "guide": TESTERS_GUIDE},
+        {"title": "Closed test: first release", "state": "todo", "kind": "hand", "link": CONSOLE,
+         "detail": "The first AAB goes up by hand once; the desk uploads the next ones.", "guide": FIRST_RELEASE_GUIDE},
+        {"title": f"Upload to {TRACKS.get(play['track'], play['track'])}", "go": "play/builds/play-publish", "state": "ok" if any(h.get("uploaded") for h in history[:1]) else "todo", "kind": "desk",
+         "detail": f"Press Publish (Builds tab): the AAB, release notes, listing and art in one go{'' if notes_ok else '; What’s new is too long'}."},
+        {"title": "Apply for production", "state": "todo", "kind": "hand", "link": TESTING_RULE,
+         "detail": "After the 14-day closed test. Then the game can go public.", "guide": PRODUCTION_GUIDE},
     ]
     return {"fields": fields, "art": art_items, "screenshots": shots, "key": key, "account": account, "aab": aab, "steps": steps,
             "play": play, "tracks": TRACKS, "statuses": STATUSES, "language": RULES["language"], "rules": {"checked": RULES["checked"], "sources": RULES["sources"]}}
